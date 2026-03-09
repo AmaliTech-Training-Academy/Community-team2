@@ -11,12 +11,10 @@ import org.springframework.data.domain.Pageable;
 
 public interface UserInterface {
     UserResponse createUser(UserRequest user);
-    UserResponse getUserByEmail(String email);
     UserResponse getUserById(Long id);
     Page<UserResponse> getAllUsers(Pageable pageable);
     UserResponse updateUser(Long id, UserUpdateRequest user);
     void deleteUser(Long id);
-    UserResponse getUserByUsername(String username);
 
     AuthResponse loginUser(AuthRequest auth,HttpServletResponse response);
 

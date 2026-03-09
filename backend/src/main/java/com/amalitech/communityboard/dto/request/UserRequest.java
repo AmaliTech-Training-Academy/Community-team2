@@ -31,5 +31,4 @@ public class UserRequest {
 
     private UserRole role;
 
-    private AccountProvider provider;
 }

@@ -55,12 +55,7 @@ public class UserService implements UserInterface {
         return userMapper.toResponse(userRepository.save(user));
     }
 
-    @Override
-    public UserResponse getUserByEmail(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new EntityNotFoundException("user not found"));
-        return userMapper.toResponse(user);
-    }
+
 
     @Override
     public UserResponse getUserById(Long id) {
@@ -104,12 +99,6 @@ public class UserService implements UserInterface {
         userRepository.delete(user);
     }
 
-    @Override
-    public UserResponse getUserByUsername(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("user not found"));
-        return userMapper.toResponse(user);
-    }
 
     @Override
     public AuthResponse loginUser(AuthRequest auth,HttpServletResponse response) {
