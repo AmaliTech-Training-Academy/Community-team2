@@ -24,7 +24,7 @@ public class UserRequest {
 
     @NotBlank
     @Pattern(
-            regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$",
+            regexp = "^(?=.*[A-Za-z])(?=.*\\d).{8,}$",
             message = "Password must be at least 8 characters long and contain both letters and numbers"
     )
     private String password;

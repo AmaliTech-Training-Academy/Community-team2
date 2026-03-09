@@ -2,6 +2,7 @@ package com.amalitech.communityboard.service.interfaces;
 
 import com.amalitech.communityboard.dto.request.AuthRequest;
 import com.amalitech.communityboard.dto.request.UserRequest;
+import com.amalitech.communityboard.dto.request.UserUpdateRequest;
 import com.amalitech.communityboard.dto.response.AuthResponse;
 import com.amalitech.communityboard.dto.response.UserResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,7 +14,7 @@ public interface UserInterface {
     UserResponse getUserByEmail(String email);
     UserResponse getUserById(Long id);
     Page<UserResponse> getAllUsers(Pageable pageable);
-    UserResponse updateUser(Long id, UserRequest user);
+    UserResponse updateUser(Long id, UserUpdateRequest user);
     void deleteUser(Long id);
     UserResponse getUserByUsername(String username);
 
