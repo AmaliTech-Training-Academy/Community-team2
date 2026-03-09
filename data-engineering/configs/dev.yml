@@ -1,0 +1,26 @@
+environment: dev
+
+data_source: csv
+
+csv_paths:
+  users: sample-data/users.csv
+  posts: sample-data/posts.csv
+  comments: sample-data/comments.csv
+
+sample_data:
+  users: 20
+  posts: 60
+  comments: 220
+  active_users_ratio: 0.3
+
+categories:
+  - NEWS
+  - EVENT
+  - DISCUSSION
+  - ALERT
+
+pipeline:
+  schedule: "@hourly"
+
+logging:
+  level: INFO

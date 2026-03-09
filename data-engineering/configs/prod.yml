@@ -1,0 +1,18 @@
+
+
+environment: prod
+
+data_source: postgres
+
+postgres:
+  host: postgres
+  port: 5432
+  database: communityboard
+  user: airflow
+  password: airflow
+
+pipeline:
+  schedule: "@hourly"
+
+logging:
+  level: INFO
