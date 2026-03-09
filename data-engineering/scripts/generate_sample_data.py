@@ -10,7 +10,7 @@ from utils.settings import OUTPUT_DIR
 # Logging Configuration
 # -------------------------
 
-logger = get_logger(__name__)
+logger = get_logger("generate_sample_data")
 
 
 # -------------------------
@@ -36,12 +36,13 @@ try:
 
     CATEGORIES = config["categories"]
 
+    # 30% of users generate most of the posts
+    ACTIVE_USERS_RATIO = config["sample_data"]["active_users_ratio"]
+
 except Exception as e:
     logger.error("Failed to load configuration.")
     raise e
 
-# 30% of users generate most of the posts
-ACTIVE_USERS_RATIO = config["sample_data"]["active_users_ratio"]
 
 
 # -------------------------
@@ -74,7 +75,7 @@ def generate_users(n: int) -> pd.DataFrame:
         for i in range(1, n + 1):
             users.append({
                 "id": i,
-                "name": fake.name(),
+                "username": fake.user_name(),
                 "email": fake.email(),
                 "role": random.choice(["member", "admin"]),
                 "created_at": fake.date_time_this_year()

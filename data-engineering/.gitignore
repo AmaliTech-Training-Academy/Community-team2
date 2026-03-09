@@ -13,4 +13,4 @@ build/
 __pycache__/
 *.pyc
 .DS_Store
-data-engineering/sample-data/test.ipynb
+sample-data/test.ipynb
