@@ -46,4 +46,12 @@ public class User {
     private AccountProvider provider = AccountProvider.LOCAL;
 
     public User() {}
+
+    public User(String username, String email, String password, UserRole userRole, AccountProvider accountProvider) {
+        this.username=username;
+        this.email=email;
+        this.password=password;
+        this.role=userRole;
+        this.provider=accountProvider;
+    }
 }
