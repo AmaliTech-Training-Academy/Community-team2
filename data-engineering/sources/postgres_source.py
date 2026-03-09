@@ -15,6 +15,11 @@ class PostgresSource(DataSource):
     downstream processing logic.
     """
 
+    def __init__(self, config=None):
+        self.db_config = DB_CONFIG.copy()
+        if config is not None and "postgres" in config:
+            self.db_config.update(config["postgres"])
+
     def _connect(self):
         """
         Establish a connection to the PostgreSQL database.
@@ -24,7 +29,7 @@ class PostgresSource(DataSource):
         psycopg2.extensions.connection
             Active connection object to the PostgreSQL database.
         """
-        return psycopg2.connect(**DB_CONFIG)
+        return psycopg2.connect(**self.db_config)
 
     def get_users(self) -> pd.DataFrame:
         """
