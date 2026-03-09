@@ -12,6 +12,7 @@ This directory contains the complete AWS infrastructure as code (IaC) for the Co
                          │
                     ┌────▼────┐
                     │   ALB   │ (Application Load Balancer)
+                    │ Public  │
                     └────┬────┘
                          │
         ┌────────────────┼────────────────┐
@@ -19,22 +20,19 @@ This directory contains the complete AWS infrastructure as code (IaC) for the Co
    ┌────▼────┐     ┌────▼────┐     ┌────▼────┐
    │Frontend │     │Backend  │     │Airflow  │
    │  ECS    │     │  ECS    │     │  ECS    │
-   └────┬────┘     └────┬────┘     └────┬────┘
-        │               │                │
-        │          ┌────▼────┐           │
-        │          │   RDS   │◄──────────┘
-        │          │Primary  │
-        │          └────┬────┘
-        │               │
-        │          ┌────▼────┐
-        │          │   RDS   │
-        │          │ Replica │
-        │          └─────────┘
-        │
-   ┌────▼──────────────────────────────┐
-   │      VPC Endpoints                │
-   │  (ECR, S3, Secrets, Logs, SSM)   │
-   └───────────────────────────────────┘
+   │ Private │     │ Private │     │ Private │
+   └─────────┘     └────┬────┘     └────┬────┘
+                        │                │
+                   ┌────▼────────────────▼────┐
+                   │   RDS PostgreSQL 15      │
+                   │  (3 databases)           │
+                   │  Private Subnet          │
+                   └──────────────────────────┘
+
+   ┌──────────────────────────────────────────┐
+   │      VPC Endpoints (Private)             │
+   │  ECR, S3, Secrets, CloudWatch, SSM       │
+   └──────────────────────────────────────────┘
 ```
 
 ## Infrastructure Components
@@ -47,20 +45,25 @@ This directory contains the complete AWS infrastructure as code (IaC) for the Co
 - **No NAT Gateway**: VPC endpoints provide AWS service access
 
 ### 2. Database (`modules/database/`)
-- **Primary RDS**: PostgreSQL 15.4 for read/write operations
-- **Read Replica**: For analytics and ETL workloads (Airflow)
-- **Multi-AZ**: Disabled (cost optimization for dev/test)
+- **Single RDS Instance**: PostgreSQL 15 hosting 3 databases:
+  - `communityboard` - Main application database
+  - `analytics` - Analytics and reporting data
+  - `airflow_metadata` - Airflow orchestration metadata
+- **Multi-AZ**: Disabled (cost optimization)
+- **Backup**: 1-day retention for free tier
 - **Encryption**: At-rest encryption enabled
 - **Credentials**: Stored in AWS Secrets Manager
+- **Private Subnet**: No public access
 
 ### 3. Compute (`modules/compute/`)
 - **ECS Cluster**: Fargate launch type (serverless containers)
 - **Backend Service**: Spring Boot API (port 8080) in private subnets
 - **Frontend Service**: React SPA with Nginx (port 80) in private subnets
 - **Airflow Service**: Data pipeline orchestration (port 8080) in private subnets
-- **Auto-scaling**: CPU-based scaling (1-4 tasks)
+- **Circuit Breakers**: Automatic rollback on deployment failures
+- **Health Checks**: 60s grace period for backend, 30s for frontend
 - **ECS Exec**: Enabled for database access and debugging
-- **No Public IPs**: All containers in private subnets
+- **No Public IPs**: All containers in private subnets (assign_public_ip = false)
 
 ### 4. Load Balancing
 - **Application Load Balancer**: Internet-facing in public subnets
@@ -100,10 +103,10 @@ Eliminates NAT Gateway costs and bastion host:
 - **Container Insights**: ECS cluster metrics
 - **RDS Logs**: PostgreSQL and upgrade logs
 
-### 9. Deployment (`modules/codedeploy/`)
-- **Blue/Green Deployment**: Zero-downtime updates
-- **CodeDeploy**: Automated rollback on failure
-- **Target Groups**: Blue and green for traffic shifting
+### 9. Deployment
+- **ECS Circuit Breakers**: Automatic rollback on failure (replaces CodeDeploy)
+- **Rolling Updates**: ECS native deployment strategy
+- **Health Checks**: ALB validates container health before routing traffic
 
 ### 10. State Management
 - **Remote State**: S3 backend with DynamoDB locking (optional)
@@ -127,7 +130,8 @@ devops/
 │       ├── security/            # Secrets Manager, IAM
 │       ├── vpc-endpoints/       # Private AWS service endpoints
 │       ├── monitoring/          # CloudWatch alarms
-│       └── codedeploy/          # Blue/green deployment
+│       ├── bastion/             # Bastion host (optional, commented out)
+│       └── codedeploy/          # CodeDeploy (optional, commented out)
 ├── scripts/                     # Deployment automation
 │   ├── deploy.sh               # Quick deployment script
 │   └── deploy-aws.sh           # Production deployment script
@@ -140,6 +144,8 @@ devops/
 - AWS CLI configured with credentials
 - Terraform >= 1.0 installed
 - Session Manager plugin (for database access)
+- Docker installed (for building images)
+- Region: **eu-west-1** (Ireland)
 
 ### 1. (Optional) Setup Remote State
 ```bash
@@ -171,7 +177,7 @@ cp terraform.tfvars.example terraform.tfvars
 ### 4. Push Docker Images
 ```bash
 # Login to ECR
-aws ecr get-login-password --region us-east-1 | \
+aws ecr get-login-password --region eu-west-1 | \
   docker login --username AWS --password-stdin <ECR_URL>
 
 # Build and push images
@@ -221,29 +227,34 @@ See [DATABASE_ACCESS.md](./DATABASE_ACCESS.md) for detailed instructions.
 ## Cost Optimization
 
 ### Current Setup (Development)
-- **ECS Fargate**: ~$15-30/month (3 services, minimal tasks)
-- **RDS Single-AZ**: ~$15/month (db.t3.micro)
-- **RDS Read Replica**: ~$15/month (db.t3.micro)
+- **ECS Fargate**: ~$10-15/month (3 services, 0.25 vCPU, 0.5GB RAM each)
+- **RDS db.t3.micro**: ~$15/month (single instance, 3 databases)
 - **ALB**: ~$16/month
 - **VPC Endpoints**: ~$21/month (3 interface endpoints)
-- **S3 (ALB Logs)**: ~$0.50-2/month
-- **S3 + DynamoDB (State)**: ~$1-3/month (optional)
-- **Data Transfer**: Variable
-- **Total**: ~$82-102/month
+- **S3 (ALB Logs)**: ~$1-2/month
+- **CloudWatch + SNS**: ~$0.30/month
+- **Data Transfer**: Variable (~$1-5/month)
+- **Total**: ~$67/month
 
 ### Cost Savings Applied
+- ✅ Single RDS instance with 3 databases (vs 3 separate instances)
+- ✅ No read replica (~$15/month saved)
 - ✅ Removed bastion host (~$3-10/month saved)
 - ✅ Disabled Multi-AZ (~$15/month saved)
 - ✅ VPC endpoints instead of NAT Gateway (~$32/month saved)
 - ✅ ECS in private subnets (no public IPs)
-- ✅ S3 lifecycle policies (auto-delete old logs)
-- ✅ Fargate Spot (optional, 70% savings on compute)
+- ✅ S3 lifecycle policies (90-day retention, auto-delete)
+- ✅ Minimal ECS task sizes (0.25 vCPU, 0.5GB RAM)
+- ✅ Removed CodeDeploy (using ECS circuit breakers instead)
 
 ### Production Recommendations
 - Enable Multi-AZ for RDS (`multi_az = true`)
-- Enable automated backups (`backup_retention_period = 7`)
-- Use Reserved Instances for predictable workloads
+- Increase backup retention (`backup_retention_period = 7`)
+- Add RDS read replica for analytics workloads
+- Increase ECS task sizes based on load
+- Use Fargate Spot for non-critical tasks (70% savings)
 - Enable CloudWatch Logs retention policies
+- Consider Reserved Capacity for predictable workloads
 
 ## Security Best Practices
 
