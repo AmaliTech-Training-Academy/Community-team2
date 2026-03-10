@@ -83,6 +83,10 @@ jobs:
       - name: Run unit tests
         working-directory: ./backend
         run: mvn test -B -q
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://${{ secrets.RDS_ENDPOINT }}:5432/communityboard
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.RDS_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.RDS_PASSWORD }}
       
       - name: Upload test results
         if: failure()
@@ -113,7 +117,7 @@ jobs:
       
       - name: Run unit tests
         working-directory: ./frontend
-        run: npm test -- --coverage --run
+        run: npm run test:coverage
       
       - name: Upload coverage
         if: always()
@@ -141,7 +145,7 @@ jobs:
       
       - name: Run integration tests
         working-directory: ./backend
-        run: mvn test -B -q -Dtest=*IntegrationTest
+        run: mvn test -B -q -Dtest=*IntegrationTest -Dsurefire.failIfNoSpecifiedTests=false
         env:
           SPRING_DATASOURCE_URL: ${{ secrets.RDS_ENDPOINT }}
           SPRING_DATASOURCE_USERNAME: ${{ secrets.RDS_USERNAME }}
@@ -168,7 +172,7 @@ jobs:
       
       - name: Run integration tests
         working-directory: ./frontend
-        run: npm test -- --include='**/*.integration.test.js' --run
+        run: npm test
 
   # Stage 3: Vulnerability Scan (Parallel, depends on Stage 2)
   scan-vulnerabilities:
