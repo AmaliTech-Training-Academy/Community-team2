@@ -2,7 +2,7 @@ name: CommunityBoard CI/CD
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main, Develop]
   workflow_dispatch:
     inputs:
       environment:
@@ -287,7 +287,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: build
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: (github.event.pull_request.base.ref == 'Develop' && github.event_name == 'pull_request') || (github.event.pull_request.base.ref == 'main' && github.event_name == 'pull_request') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Develop' || github.event_name == 'workflow_dispatch'
     environment:
       name: ${{ github.event.inputs.environment || 'development' }}
       url: http://${{ steps.get-url.outputs.alb_dns }}
