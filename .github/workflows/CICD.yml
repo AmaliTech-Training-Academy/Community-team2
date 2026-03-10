@@ -40,7 +40,6 @@ jobs:
       - name: Run Checkstyle
         working-directory: ./backend
         run: mvn checkstyle:check -B -q
-        continue-on-error: true
 
   lint-frontend:
     name: Lint Frontend
@@ -62,8 +61,7 @@ jobs:
       
       - name: Run ESLint
         working-directory: ./frontend
-        run: npm run lint --if-present 2>/dev/null || true
-        continue-on-error: true
+        run: npm run lint --if-present
 
   # Stage 2: Unit Tests (Parallel, depends on Stage 1)
   test-backend:
@@ -114,7 +112,7 @@ jobs:
       
       - name: Run unit tests
         working-directory: ./frontend
-        run: npm test -- --coverage --watchAll=false --silent 2>&1 || true
+        run: npm test -- --coverage --watchAll=false --silent
       
       - name: Upload coverage
         if: always()
@@ -123,7 +121,6 @@ jobs:
           name: frontend-coverage
           path: frontend/coverage/
           retention-days: 7
-        continue-on-error: true
 
   # Stage 2b: Integration Tests (Parallel, depends on Stage 1)
   integration-test-backend:
@@ -148,7 +145,6 @@ jobs:
           SPRING_DATASOURCE_URL: ${{ secrets.RDS_ENDPOINT }}
           SPRING_DATASOURCE_USERNAME: ${{ secrets.RDS_USERNAME }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.RDS_PASSWORD }}
-        continue-on-error: true
 
   integration-test-frontend:
     name: Integration Test Frontend
@@ -171,8 +167,7 @@ jobs:
       
       - name: Run integration tests
         working-directory: ./frontend
-        run: npm test -- --testPathPattern=integration --watchAll=false --silent 2>&1 || true
-        continue-on-error: true
+        run: npm test -- --testPathPattern=integration --watchAll=false --silent
 
   # Stage 3: Vulnerability Scan (Parallel, depends on Stage 2)
   scan-vulnerabilities:
