@@ -82,7 +82,7 @@ module "database" {
 
   project_name       = var.project_name
   environment        = var.environment
-  subnet_ids         = module.networking.private_subnet_ids  # Private subnets for security
+  subnet_ids         = module.networking.public_subnet_ids  # Public subnets for development access
   security_group_id  = module.networking.rds_security_group_id
   db_username        = var.db_username
   db_password        = var.db_password
