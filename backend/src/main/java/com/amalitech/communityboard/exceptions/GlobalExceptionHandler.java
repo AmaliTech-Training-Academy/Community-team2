@@ -2,11 +2,13 @@ package com.amalitech.communityboard.exceptions;
 
 import com.amalitech.communityboard.dto.ResponseDto;
 import jakarta.validation.ConstraintViolationException;
+import org.apache.tomcat.websocket.AuthenticationException;
 import org.springframework.aop.AopInvocationException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -138,5 +140,15 @@ public class GlobalExceptionHandler {
         details.put("message", ex.getMessage());
         details.put("path", request != null ? request.getDescription(false) : "");
         return build(HttpStatus.UNAUTHORIZED, "Invalid credentials", details);
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ResponseEntity<ResponseDto<Object>> handleAuthorizationDeniedException(AuthorizationDeniedException ex, WebRequest request){
+        Map<String,Object> details = new HashMap<>();
+        details.put("timestamp",LocalDateTime.now());
+        details.put("message", ex.getMessage());
+        details.put("path", request != null ? request.getDescription(false) : "");
+        return build(HttpStatus.UNAUTHORIZED, "Access Denied", details);
     }
 }

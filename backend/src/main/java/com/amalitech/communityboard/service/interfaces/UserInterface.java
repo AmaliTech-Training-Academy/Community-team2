@@ -2,6 +2,7 @@ package com.amalitech.communityboard.service.interfaces;
 
 import com.amalitech.communityboard.dto.request.AuthRequest;
 import com.amalitech.communityboard.dto.request.UserRequest;
+import com.amalitech.communityboard.dto.request.UserUpdateRequest;
 import com.amalitech.communityboard.dto.response.AuthResponse;
 import com.amalitech.communityboard.dto.response.UserResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -10,12 +11,10 @@ import org.springframework.data.domain.Pageable;
 
 public interface UserInterface {
     UserResponse createUser(UserRequest user);
-    UserResponse getUserByEmail(String email);
     UserResponse getUserById(Long id);
     Page<UserResponse> getAllUsers(Pageable pageable);
-    UserResponse updateUser(Long id, UserRequest user);
+    UserResponse updateUser(Long id, UserUpdateRequest user);
     void deleteUser(Long id);
-    UserResponse getUserByUsername(String username);
 
     AuthResponse loginUser(AuthRequest auth,HttpServletResponse response);
 

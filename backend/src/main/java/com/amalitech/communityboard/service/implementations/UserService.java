@@ -2,6 +2,7 @@ package com.amalitech.communityboard.service.implementations;
 
 import com.amalitech.communityboard.dto.request.AuthRequest;
 import com.amalitech.communityboard.dto.request.UserRequest;
+import com.amalitech.communityboard.dto.request.UserUpdateRequest;
 import com.amalitech.communityboard.dto.response.AuthResponse;
 import com.amalitech.communityboard.dto.response.UserResponse;
 import com.amalitech.communityboard.exceptions.EntityNotFoundException;
@@ -54,12 +55,7 @@ public class UserService implements UserInterface {
         return userMapper.toResponse(userRepository.save(user));
     }
 
-    @Override
-    public UserResponse getUserByEmail(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new EntityNotFoundException("user not found"));
-        return userMapper.toResponse(user);
-    }
+
 
     @Override
     public UserResponse getUserById(Long id) {
@@ -75,14 +71,24 @@ public class UserService implements UserInterface {
     }
 
     @Override
-    public UserResponse updateUser(Long id, UserRequest user) {
+    public UserResponse updateUser(Long id, UserUpdateRequest user) {
         User existing = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("user not found"));
-        existing.setUsername(user.getUsername());
-        existing.setEmail(user.getEmail());
-        existing.setPassword(user.getPassword());
-        existing.setRole(user.getRole());
-        existing.setProvider(user.getProvider());
+
+        if (user.getUsername() != null) {
+            existing.setUsername(user.getUsername());
+        }
+        if (user.getEmail() != null) {
+            existing.setEmail(user.getEmail());
+        }
+        if (user.getPassword() != null && !user.getPassword().isBlank()) {
+            String encoded = passwordEncoder.encode(user.getPassword());
+            existing.setPassword(encoded);
+        }
+        if (user.getRole() != null) {
+            existing.setRole(user.getRole());
+        }
+
         return userMapper.toResponse(userRepository.save(existing));
     }
 
@@ -93,12 +99,6 @@ public class UserService implements UserInterface {
         userRepository.delete(user);
     }
 
-    @Override
-    public UserResponse getUserByUsername(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("user not found"));
-        return userMapper.toResponse(user);
-    }
 
     @Override
     public AuthResponse loginUser(AuthRequest auth,HttpServletResponse response) {
