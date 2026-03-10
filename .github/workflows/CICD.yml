@@ -53,12 +53,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
       
       - name: Install dependencies
         working-directory: ./frontend
-        run: npm ci --prefer-offline --no-audit --silent
+        run: npm install
       
       - name: Run ESLint
         working-directory: ./frontend
@@ -108,12 +106,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
       
       - name: Install dependencies
         working-directory: ./frontend
-        run: npm ci --prefer-offline --no-audit --silent
+        run: npm install
       
       - name: Run unit tests
         working-directory: ./frontend
@@ -147,7 +143,7 @@ jobs:
         working-directory: ./backend
         run: mvn test -B -q -Dtest=*IntegrationTest -Dsurefire.failIfNoSpecifiedTests=false
         env:
-          SPRING_DATASOURCE_URL: ${{ secrets.RDS_ENDPOINT }}
+          SPRING_DATASOURCE_URL: jdbc:postgresql://${{ secrets.RDS_ENDPOINT }}:5432/communityboard
           SPRING_DATASOURCE_USERNAME: ${{ secrets.RDS_USERNAME }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.RDS_PASSWORD }}
 
@@ -163,12 +159,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
       
       - name: Install dependencies
         working-directory: ./frontend
-        run: npm ci --prefer-offline --no-audit --silent
+        run: npm install
       
       - name: Run integration tests
         working-directory: ./frontend
@@ -236,13 +230,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
       
       - name: Install and build
         working-directory: ./frontend
         run: |
-          npm ci --prefer-offline --no-audit --silent
+          npm install
           npm run build --silent
         env:
           CI: true
