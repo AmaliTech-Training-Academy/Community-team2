@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -17,6 +19,8 @@ import java.time.LocalDateTime;
 @Setter
 @Entity
 @Table(name = "users")
+@Builder
+@AllArgsConstructor
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,13 +49,7 @@ public class User {
     @Enumerated(EnumType.STRING)
     private AccountProvider provider = AccountProvider.LOCAL;
 
-    public User() {}
+    public User() {
 
-    public User(String username, String email, String password, UserRole userRole, AccountProvider accountProvider) {
-        this.username=username;
-        this.email=email;
-        this.password=password;
-        this.role=userRole;
-        this.provider=accountProvider;
     }
 }
