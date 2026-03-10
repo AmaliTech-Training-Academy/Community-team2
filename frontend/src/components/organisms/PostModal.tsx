@@ -7,6 +7,8 @@ import { useToast } from "../atoms/Toast";
 import { ImageUpload } from "../atoms/ImageUpload";
 import { useImageUpload } from "../../hooks/useImageUpload";
 import HomeIcon from "../../assets/images/home.svg?react";
+import ChevronUpIcon from "../../assets/images/chevron-up.svg?react";
+import CloseIcon from "../../assets/images/close.svg?react";
 
 interface PostModalProps {
   post?: Post;
@@ -86,8 +88,6 @@ export function PostModal({ post, onClose, onSaved }: PostModalProps) {
       const category = formRef.current.category as Category;
       const body = formRef.current.body;
 
-      // Resolve the image to attach.
-      // Priority: new upload > existing (preserved on edit) > none
       const imageUrl: string | undefined =
         imgUpload.image?.dataUrl ??
         (post?.imageUrl && !imgUpload.image ? post.imageUrl : undefined);
@@ -182,7 +182,7 @@ export function PostModal({ post, onClose, onSaved }: PostModalProps) {
               className="hidden md:flex w-8 h-8 items-center justify-center text-blue-gray-dark hover:opacity-70 transition-opacity"
               aria-label="Close"
             >
-              x
+              <CloseIcon aria-hidden="true" className="h-5 w-5" />
             </button>
           </div>
         </div>
@@ -217,7 +217,7 @@ export function PostModal({ post, onClose, onSaved }: PostModalProps) {
 
           {/* Category */}
           <div>
-            <label className="block text-body-sm font-semibold text-blue-gray-dark mb-2">
+            <label className="block text-body-sm font-semibold text-blue-gray-light mb-2">
               Category
             </label>
             <div className="relative" ref={catRef}>
@@ -232,13 +232,16 @@ export function PostModal({ post, onClose, onSaved }: PostModalProps) {
               >
                 <span
                   className={
-                    form.category ? "text-blue-gray-dark" : "text-gray-400"
+                    form.category ? "text-blue-gray-light" : "text-gray-400"
                   }
                 >
                   {form.category || "Select"}
                 </span>
-                <span className="text-blue-gray text-body-sm font-semibold">
-                  {catOpen ? "▴" : "▾"}
+                <span className="flex h-4 w-4 items-center justify-center text-blue-gray">
+                  <ChevronUpIcon
+                    aria-hidden="true"
+                    className={`h-4 w-4 transition-transform ${catOpen ? "rotate-0" : "rotate-180"}`}
+                  />
                 </span>
               </div>
               {catOpen && (
@@ -250,7 +253,7 @@ export function PostModal({ post, onClose, onSaved }: PostModalProps) {
                     <div
                       key={c}
                       data-testid={`post-category-option-${c.toLowerCase().replace(/[^a-z]/g, "-")}`}
-                      className="px-4 py-3 text-body-lg text-blue-gray-dark cursor-pointer hover:bg-gray-100 transition-colors"
+                      className="px-4 py-3 text-body-lg text-blue-gray-light cursor-pointer hover:bg-gray-100 transition-colors"
                       onClick={() => selectCat(c)}
                     >
                       {c}
@@ -323,7 +326,7 @@ export function PostModal({ post, onClose, onSaved }: PostModalProps) {
               data-testid="post-modal-submit-btn"
               onClick={handleSubmit}
               disabled={loading}
-              className="flex-1 h-11 text-body-lg font-semibold text-white bg-blue-gray-dark rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 h-11 text-body-lg font-semibold text-white bg-blue-gray-light rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading && (
                 <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

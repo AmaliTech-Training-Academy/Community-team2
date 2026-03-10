@@ -8,6 +8,7 @@ import EmailIcon from "../assets/images/mail.svg?react";
 import Lock from "../assets/images/lock.svg?react";
 import EyeOn from "../assets/images/eye-on.svg?react";
 import EyeOff from "../assets/images/eye-off.svg?react";
+import UserIcon from "../assets/images/user.svg?react";
 
 const EMAIL_RE = /\S+@\S+\.\S+/;
 
@@ -124,7 +125,7 @@ export default function RegisterPage() {
             </label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <EmailIcon />
+                <UserIcon />
               </span>
               <input
                 id="register-fullName"

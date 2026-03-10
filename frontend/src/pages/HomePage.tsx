@@ -70,7 +70,7 @@ function Pagination({
           onClick={() => onPage(p)}
           className={`${btnBase} ${
             p === page
-              ? "bg-blue-gray-dark text-white border-blue-gray-dark"
+              ? "bg-blue-gray-light text-white border-blue-gray-dark"
               : "bg-white text-blue-gray-dark border-borderstroke hover:border-gray-400"
           }`}
         >

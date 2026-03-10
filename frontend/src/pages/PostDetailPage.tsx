@@ -14,6 +14,7 @@ import ClockIcon from "../assets/images/clock.svg?react";
 import PencilIcon from "../assets/images/pencil.svg?react";
 import TrashIcon from "../assets/images/trash.svg?react";
 import Comments from "../assets/images/comments.svg?react";
+import ChevronRightIcon from "../assets/images/chevron-right.svg?react";
 
 function getInitials(name: string) {
   return name
@@ -139,7 +140,7 @@ export default function PostDetailPage() {
             <span>Home</span>
           </button>
           <span className="text-body-sm font-semibold text-blue-gray-dark">
-            &gt;
+            <ChevronRightIcon width={16} height={16} />
           </span>
           <span className="text-body-sm font-semibold text-blue-gray-dark">
             Post Details
@@ -207,7 +208,7 @@ export default function PostDetailPage() {
             data-testid="comment-submit-btn"
             onClick={handleComment}
             disabled={commentLoading || !commentText.trim()}
-            className="w-86.25 h-10.25 px-5 py-2.5 bg-blue-gray-dark text-white text-body-sm font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-86.25 h-10.25 px-5 py-2.5 bg-blue-gray-light text-white text-body-sm font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {commentLoading ? "Posting…" : "Add comment"}
           </button>
@@ -234,8 +235,7 @@ export default function PostDetailPage() {
         )}
 
         {comments.map((comment) => {
-          const canModifyComment =
-            user!.id === comment.authorId || user!.role === "ADMIN";
+          const canModifyComment = user?.id === comment.authorId;
           const isEditingThis = editingComment === comment.id;
 
           return (
@@ -243,87 +243,85 @@ export default function PostDetailPage() {
               key={comment.id}
               data-testid={`comment-item-${comment.id}`}
               data-comment-id={comment.id}
-              className="py-4 border-b border-borderstroke last:border-0 flex gap-3"
+              className="flex flex-col gap-3 border-b border-borderstroke py-4 last:border-0"
             >
-              {/* Avatar */}
-              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-body-sm font-semibold text-blue-gray-dark shrink-0">
-                {getInitials(comment.author)}
-              </div>
+              <div className="flex gap-3">
+                {/* Avatar */}
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-200 text-body-sm font-semibold text-blue-gray-dark">
+                  {getInitials(comment.author)}
+                </div>
 
-              {/* Content */}
-              <div className="flex-1 min-w-0">
                 {/* Name + time stacked */}
-                <span
-                  data-testid="comment-author"
-                  className="text-body-sm font-semibold text-blue-gray-dark block"
-                >
-                  {comment.author}
-                </span>
-                <span className="text-body-sm text-gray-400 block mb-2">
-                  {timeAgo(comment.createdAt)}
-                </span>
+                <div className="min-w-0 flex-1">
+                  <span
+                    data-testid="comment-author"
+                    className="block text-body-sm font-semibold text-blue-gray-dark"
+                  >
+                    {comment.author}
+                  </span>
+                  <span className="block text-body-sm text-gray-400">
+                    {timeAgo(comment.createdAt)}
+                  </span>
+                </div>
 
-                {/* Edit mode */}
-                {isEditingThis ? (
-                  <div>
-                    <textarea
-                      data-testid="comment-edit-input"
-                      title="Edit comment"
-                      className="w-full px-4 py-3 bg-primary border border-borderstroke rounded-xl text-body-lg text-blue-gray-dark focus:outline-none focus:border-blue-gray transition-colors resize-none min-h-20"
-                      value={editCommentText}
-                      onChange={(e) => setEditCommentText(e.target.value)}
-                    />
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        data-testid="comment-edit-save-btn"
-                        onClick={() => handleEditComment(comment)}
-                        className="px-5 py-2.5 bg-blue-gray-dark text-white text-body-sm font-semibold rounded-lg hover:opacity-90 transition-opacity"
-                      >
-                        Save Changes
-                      </button>
-                      <button
-                        data-testid="comment-edit-cancel-btn"
-                        onClick={cancelEditComment}
-                        className="px-4 py-2.5 text-body-sm font-semibold text-blue-gray bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <p
-                      data-testid="comment-text"
-                      className="text-body-sm text-blue-gray leading-relaxed"
+                {/* Actions (icon-only, right side) */}
+                {canModifyComment && !isEditingThis && (
+                  <div className="flex items-center gap-4 self-center">
+                    <button
+                      data-testid="comment-edit-btn"
+                      onClick={() => openEditComment(comment)}
+                      className="bg-transparent border-none p-0 hover:opacity-70 transition-opacity"
+                      aria-label="Edit comment"
+                      title="Edit"
                     >
-                      {comment.text}
-                    </p>
-                  </>
+                      <PencilIcon />
+                    </button>
+                    <button
+                      data-testid="comment-delete-btn"
+                      onClick={() => handleDeleteComment(comment.id)}
+                      className="bg-transparent border-none p-0 hover:opacity-70 transition-opacity"
+                      aria-label="Delete comment"
+                      title="Delete"
+                    >
+                      <TrashIcon />
+                    </button>
+                  </div>
                 )}
               </div>
 
-              {/* Actions (icon-only, right side) */}
-              {canModifyComment && !isEditingThis && (
-                <div className="flex items-center gap-4 self-center">
-                  <button
-                    data-testid="comment-edit-btn"
-                    onClick={() => openEditComment(comment)}
-                    className="bg-transparent border-none p-0 hover:opacity-70 transition-opacity"
-                    aria-label="Edit comment"
-                    title="Edit"
-                  >
-                    <PencilIcon />
-                  </button>
-                  <button
-                    data-testid="comment-delete-btn"
-                    onClick={() => handleDeleteComment(comment.id)}
-                    className="bg-transparent border-none p-0 hover:opacity-70 transition-opacity"
-                    aria-label="Delete comment"
-                    title="Delete"
-                  >
-                    <TrashIcon />
-                  </button>
+              {isEditingThis ? (
+                <div>
+                  <textarea
+                    data-testid="comment-edit-input"
+                    title="Edit comment"
+                    className="min-h-20 w-full resize-none rounded-xl border border-borderstroke bg-primary px-4 py-3 text-body-lg text-blue-gray-dark transition-colors focus:border-blue-gray focus:outline-none"
+                    value={editCommentText}
+                    onChange={(e) => setEditCommentText(e.target.value)}
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      data-testid="comment-edit-save-btn"
+                      onClick={() => handleEditComment(comment)}
+                      className="rounded-lg bg-blue-gray-light px-5 py-2.5 text-body-sm font-semibold text-white transition-opacity hover:opacity-90"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      data-testid="comment-edit-cancel-btn"
+                      onClick={cancelEditComment}
+                      className="rounded-lg bg-gray-100 px-4 py-2.5 text-body-sm font-semibold text-blue-gray transition-colors hover:bg-gray-200"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <p
+                  data-testid="comment-text"
+                  className="text-body-sm leading-relaxed text-blue-gray"
+                >
+                  {comment.text}
+                </p>
               )}
             </div>
           );
