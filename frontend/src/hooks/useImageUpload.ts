@@ -1,11 +1,10 @@
 import { useState, useCallback, useRef } from "react";
 
 export interface UploadedImage {
-  /** Data-URI for preview and mock storage */
+  
   dataUrl: string;
-  /** Original file — passed to the real backend as multipart/form-data */
+  
   file: File;
-  /** Human-readable size, e.g. "1.2 MB" */
   sizeLabel: string;
 }
 

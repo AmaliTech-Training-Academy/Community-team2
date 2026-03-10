@@ -12,9 +12,9 @@ interface ImageUploadProps {
   onDragLeave: () => void;
   onFileChange: (file: File) => void;
   onClear: () => void;
-  /** Pre-existing image URL when editing a post that already has an image */
+  
   existingUrl?: string;
-  /** Used by the PostModal design to match the provided mock */
+
   hideLabel?: boolean;
 }
 
@@ -45,7 +45,7 @@ export function ImageUpload({
         </label>
       )}
 
-      {/* Hidden file input */}
+    
       <input
         data-testid="image-file-input"
         ref={inputRef}
@@ -61,7 +61,7 @@ export function ImageUpload({
       />
 
       {previewSrc ? (
-        /* ── Preview state ── */
+       
         <div
           data-testid="image-preview-container"
           className="relative rounded-lg overflow-hidden border border-borderstroke bg-primary"
@@ -72,7 +72,7 @@ export function ImageUpload({
             alt="Post image preview"
             className="w-full max-h-56 object-cover"
           />
-          {/* Overlay toolbar */}
+          
           <div className="absolute top-2 right-2 flex gap-1.5">
             <button
               data-testid="image-change-btn"
@@ -101,7 +101,7 @@ export function ImageUpload({
           )}
         </div>
       ) : (
-        /* ── Drop zone state ── */
+       
         <div
           data-testid="image-dropzone"
           onDrop={onDrop}

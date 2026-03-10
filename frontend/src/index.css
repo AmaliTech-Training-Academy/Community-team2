@@ -179,13 +179,13 @@ button {
   font-weight: var(--font-weight-medium);    /* form labels, field captions     */
 }
 
-/* ── Utility animation classes ────────────────────────────────── */
+
 .fade-in   { animation: fadeIn   0.25s ease; }
 .slide-down { animation: slideDown 0.20s ease; }
 .modal-in  { animation: modalIn  0.25s ease; }
 .toast-in  { animation: toastIn  0.30s ease; }
 
-/* ── Loading spinner ──────────────────────────────────────────── */
+
 .spinner {
   width: 24px;
   height: 24px;

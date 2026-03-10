@@ -2,37 +2,27 @@ import axiosInstance from './axiosInstance';
 import type { AuthResponse, User, UserRole } from '../types';
 import { decodeJwt } from '../utils';
 
-/**
- * Normalise the backend response into a consistent { token, user } shape.
- *
- * Spring Boot JWT starters differ:
- *   - Some return:  { token: "...", user: { id, name, email, role } }
- *   - Others return: { token: "..." }  and embed user info in JWT claims
- *   - Some use `accessToken` or `jwt` instead of `token`
- *
- * This function handles all three cases so the authStore never has to care.
- */
+
 function normaliseAuthResponse(raw: AuthResponse): { token: string; user: User } {
-  // Resolve whichever field the backend chose for the token string
+
   const token = raw.token || raw.accessToken || raw.jwt || '';
 
   if (!token) {
     throw new Error('Server returned a response with no token.');
   }
 
-  // If the backend included a user object, use it directly
+ 
   if (raw.user) {
     return { token, user: raw.user };
   }
 
-  // Otherwise decode the JWT payload and build the User from claims
+  
   const payload = decodeJwt(token);
   if (!payload) {
     throw new Error('Server returned a token that could not be decoded.');
   }
 
-  // Spring Security commonly puts the role as a string ("ADMIN") or in a
-  // roles/authorities array (["ROLE_ADMIN"]).  Normalise to our UserRole type.
+  
   let role: UserRole = 'USER';
   if (typeof payload.role === 'string') {
     role = (payload.role.replace(/^ROLE_/, '') as UserRole) || 'USER';

@@ -27,7 +27,7 @@ Chart.register(
 Chart.defaults.font.family = '"Inter", sans-serif';
 Chart.defaults.color = "#6B7280";
 
-// ── Brand palette ─────────────────────────────────────────────────────────
+
 const NAVY = "#1B2B3A";
 const CAT_COLORS = [
   NAVY,
@@ -39,7 +39,7 @@ const CAT_COLORS = [
   "#EC4899",
 ];
 
-// ── Reusable hook: mounts / updates / destroys a single Chart instance ─────
+
 function useChart<T extends ChartConfiguration>(
   ref: React.RefObject<HTMLCanvasElement | null>,
   config: T | null,
@@ -49,20 +49,17 @@ function useChart<T extends ChartConfiguration>(
   useEffect(() => {
     if (!ref.current || !config) return;
 
-    // Destroy stale instance before creating a new one
+   
     chartRef.current?.destroy();
     chartRef.current = new Chart(ref.current, config);
 
-    // Cleanup on unmount only — NOT on every data change.
-    // Returning the destroy inside the effect body (not the cleanup fn)
-    // is wrong; we destroy at the TOP of the effect so the cleanup only
-    // needs to handle the final unmount.
+    
     return () => {
       chartRef.current?.destroy();
       chartRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config]); // re-run when config reference changes (i.e. data changed)
+   
+  }, [config]); 
 }
 
 export default function DashboardPage() {
@@ -77,7 +74,7 @@ export default function DashboardPage() {
     fetch();
   }, [fetch]);
 
-  // ── Bar chart config: Posts per category ──────────────────────────────
+ 
   const barConfig: ChartConfiguration<"bar"> | null = data
     ? {
         type: "bar",
@@ -164,7 +161,7 @@ export default function DashboardPage() {
 
   return (
     <div data-testid="dashboard-page" className="fade-in">
-      {/* Breadcrumb pill */}
+      
       <div className="mb-6">
         <div className="inline-flex items-center gap-3 bg-white border border-borderstroke rounded-lg px-4 py-2.5">
           <span className="flex items-center gap-2 text-body-sm font-semibold text-blue-gray-dark">
@@ -180,7 +177,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stat cards */}
+      
       <div className="flex flex-wrap gap-6 mb-8">
         <div
           data-testid="stat-card-total-posts"
@@ -283,7 +280,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Top contributors */}
+     
       <div
         data-testid="contributors-card"
         className="bg-white border border-borderstroke rounded-lg"
