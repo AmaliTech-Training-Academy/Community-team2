@@ -172,7 +172,7 @@ resource "aws_s3_bucket_policy" "alb_logs" {
       {
         Effect = "Allow"
         Principal = {
-          AWS = "arn:aws:iam::127311923021:root"  # ELB service account for us-east-1
+          AWS = "arn:aws:iam::156460612806:root"  # ELB service account for eu-west-1
         }
         Action   = "s3:PutObject"
         Resource = "${aws_s3_bucket.alb_logs.arn}/*"
