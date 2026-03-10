@@ -171,14 +171,8 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-      
-      - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: 'trivy-results.sarif'
-        continue-on-error: true
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
 
   # Stage 3: Build & Scan Images, then Push to ECR
   push-backend:
@@ -205,14 +199,8 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: '${{ env.PROJECT_NAME }}-backend:${{ github.sha }}'
-          format: 'sarif'
-          output: 'backend-image-scan.sarif'
-        continue-on-error: true
-      
-      - name: Upload backend scan
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: 'backend-image-scan.sarif'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
         continue-on-error: true
       
       - name: Configure AWS credentials
@@ -262,15 +250,9 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: '${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}'
-          format: 'sarif'
-          output: 'frontend-image-scan.sarif'
-        # continue-on-error: true
-      
-      - name: Upload frontend scan
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: 'frontend-image-scan.sarif'
-        # continue-on-error: true
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
