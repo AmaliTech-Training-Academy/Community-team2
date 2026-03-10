@@ -102,7 +102,7 @@ jobs:
       
       - name: Install dependencies
         working-directory: ./frontend
-        run: npm ci --prefer-offline --no-audit
+        run: npm install --prefer-offline --no-audit
       
       - name: Run tests
         working-directory: ./frontend
@@ -174,7 +174,7 @@ jobs:
       - name: Build frontend
         working-directory: ./frontend
         run: |
-          npm ci --prefer-offline --no-audit
+          npm install --prefer-offline --no-audit
           npm run build
         env:
           CI: true
