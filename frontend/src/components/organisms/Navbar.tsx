@@ -3,102 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../features/auth/authStore";
 import { initials } from "../../utils";
 import Logo from "../../assets/images/Logo.svg?react";
-
-// ── Inline icons ──────────────────────────────────────────────────────────────
-
-function AnalyticsIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-    >
-      <rect x="1.5" y="8.5" width="3" height="6" rx="0.5" fill="currentColor" />
-      <rect x="6.5" y="5.5" width="3" height="9" rx="0.5" fill="currentColor" />
-      <rect
-        x="11.5"
-        y="2.5"
-        width="3"
-        height="12"
-        rx="0.5"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-function LogoutIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M6 14H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h3"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10.5 11L14 8l-3.5-3"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M14 8H6.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function HamburgerIcon() {
-  return (
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 22 22"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M3 6h16M3 11h16M3 16h16"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 20 20"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M15 5L5 15M5 5l10 10"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
+import AnalyticsIcon from "../../assets/images/analytics.svg?react";
+import LogoutIcon from "../../assets/images/logout.svg?react";
+import HamburgerIcon from "../../assets/images/hamburger.svg?react";
+import CloseIcon from "../../assets/images/close.svg?react";
 
 function UserAvatar({
   name,
@@ -107,17 +15,15 @@ function UserAvatar({
   name: string;
   size?: "sm" | "md";
 }) {
-  const cls = size === "md" ? "w-10 h-10 text-sm" : "w-8 h-8 text-xs";
+  const cls = size === "md" ? "h-10 w-10 text-sm" : "h-8 w-8 text-xs";
   return (
     <div
-      className={`${cls} rounded-full bg-gray-300 text-blue-gray-dark flex items-center justify-center font-bold shrink-0`}
+      className={`${cls} flex shrink-0 items-center justify-center rounded-full bg-gray-300 font-medium text-blue-gray-dark`}
     >
       {initials(name)}
     </div>
   );
 }
-
-// ── Navbar ────────────────────────────────────────────────────────────────────
 
 export function Navbar() {
   const user = useAuthStore((s) => s.user);
@@ -143,71 +49,70 @@ export function Navbar() {
 
   return (
     <>
-      {/* ── Top bar ──────────────────────────────────────────── */}
       <nav
         data-testid="navbar"
-        className="bg-background border-b border-borderstroke sticky top-0 z-40"
+        className="sticky top-0 z-40 border-b border-borderstroke bg-background"
       >
-        <div className="max-w-5xl mx-auto px-6 h-15 flex items-center">
-          <Link data-testid="navbar-logo" to="/" className="shrink-0">
-            <Logo />
-          </Link>
+        <div className="mx-auto flex w-full max-w-300 items-start px-6 py-2.5">
+          <div className="flex h-10.25 w-full items-center justify-between gap-5">
+            <Link data-testid="navbar-logo" to="/" className="shrink-0">
+              <Logo className="h-9.5 w-25" />
+            </Link>
 
-          <div className="flex-1" />
-
-          {/* ── Desktop right section (md+) ───────────────────── */}
-          <div className="hidden md:flex items-center gap-5">
-            {/* Analytics — admin only */}
-            {user?.role === "ADMIN" && (
-              <button
-                data-testid="navbar-analytics-link"
-                onClick={() => navigate("/dashboard")}
-                className="flex items-center gap-1.5 text-body-lg text-blue-gray-dark hover:opacity-70 transition-opacity"
-              >
-                <AnalyticsIcon />
-                Analytics
-              </button>
-            )}
-
-            {/* User info */}
-            <div className="flex items-center gap-2.5">
-              <UserAvatar name={user?.name || ""} />
-              <div className="flex flex-col leading-tight">
-                <span
-                  data-testid="navbar-username"
-                  className="text-body-sm font-semibold text-blue-gray-dark"
+            {/* ── Desktop right section (md+) ───────────────────── */}
+            <div className="hidden items-center gap-5 md:flex">
+              {/* Analytics — admin only */}
+              {user?.role === "ADMIN" && (
+                <button
+                  data-testid="navbar-analytics-link"
+                  onClick={() => navigate("/dashboard")}
+                  className="flex h-10.25 items-center justify-center gap-2 rounded-lg px-5 text-sm font-medium text-[#061C2A] transition-opacity hover:opacity-70"
                 >
-                  {user?.name}
-                </span>
-                <span
-                  data-testid="navbar-email"
-                  className="text-[11px] text-gray-400"
-                >
-                  {user?.email}
-                </span>
+                  <AnalyticsIcon aria-hidden="true" className="h-5 w-5" />
+                  Analytics
+                </button>
+              )}
+
+              {/* User info */}
+              <div className="flex items-center gap-2.5">
+                <UserAvatar name={user?.name || ""} />
+                <div className="flex flex-col items-start gap-1 leading-none">
+                  <span
+                    data-testid="navbar-username"
+                    className="text-sm font-semibold leading-none text-blue-gray-dark"
+                  >
+                    {user?.name}
+                  </span>
+                  <span
+                    data-testid="navbar-email"
+                    className="text-xs font-normal leading-none text-blue-gray"
+                  >
+                    {user?.email}
+                  </span>
+                </div>
               </div>
+
+              {/* Logout */}
+              <button
+                data-testid="navbar-logout-btn"
+                onClick={handleLogout}
+                className="flex h-10.25 items-center justify-center gap-2 rounded-lg px-5 text-sm font-medium text-red-600 transition-opacity hover:opacity-70"
+              >
+                <LogoutIcon aria-hidden="true" className="h-5 w-5" />
+                Log out
+              </button>
             </div>
 
-            {/* Logout */}
+            {/* ── Mobile hamburger (<md) ─────────────────────────── */}
             <button
-              data-testid="navbar-logout-btn"
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 text-body-sm text-red-500 hover:opacity-70 transition-opacity"
+              data-testid="navbar-mobile-menu-btn"
+              onClick={() => setDrawerOpen(true)}
+              className="text-blue-gray-dark md:hidden"
+              aria-label="Open menu"
             >
-              <LogoutIcon />
-              Log out
+              <HamburgerIcon aria-hidden="true" className="h-5.5 w-5.5" />
             </button>
           </div>
-
-          {/* ── Mobile hamburger (<md) ─────────────────────────── */}
-          <button
-            data-testid="navbar-mobile-menu-btn"
-            onClick={() => setDrawerOpen(true)}
-            className="md:hidden text-blue-gray-dark"
-            aria-label="Open menu"
-          >
-            <HamburgerIcon />
-          </button>
         </div>
       </nav>
 
@@ -236,7 +141,7 @@ export function Navbar() {
               className="text-blue-gray-dark p-1"
               aria-label="Close menu"
             >
-              <CloseIcon />
+              <CloseIcon aria-hidden="true" className="h-6 w-6" />
             </button>
           </div>
 
@@ -252,7 +157,7 @@ export function Navbar() {
                   }}
                   className="flex items-center gap-3 py-4 text-body-lg text-blue-gray-dark text-left hover:opacity-70 transition-opacity"
                 >
-                  <AnalyticsIcon />
+                  <AnalyticsIcon aria-hidden="true" className="h-5 w-5" />
                   Analytics
                 </button>
                 <div className="border-t border-borderstroke" />
@@ -264,7 +169,7 @@ export function Navbar() {
               onClick={handleLogout}
               className="flex items-center gap-3 py-4 text-body-lg text-red-500 text-left hover:opacity-70 transition-opacity"
             >
-              <LogoutIcon />
+              <LogoutIcon aria-hidden="true" className="h-5 w-5" />
               Log out
             </button>
           </div>

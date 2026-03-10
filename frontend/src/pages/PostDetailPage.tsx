@@ -13,7 +13,7 @@ import HomeIcon from "../assets/images/home.svg?react";
 import ClockIcon from "../assets/images/clock.svg?react";
 import PencilIcon from "../assets/images/pencil.svg?react";
 import TrashIcon from "../assets/images/trash.svg?react";
-import Comments from '../assets/images/comments.svg?react';
+import Comments from "../assets/images/comments.svg?react";
 
 function getInitials(name: string) {
   return name
@@ -148,14 +148,14 @@ export default function PostDetailPage() {
       </div>
 
       <div data-testid="post-detail-card">
-        <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="mb-4 flex items-start justify-between gap-3">
           <h1
             data-testid="post-detail-title"
-            className="text-h-lg font-bold text-blue-gray-dark leading-snug flex-1"
+            className="min-w-0 flex-1 text-h-lg font-bold leading-snug text-blue-gray-dark"
           >
             {currentPost.title}
           </h1>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex max-w-[40vw] shrink-0 items-start justify-end self-start sm:max-w-[45%]">
             <Badge category={currentPost.category} />
           </div>
         </div>
@@ -197,7 +197,7 @@ export default function PostDetailPage() {
       <div data-testid="comment-form" className="mt-6">
         <textarea
           data-testid="comment-input"
-          className="w-full px-4 py-3 bg-primary border border-borderstroke rounded-xl text-body-lg text-blue-gray-dark placeholder:text-gray-400 focus:outline-none focus:border-blue-gray transition-colors resize-none min-h-44 md:min-h-28"
+          className="w-full px-4 py-3 bg-primary border border-borderstroke rounded-xl text-body-lg text-blue-gray-dark placeholder:text-gray-400 focus:outline-none focus:border-blue-gray transition-colors resize-none min-h-44 md:min-h-54.5"
           placeholder="Share your thoughts..."
           value={commentText}
           onChange={(e) => setCommentText(e.target.value)}
@@ -207,7 +207,7 @@ export default function PostDetailPage() {
             data-testid="comment-submit-btn"
             onClick={handleComment}
             disabled={commentLoading || !commentText.trim()}
-            className="w-full h-11 md:w-55 md:h-9 bg-blue-gray-dark text-white text-body-sm font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-86.25 h-10.25 px-5 py-2.5 bg-blue-gray-dark text-white text-body-sm font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {commentLoading ? "Posting…" : "Add comment"}
           </button>
@@ -225,14 +225,12 @@ export default function PostDetailPage() {
 
         {comments.length === 0 && (
           <div data-testid="comment-empty-state" className="text-center py-16">
-          <div className="text-5xl mb-3 flex justify-center"><Comments /></div>
-          
-          <div className="text-sm text-gray-400">
-            No Comments yet
-          </div>
-        </div>
+            <div className="text-5xl mb-3 flex justify-center">
+              <Comments />
+            </div>
 
-          
+            <div className="text-sm text-gray-400">No Comments yet</div>
+          </div>
         )}
 
         {comments.map((comment) => {

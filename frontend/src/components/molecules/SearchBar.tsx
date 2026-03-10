@@ -1,23 +1,4 @@
-function SearchIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-      className={className}
-    >
-      <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M10.5 10.5L13.5 13.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
+import SearchIcon from "../../assets/images/search.svg?react";
 
 interface SearchBarProps {
   value: string;
@@ -30,7 +11,7 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
       {/* Input with SVG icon + clear */}
       <div className="relative flex-1 min-w-0">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-          <SearchIcon />
+          <SearchIcon aria-hidden="true" />
         </span>
         <input
           data-testid="search-input"
@@ -56,7 +37,7 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
         className="shrink-0 w-10 h-10 flex items-center justify-center bg-blue-gray-dark rounded-lg text-white hover:opacity-90 transition-opacity"
         aria-label="Search"
       >
-        <SearchIcon />
+        <SearchIcon aria-hidden="true" />
       </button>
     </div>
   );

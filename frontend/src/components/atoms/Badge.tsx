@@ -12,9 +12,10 @@ export function Badge({ category }: { category: string }) {
     <span
       data-testid={`badge-${category.toLowerCase().replace(/[^a-z]/g, "-")}`}
       data-category={category}
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold min-w-0 max-w-full ${cls}`}
+      className={`inline-flex max-w-full shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${cls}`}
+      title={category}
     >
-      <span className="truncate max-w-35 sm:max-w-45 md:max-w-none">
+      <span className="block max-w-[40vw] break-words whitespace-normal leading-tight sm:max-w-[18rem] md:max-w-none">
         {category}
       </span>
     </span>

@@ -13,6 +13,8 @@ import {
 import { useAnalyticsStore } from "../features/analytics/analyticsStore";
 import { Spinner } from "../components/atoms/Spinner";
 import HomeIcon from "../assets/images/home.svg?react";
+import PostsStatIcon from "../assets/images/posts-stat.svg?react";
+import CommentsStatIcon from "../assets/images/comments-stat.svg?react";
 
 Chart.register(
   BarController,
@@ -27,7 +29,6 @@ Chart.register(
 Chart.defaults.font.family = '"Inter", sans-serif';
 Chart.defaults.color = "#6B7280";
 
-
 const NAVY = "#1B2B3A";
 const CAT_COLORS = [
   NAVY,
@@ -39,7 +40,6 @@ const CAT_COLORS = [
   "#EC4899",
 ];
 
-
 function useChart<T extends ChartConfiguration>(
   ref: React.RefObject<HTMLCanvasElement | null>,
   config: T | null,
@@ -49,17 +49,14 @@ function useChart<T extends ChartConfiguration>(
   useEffect(() => {
     if (!ref.current || !config) return;
 
-   
     chartRef.current?.destroy();
     chartRef.current = new Chart(ref.current, config);
 
-    
     return () => {
       chartRef.current?.destroy();
       chartRef.current = null;
     };
-   
-  }, [config]); 
+  }, [config]);
 }
 
 export default function DashboardPage() {
@@ -74,7 +71,6 @@ export default function DashboardPage() {
     fetch();
   }, [fetch]);
 
- 
   const barConfig: ChartConfiguration<"bar"> | null = data
     ? {
         type: "bar",
@@ -161,7 +157,6 @@ export default function DashboardPage() {
 
   return (
     <div data-testid="dashboard-page" className="fade-in">
-      
       <div className="mb-6">
         <div className="inline-flex items-center gap-3 bg-white border border-borderstroke rounded-lg px-4 py-2.5">
           <span className="flex items-center gap-2 text-body-sm font-semibold text-blue-gray-dark">
@@ -177,7 +172,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      
       <div className="flex flex-wrap gap-6 mb-8">
         <div
           data-testid="stat-card-total-posts"
@@ -188,27 +182,7 @@ export default function DashboardPage() {
               Total Posts
             </p>
             <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-gray-dark flex items-center justify-center">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                aria-hidden="true"
-              >
-                <path
-                  d="M3 11V13H13V3H11"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M4 10l3-3 2 2 3-4"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <PostsStatIcon aria-hidden="true" />
             </div>
           </div>
           <p
@@ -228,20 +202,7 @@ export default function DashboardPage() {
               Total Comments
             </p>
             <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-gray-dark flex items-center justify-center">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                aria-hidden="true"
-              >
-                <path
-                  d="M3 3.5h10v7H6l-3 3v-10Z"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <CommentsStatIcon aria-hidden="true" />
             </div>
           </div>
           <p
@@ -280,7 +241,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-     
       <div
         data-testid="contributors-card"
         className="bg-white border border-borderstroke rounded-lg"

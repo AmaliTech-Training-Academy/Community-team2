@@ -2,50 +2,12 @@ import { memo } from "react";
 import type { Post } from "../../types";
 import { Badge } from "../atoms/Badge";
 import { timeAgo } from "../../utils";
+import ClockIcon from "../../assets/images/clock-small.svg?react";
+import CommentIcon from "../../assets/images/comment-bubble.svg?react";
 
 interface PostCardProps {
   post: Post;
   onClick: () => void;
-}
-
-function ClockIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 14 14"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <circle cx="7" cy="7" r="5.5" stroke="#5A6F7C" strokeWidth="1.2" />
-      <path
-        d="M7 4.5V7L8.5 8.5"
-        stroke="#5A6F7C"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CommentIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 14 14"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M2 2.5C2 2.22386 2.22386 2 2.5 2H11.5C11.7761 2 12 2.22386 12 2.5V8.5C12 8.77614 11.7761 9 11.5 9H4.5L2 12V2.5Z"
-        stroke="#5A6F7C"
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
 }
 
 export const PostCard = memo(function PostCard({
@@ -80,7 +42,9 @@ export const PostCard = memo(function PostCard({
           >
             {post.title}
           </h3>
-          <Badge category={post.category} />
+          <div className="max-w-[40vw] shrink-0 self-start sm:max-w-[45%]">
+            <Badge category={post.category} />
+          </div>
         </div>
         <p
           data-testid="post-card-excerpt"
@@ -99,7 +63,7 @@ export const PostCard = memo(function PostCard({
             data-testid="post-card-time"
             className="text-gray-400 flex items-center gap-1"
           >
-            <ClockIcon /> {timeAgo(post.createdAt)}
+            <ClockIcon aria-hidden="true" /> {timeAgo(post.createdAt)}
           </span>
           {post.imageUrl && (
             <span
@@ -114,7 +78,7 @@ export const PostCard = memo(function PostCard({
             data-testid="post-card-comment-count"
             className="text-gray-400 ml-auto flex items-center gap-1"
           >
-            <CommentIcon /> {post.comments?.length ?? 0}
+            <CommentIcon aria-hidden="true" /> {post.comments?.length ?? 0}
           </span>
         </div>
       </div>
