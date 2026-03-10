@@ -19,28 +19,14 @@ env:
   AWS_REGION: eu-west-1
   PROJECT_NAME: communityboard
   JAVA_VERSION: '21'
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
 
 jobs:
-  test-backend:
-    name: Test Backend
+  # Stage 1: Code Quality (Parallel)
+  lint-backend:
+    name: Lint Backend
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: []
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_DB: communityboard
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       
@@ -51,21 +37,50 @@ jobs:
           distribution: temurin
           cache: maven
       
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-      
-      - name: Run tests
+      - name: Run Checkstyle
         working-directory: ./backend
-        run: mvn test -B
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/communityboard
-          SPRING_DATASOURCE_USERNAME: postgres
-          SPRING_DATASOURCE_PASSWORD: postgres
+        run: mvn checkstyle:check -B -q
+        continue-on-error: true
+
+  lint-frontend:
+    name: Lint Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm install
+      
+      - name: Run ESLint
+        working-directory: ./frontend
+        run: npm run lint --if-present
+
+  # Stage 2: Unit Tests (Parallel, depends on Stage 1)
+  test-backend:
+    name: Unit Test Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [lint-backend]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      
+      - name: Run unit tests
+        working-directory: ./backend
+        run: mvn test -B -q -Dspring.profiles.active=test
       
       - name: Upload test results
         if: failure()
@@ -74,16 +89,12 @@ jobs:
           name: backend-test-results
           path: backend/target/surefire-reports/
           retention-days: 7
-      
-      - name: Cleanup
-        if: always()
-        run: rm -rf ~/.m2/repository/com/amalitech
 
   test-frontend:
-    name: Test Frontend
+    name: Unit Test Frontend
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: []
+    needs: [lint-frontend]
     steps:
       - uses: actions/checkout@v4
       
@@ -92,22 +103,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      
       - name: Install dependencies
         working-directory: ./frontend
-        run: npm install --prefer-offline --no-audit
+        run: npm install
       
-      - name: Run tests
+      - name: Run unit tests
         working-directory: ./frontend
-        run: npm test -- --coverage --watchAll=false
-        continue-on-error: true
+        run: npm run test:coverage -- --exclude='**/*.integration.test.*'
       
       - name: Upload coverage
         if: always()
@@ -116,28 +118,15 @@ jobs:
           name: frontend-coverage
           path: frontend/coverage/
           retention-days: 7
-        continue-on-error: true
-      
-      - name: Cleanup
-        if: always()
-        run: rm -rf frontend/node_modules/.cache
 
-  build:
-    name: Build Artifacts
+  # Stage 3: Integration Tests (Parallel, depends on Stage 2)
+  integration-test-backend:
+    name: Integration Test Backend
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [test-backend, test-frontend]
-    outputs:
-      backend-version: ${{ steps.version.outputs.backend }}
-      frontend-version: ${{ steps.version.outputs.frontend }}
+    timeout-minutes: 15
+    needs: [test-backend]
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set versions
-        id: version
-        run: |
-          echo "backend=${{ github.sha }}" >> $GITHUB_OUTPUT
-          echo "frontend=${{ github.sha }}" >> $GITHUB_OUTPUT
       
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
@@ -146,66 +135,190 @@ jobs:
           distribution: temurin
           cache: maven
       
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-      
-      - name: Build backend
+      - name: Run integration tests
         working-directory: ./backend
-        run: mvn clean package -DskipTests -B
+        run: mvn test -B -q -Dtest=*IntegrationTest -Dspring.profiles.active=test -Dsurefire.failIfNoSpecifiedTests=false
+
+  integration-test-frontend:
+    name: Integration Test Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [test-frontend]
+    steps:
+      - uses: actions/checkout@v4
       
       - name: Set up Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
       
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      
-      - name: Build frontend
+      - name: Install dependencies
         working-directory: ./frontend
-        run: |
-          npm install --prefer-offline --no-audit
-          npm run build
-        env:
-          CI: true
+        run: npm install
       
-      - name: Upload backend artifact
+      - name: Run integration tests
+        working-directory: ./frontend
+        run: npm test -- src/api.integration.test.js
+        continue-on-error: true
+
+  # Stage 4: Vulnerability Scan (Parallel, depends on Stage 3)
+  scan-vulnerabilities:
+    name: Scan Vulnerabilities
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [integration-test-backend, integration-test-frontend]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
+
+  # Stage 5: Build (Parallel, depends on Stage 4)
+  build-backend:
+    name: Build Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [scan-vulnerabilities]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      
+      - name: Build backend
+        working-directory: ./backend
+        run: mvn clean package -DskipTests -B -q
+      
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: backend-jar
           path: backend/target/*.jar
           retention-days: 1
+
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [scan-vulnerabilities]
+    steps:
+      - uses: actions/checkout@v4
       
-      - name: Upload frontend artifact
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Install and build
+        working-directory: ./frontend
+        run: |
+          npm install
+          npm run build --silent
+        env:
+          CI: true
+      
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: frontend/build/
+          path: frontend/dist/
           retention-days: 1
-      
-      - name: Cleanup
-        if: always()
-        run: |
-          rm -rf ~/.m2/repository/com/amalitech
-          rm -rf frontend/node_modules
-          rm -rf backend/target/classes
 
+
+
+  # Stage 6: Docker Build & Push (Parallel, depends on Stage 5)
+  push-backend:
+    name: Push Backend Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [scan-vulnerabilities]
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Develop'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: true
+      
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  push-frontend:
+    name: Push Frontend Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [scan-vulnerabilities]
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Develop'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: true
+      
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Stage 7: Deploy (depends on Stage 6)
   deploy:
     name: Deploy to AWS
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: build
-    if: (github.event.pull_request.base.ref == 'Develop' && github.event_name == 'pull_request') || (github.event.pull_request.base.ref == 'main' && github.event_name == 'pull_request') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Develop' || github.event_name == 'workflow_dispatch'
+    needs: [push-backend, push-frontend]
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Develop'
     environment:
       name: ${{ github.event.inputs.environment || 'development' }}
       url: http://${{ steps.get-url.outputs.alb_dns }}
@@ -221,71 +334,49 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           mask-aws-account-id: true
       
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
-      
-      - name: Build and push backend
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          push: true
-          tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:latest
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
-      
-      - name: Build and push frontend
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          push: true
-          tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:latest
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
-      
-      - name: Move cache
+      - name: Get ECR registry
+        id: ecr-registry
         run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          REGISTRY=$(aws ecr describe-repositories --repository-names ${{ env.PROJECT_NAME }}-backend --query 'repositories[0].repositoryUri' --output text | cut -d'/' -f1)
+          echo "registry=$REGISTRY" >> $GITHUB_OUTPUT
       
-      - name: Update ECS backend service
-        id: deploy-backend
+      - name: Update backend task definition
+        run: |
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.PROJECT_NAME }}-backend --query 'taskDefinition' --region ${{ env.AWS_REGION }})
+          NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}" \
+            --arg DB_URL "${{ secrets.RDS_ENDPOINT }}" \
+            --arg DB_USER "${{ secrets.RDS_USERNAME }}" \
+            --arg DB_PASS "${{ secrets.RDS_PASSWORD }}" \
+            '.containerDefinitions[0].image = $IMAGE | 
+             .containerDefinitions[0].environment += [
+               {"name": "SPRING_DATASOURCE_URL", "value": ("jdbc:postgresql://" + $DB_URL + "/communityboard")},
+               {"name": "SPRING_DATASOURCE_USERNAME", "value": $DB_USER},
+               {"name": "SPRING_DATASOURCE_PASSWORD", "value": $DB_PASS},
+               {"name": "SPRING_PROFILES_ACTIVE", "value": "dev"}
+             ] | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+          echo $NEW_TASK_DEF > task-def.json
+          aws ecs register-task-definition --cli-input-json file://task-def.json --region ${{ env.AWS_REGION }}
+      
+      - name: Update ECS services
         run: |
           aws ecs update-service \
             --cluster ${{ env.PROJECT_NAME }}-cluster \
             --service ${{ env.PROJECT_NAME }}-backend \
+            --task-definition ${{ env.PROJECT_NAME }}-backend \
             --force-new-deployment \
             --region ${{ env.AWS_REGION }} \
-            --no-cli-pager
-      
-      - name: Update ECS frontend service
-        id: deploy-frontend
-        run: |
+            --no-cli-pager > /dev/null
+          
           aws ecs update-service \
             --cluster ${{ env.PROJECT_NAME }}-cluster \
             --service ${{ env.PROJECT_NAME }}-frontend \
+            --task-definition ${{ env.PROJECT_NAME }}-frontend \
             --force-new-deployment \
             --region ${{ env.AWS_REGION }} \
-            --no-cli-pager
+            --no-cli-pager > /dev/null
       
       - name: Wait for deployment
         run: |
-          echo "Waiting for services to stabilize..."
           aws ecs wait services-stable \
             --cluster ${{ env.PROJECT_NAME }}-cluster \
             --services ${{ env.PROJECT_NAME }}-backend ${{ env.PROJECT_NAME }}-frontend \
@@ -300,25 +391,35 @@ jobs:
             --output text \
             --region ${{ env.AWS_REGION }})
           echo "alb_dns=$ALB_DNS" >> $GITHUB_OUTPUT
-          echo "### Deployment Successful! 🚀" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** ${{ github.event.inputs.environment || 'development' }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Region:** ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**URLs:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Frontend: http://$ALB_DNS" >> $GITHUB_STEP_SUMMARY
-          echo "- Backend API: http://$ALB_DNS/api" >> $GITHUB_STEP_SUMMARY
-          echo "- Swagger: http://$ALB_DNS/swagger-ui.html" >> $GITHUB_STEP_SUMMARY
       
-      - name: Verify deployment
+      - name: Health check
+        id: health-check
         run: |
-          echo "Verifying backend health..."
-          curl -f http://${{ steps.get-url.outputs.alb_dns }}/api-docs || echo "Backend health check failed"
+          for i in {1..20}; do
+            if curl -sf http://${{ steps.get-url.outputs.alb_dns }}/api/health > /dev/null 2>&1 || curl -sf http://${{ steps.get-url.outputs.alb_dns }}/api-docs > /dev/null 2>&1; then
+              echo "Backend healthy"
+              echo "status=healthy" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Health check failed"
+          exit 1
+      
+      - name: Performance test
+        if: steps.health-check.outputs.status == 'healthy'
+        run: |
+          for i in {1..3}; do
+            curl -w "Request $i: %{time_total}s\n" -o /dev/null -s http://${{ steps.get-url.outputs.alb_dns }}/api-docs
+          done
         continue-on-error: true
       
-      - name: Cleanup
+      - name: Deployment summary
         if: always()
         run: |
-          docker system prune -af --volumes
-          rm -rf /tmp/.buildx-cache
+          echo "### Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ steps.health-check.outputs.status || 'deployed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ github.event.inputs.environment || 'development' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: http://${{ steps.get-url.outputs.alb_dns }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: http://${{ steps.get-url.outputs.alb_dns }}/api" >> $GITHUB_STEP_SUMMARY

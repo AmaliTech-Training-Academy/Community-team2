@@ -10,12 +10,11 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./src/test/setup.ts",
     css: false,
-    alias: [
-      {
-        find: /\.svg\?react$/,
-        replacement: "/src/test/__mocks__/svgMock.tsx",
-      },
-    ],
+  },
+  resolve: {
+    alias: {
+      "\.svg\?react$": "/src/test/__mocks__/svgMock.tsx",
+    },
   },
   server: {
     port: 3000,
