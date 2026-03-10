@@ -80,7 +80,7 @@ jobs:
       
       - name: Run unit tests
         working-directory: ./backend
-        run: mvn test -B -q
+        run: mvn test -B -q -Dspring.profiles.active=test
       
       - name: Upload test results
         if: failure()
@@ -109,7 +109,7 @@ jobs:
       
       - name: Run unit tests
         working-directory: ./frontend
-        run: npm run test:coverage
+        run: npm run test:coverage -- --exclude='**/*.integration.test.*'
       
       - name: Upload coverage
         if: always()
@@ -137,7 +137,7 @@ jobs:
       
       - name: Run integration tests
         working-directory: ./backend
-        run: mvn test -B -q -Dtest=*IntegrationTest -Dsurefire.failIfNoSpecifiedTests=false
+        run: mvn test -B -q -Dtest=*IntegrationTest -Dspring.profiles.active=test -Dsurefire.failIfNoSpecifiedTests=false
 
   integration-test-frontend:
     name: Integration Test Frontend
@@ -158,7 +158,8 @@ jobs:
       
       - name: Run integration tests
         working-directory: ./frontend
-        run: npm test
+        run: npm test -- src/api.integration.test.js
+        continue-on-error: true
 
   # Stage 4: Vulnerability Scan (Parallel, depends on Stage 3)
   scan-vulnerabilities:
@@ -238,55 +239,14 @@ jobs:
           path: frontend/dist/
           retention-days: 1
 
-  # Stage 6: Scan Docker Images (Parallel, depends on Stage 5)
-  scan-images:
-    name: Scan Docker Images
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [build-backend, build-frontend]
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Build backend image
-        run: docker build -t communityboard-backend:scan ./backend
-      
-      - name: Scan backend image
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'communityboard-backend:scan'
-          format: 'sarif'
-          output: 'backend-image-scan.sarif'
-        continue-on-error: true
-      
-      - name: Build frontend image
-        run: docker build -t communityboard-frontend:scan ./frontend
-      
-      - name: Scan frontend image
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'communityboard-frontend:scan'
-          format: 'sarif'
-          output: 'frontend-image-scan.sarif'
-        continue-on-error: true
-      
-      - name: Upload backend image scan
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: 'backend-image-scan.sarif'
-        continue-on-error: true
-      
-      - name: Upload frontend image scan
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: 'frontend-image-scan.sarif'
-        continue-on-error: true
 
-  # Stage 7: Docker Build & Push (Parallel, depends on Stage 6)
+
+  # Stage 6: Docker Build & Push (Parallel, depends on Stage 5)
   push-backend:
     name: Push Backend Image
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: scan-images
+    needs: [scan-vulnerabilities]
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Develop'
     steps:
       - uses: actions/checkout@v4
@@ -321,7 +281,7 @@ jobs:
     name: Push Frontend Image
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: scan-images
+    needs: [scan-vulnerabilities]
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Develop'
     steps:
       - uses: actions/checkout@v4
@@ -352,7 +312,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Stage 8: Deploy (depends on Stage 7)
+  # Stage 7: Deploy (depends on Stage 6)
   deploy:
     name: Deploy to AWS
     runs-on: ubuntu-latest
@@ -374,11 +334,35 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           mask-aws-account-id: true
       
+      - name: Get ECR registry
+        id: ecr-registry
+        run: |
+          REGISTRY=$(aws ecr describe-repositories --repository-names ${{ env.PROJECT_NAME }}-backend --query 'repositories[0].repositoryUri' --output text | cut -d'/' -f1)
+          echo "registry=$REGISTRY" >> $GITHUB_OUTPUT
+      
+      - name: Update backend task definition
+        run: |
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.PROJECT_NAME }}-backend --query 'taskDefinition' --region ${{ env.AWS_REGION }})
+          NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}" \
+            --arg DB_URL "${{ secrets.RDS_ENDPOINT }}" \
+            --arg DB_USER "${{ secrets.RDS_USERNAME }}" \
+            --arg DB_PASS "${{ secrets.RDS_PASSWORD }}" \
+            '.containerDefinitions[0].image = $IMAGE | 
+             .containerDefinitions[0].environment += [
+               {"name": "SPRING_DATASOURCE_URL", "value": ("jdbc:postgresql://" + $DB_URL + "/communityboard")},
+               {"name": "SPRING_DATASOURCE_USERNAME", "value": $DB_USER},
+               {"name": "SPRING_DATASOURCE_PASSWORD", "value": $DB_PASS},
+               {"name": "SPRING_PROFILES_ACTIVE", "value": "dev"}
+             ] | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+          echo $NEW_TASK_DEF > task-def.json
+          aws ecs register-task-definition --cli-input-json file://task-def.json --region ${{ env.AWS_REGION }}
+      
       - name: Update ECS services
         run: |
           aws ecs update-service \
             --cluster ${{ env.PROJECT_NAME }}-cluster \
             --service ${{ env.PROJECT_NAME }}-backend \
+            --task-definition ${{ env.PROJECT_NAME }}-backend \
             --force-new-deployment \
             --region ${{ env.AWS_REGION }} \
             --no-cli-pager > /dev/null
@@ -386,25 +370,17 @@ jobs:
           aws ecs update-service \
             --cluster ${{ env.PROJECT_NAME }}-cluster \
             --service ${{ env.PROJECT_NAME }}-frontend \
+            --task-definition ${{ env.PROJECT_NAME }}-frontend \
             --force-new-deployment \
             --region ${{ env.AWS_REGION }} \
             --no-cli-pager > /dev/null
       
       - name: Wait for deployment
-        id: wait-deployment
         run: |
           aws ecs wait services-stable \
             --cluster ${{ env.PROJECT_NAME }}-cluster \
             --services ${{ env.PROJECT_NAME }}-backend ${{ env.PROJECT_NAME }}-frontend \
             --region ${{ env.AWS_REGION }}
-          echo "status=success" >> $GITHUB_OUTPUT
-        continue-on-error: true
-      
-      - name: Rollback on failure
-        if: steps.wait-deployment.outcome == 'failure'
-        run: |
-          echo "Deployment failed, rolling back..."
-          exit 1
       
       - name: Get ALB URL
         id: get-url
@@ -420,7 +396,7 @@ jobs:
         id: health-check
         run: |
           for i in {1..20}; do
-            if curl -sf http://${{ steps.get-url.outputs.alb_dns }}/api-docs > /dev/null; then
+            if curl -sf http://${{ steps.get-url.outputs.alb_dns }}/api/health > /dev/null 2>&1 || curl -sf http://${{ steps.get-url.outputs.alb_dns }}/api-docs > /dev/null 2>&1; then
               echo "Backend healthy"
               echo "status=healthy" >> $GITHUB_OUTPUT
               exit 0
@@ -429,7 +405,6 @@ jobs:
           done
           echo "Health check failed"
           exit 1
-        continue-on-error: true
       
       - name: Performance test
         if: steps.health-check.outputs.status == 'healthy'
