@@ -145,8 +145,7 @@ public class UserServiceTest {
                 "username",
                 "email@gmail.com",
                 "Testpassword",
-                UserRole.MEMBER,
-                AccountProvider.LOCAL
+                UserRole.MEMBER
         );
         User user = new User(
                 "username",
