@@ -81,10 +81,6 @@ jobs:
       - name: Run unit tests
         working-directory: ./backend
         run: mvn test -B -q
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://${{ secrets.RDS_ENDPOINT }}:5432/communityboard
-          SPRING_DATASOURCE_USERNAME: ${{ secrets.RDS_USERNAME }}
-          SPRING_DATASOURCE_PASSWORD: ${{ secrets.RDS_PASSWORD }}
       
       - name: Upload test results
         if: failure()
@@ -142,10 +138,6 @@ jobs:
       - name: Run integration tests
         working-directory: ./backend
         run: mvn test -B -q -Dtest=*IntegrationTest -Dsurefire.failIfNoSpecifiedTests=false
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://${{ secrets.RDS_ENDPOINT }}:5432/communityboard
-          SPRING_DATASOURCE_USERNAME: ${{ secrets.RDS_USERNAME }}
-          SPRING_DATASOURCE_PASSWORD: ${{ secrets.RDS_PASSWORD }}
 
   integration-test-frontend:
     name: Integration Test Frontend
