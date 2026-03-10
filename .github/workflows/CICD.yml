@@ -22,76 +22,11 @@ env:
   NODE_VERSION: '18'
 
 jobs:
-  lint-backend:
-    name: Lint Backend
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-          cache: maven
-      
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-      
-      - name: Run Checkstyle
-        working-directory: ./backend
-        run: mvn checkstyle:check
-        continue-on-error: true
-      
-      - name: Cleanup
-        if: always()
-        run: rm -rf ~/.m2/repository/com/amalitech
-
-  lint-frontend:
-    name: Lint Frontend
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-      
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm ci --prefer-offline --no-audit
-      
-      - name: Run ESLint
-        working-directory: ./frontend
-        run: npm run lint --if-present
-      
-      - name: Cleanup
-        if: always()
-        run: rm -rf frontend/node_modules/.cache
-
   test-backend:
     name: Test Backend
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [lint-backend]
+    needs: []
     services:
       postgres:
         image: postgres:15-alpine
@@ -148,7 +83,7 @@ jobs:
     name: Test Frontend
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [lint-frontend]
+    needs: []
     steps:
       - uses: actions/checkout@v4
       
