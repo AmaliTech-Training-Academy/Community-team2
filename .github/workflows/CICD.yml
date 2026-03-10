@@ -3,6 +3,8 @@ name: CommunityBoard CI/CD
 on:
   pull_request:
     branches: [main, Develop]
+  push:
+    branches: [main, Develop]
   workflow_dispatch:
     inputs:
       environment:
@@ -22,11 +24,11 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  # Stage 1: Code Quality (Parallel)
-  lint-backend:
-    name: Lint Backend
+  # Stage 1: Lint & Build (Parallel - Fast fail)
+  lint-build-backend:
+    name: Lint & Build Backend
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       
@@ -41,11 +43,22 @@ jobs:
         working-directory: ./backend
         run: mvn checkstyle:check -B -q
         continue-on-error: true
+      
+      - name: Build backend
+        working-directory: ./backend
+        run: mvn clean package -DskipTests -B -q
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/target/*.jar
+          retention-days: 1
 
-  lint-frontend:
-    name: Lint Frontend
+  lint-build-frontend:
+    name: Lint & Build Frontend
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       
@@ -53,6 +66,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
       
       - name: Install dependencies
         working-directory: ./frontend
@@ -61,13 +76,26 @@ jobs:
       - name: Run ESLint
         working-directory: ./frontend
         run: npm run lint --if-present
+      
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build --silent
+        env:
+          CI: true
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+          retention-days: 1
 
-  # Stage 2: Unit Tests (Parallel, depends on Stage 1)
+  # Stage 2: Tests & Security Scan (Parallel)
   test-backend:
-    name: Unit Test Backend
+    name: Test Backend
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [lint-backend]
+    timeout-minutes: 20
+    needs: [lint-build-backend]
     steps:
       - uses: actions/checkout@v4
       
@@ -82,6 +110,10 @@ jobs:
         working-directory: ./backend
         run: mvn test -B -q -Dspring.profiles.active=test
       
+      - name: Run integration tests
+        working-directory: ./backend
+        run: mvn test -B -q -Dtest=*IntegrationTest -Dspring.profiles.active=test -Dsurefire.failIfNoSpecifiedTests=false
+      
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v4
@@ -91,10 +123,10 @@ jobs:
           retention-days: 7
 
   test-frontend:
-    name: Unit Test Frontend
+    name: Test Frontend
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [lint-frontend]
+    timeout-minutes: 20
+    needs: [lint-build-frontend]
     steps:
       - uses: actions/checkout@v4
       
@@ -102,6 +134,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
       
       - name: Install dependencies
         working-directory: ./frontend
@@ -111,6 +145,11 @@ jobs:
         working-directory: ./frontend
         run: npm run test:coverage -- --exclude='**/*.integration.test.*'
       
+      - name: Run integration tests
+        working-directory: ./frontend
+        run: npm test -- src/api.integration.test.js
+        continue-on-error: true
+      
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v4
@@ -119,54 +158,11 @@ jobs:
           path: frontend/coverage/
           retention-days: 7
 
-  # Stage 3: Integration Tests (Parallel, depends on Stage 2)
-  integration-test-backend:
-    name: Integration Test Backend
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [test-backend]
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-          cache: maven
-      
-      - name: Run integration tests
-        working-directory: ./backend
-        run: mvn test -B -q -Dtest=*IntegrationTest -Dspring.profiles.active=test -Dsurefire.failIfNoSpecifiedTests=false
-
-  integration-test-frontend:
-    name: Integration Test Frontend
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [test-frontend]
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm install
-      
-      - name: Run integration tests
-        working-directory: ./frontend
-        run: npm test -- src/api.integration.test.js
-        continue-on-error: true
-
-  # Stage 4: Vulnerability Scan (Parallel, depends on Stage 3)
   scan-vulnerabilities:
-    name: Scan Vulnerabilities
+    name: Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [integration-test-backend, integration-test-frontend]
+    needs: [lint-build-backend, lint-build-frontend]
     steps:
       - uses: actions/checkout@v4
       
@@ -184,110 +180,41 @@ jobs:
           sarif_file: 'trivy-results.sarif'
         continue-on-error: true
 
-  # Stage 5: Build (Parallel, depends on Stage 4)
-  build-backend:
-    name: Build Backend
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [scan-vulnerabilities]
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-          cache: maven
-      
-      - name: Build backend
-        working-directory: ./backend
-        run: mvn clean package -DskipTests -B -q
-      
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-jar
-          path: backend/target/*.jar
-          retention-days: 1
-
-  build-frontend:
-    name: Build Frontend
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [scan-vulnerabilities]
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      
-      - name: Install and build
-        working-directory: ./frontend
-        run: |
-          npm install
-          npm run build --silent
-        env:
-          CI: true
-      
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend/dist/
-          retention-days: 1
-
-
-
-  # Stage 6: Docker Build & Push (Parallel, depends on Stage 5)
+  # Stage 3: Build & Scan Images, then Push to ECR
   push-backend:
-    name: Push Backend Image
+    name: Build, Scan & Push Backend
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [scan-vulnerabilities]
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Develop'
+    timeout-minutes: 25
+    needs: [test-backend, scan-vulnerabilities]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
       
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-          mask-aws-account-id: true
-      
-      - name: Login to ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-      
-      - name: Build and push
+      - name: Build backend image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          push: true
-          tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:latest
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}
+          load: true
+          tags: ${{ env.PROJECT_NAME }}-backend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  push-frontend:
-    name: Push Frontend Image
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [scan-vulnerabilities]
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Develop'
-    steps:
-      - uses: actions/checkout@v4
       
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Scan backend image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.PROJECT_NAME }}-backend:${{ github.sha }}'
+          format: 'sarif'
+          output: 'backend-image-scan.sarif'
+        continue-on-error: true
+      
+      - name: Upload backend scan
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'backend-image-scan.sarif'
+        continue-on-error: true
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -301,24 +228,82 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
       
-      - name: Build and push
+      - name: Tag and push to ECR
+        run: |
+          docker tag ${{ env.PROJECT_NAME }}-backend:${{ github.sha }} ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:latest
+          docker tag ${{ env.PROJECT_NAME }}-backend:${{ github.sha }} ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:latest
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}
+      
+      - name: Cleanup
+        if: always()
+        run: docker system prune -af --volumes
+
+  push-frontend:
+    name: Build, Scan & Push Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [test-frontend, scan-vulnerabilities]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build frontend image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
-          push: true
-          tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:latest
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}
+          load: true
+          tags: ${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      
+      - name: Scan frontend image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}'
+          format: 'sarif'
+          output: 'frontend-image-scan.sarif'
+        continue-on-error: true
+      
+      - name: Upload frontend scan
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'frontend-image-scan.sarif'
+        continue-on-error: true
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: true
+      
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Tag and push to ECR
+        run: |
+          docker tag ${{ env.PROJECT_NAME }}-frontend:${{ github.sha }} ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:latest
+          docker tag ${{ env.PROJECT_NAME }}-frontend:${{ github.sha }} ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:latest
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}
+      
+      - name: Cleanup
+        if: always()
+        run: docker system prune -af --volumes
 
-  # Stage 7: Deploy (depends on Stage 6)
+  # Stage 4: Deploy
   deploy:
     name: Deploy to AWS
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [push-backend, push-frontend]
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Develop'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     environment:
       name: ${{ github.event.inputs.environment || 'development' }}
       url: http://${{ steps.get-url.outputs.alb_dns }}
