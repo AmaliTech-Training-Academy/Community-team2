@@ -156,7 +156,6 @@ public class UserController {
 
         if (cookies != null) {
             for (jakarta.servlet.http.Cookie cookie : cookies) {
-                log.info("Cookie name: {}", cookie.getName());
                 if ("refresh".equals(cookie.getName())) {
                     refreshToken = cookie.getValue();
                     break;
