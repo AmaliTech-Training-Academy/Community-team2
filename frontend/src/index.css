@@ -1,12 +1,201 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f6fa; color: #2d3436; }
-.container { max-width: 1100px; margin: 0 auto; padding: 20px; }
-.btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
-.btn-primary { background: #0984e3; color: white; }
-.btn-primary:hover { background: #0773c5; }
-.btn-danger { background: #d63031; color: white; }
-.card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
-input, textarea, select { width: 100%; padding: 10px; border: 1px solid #dfe6e9; border-radius: 6px; margin-bottom: 12px; font-size: 14px; }
-.navbar { background: #2d3436; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
-.navbar a { color: white; text-decoration: none; margin-left: 20px; }
-.navbar a:hover { text-decoration: underline; }
+
+@import "tailwindcss";
+
+
+@font-face {
+  font-family: 'Inter';
+  src: url("./assets/fonts/inter/Inter-VariableFont_opsz\,wght.ttf");
+  font-weight: 100 900;    
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+
+  --font-sans: "Inter";
+
+  --color-navy:          #1B2B3A;
+  --color-teal:          #0F3D57;
+  --color-orange:        #B54000;
+  --color-orange-light:  #FEF3E2;
+  --color-background: #FDFDFD;
+  --color-blue-gray:  #395362;
+  --color-blue-gray-light: #08283B;
+  --color-blue-gray-dark: #041620;
+  --color-borderstroke:#E6EAEB;
+  
+--color-primary:#ECECEB;
+
+
+  --color-gray-50:  #F9FAFB;
+  --color-gray-100: #F3F4F6;
+  --color-gray-200: #E5E7EB;
+  --color-gray-300: #D1D5DB;
+  --color-gray-400: #9CA3AF;
+  --color-gray-500: #6B7280;
+  --color-gray-600: #4B5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1F2937;
+  --color-gray-900: #111827;
+
+
+  --font-size-h-xl:     2.5rem;
+  --font-size-h-lg:     2rem;
+  --font-size-h-md:     1.5rem;
+  --font-size-h-sm:     1.125rem;
+  --font-size-body-lg:  0.875rem;   
+  --font-size-body-md:  0.75rem;   
+  --font-size-body-sm:  0.75rem;    
+  --font-size-label:    0.75rem;   
+
+  --line-height-h-xl:    1.2;
+  --line-height-h-lg:    1.25;
+  --line-height-h-md:    1.5;    
+  --line-height-h-sm:    1.4;
+  --line-height-body-lg: 1.5;
+  --line-height-body-md: 1.33;
+  --line-height-body-sm: 1.5;
+  --line-height-label:   1.33;
+
+  --font-weight-bold:     700;
+  --font-weight-semibold: 600;
+  --font-weight-medium:   500;
+  --font-weight-regular:  400;
+}
+
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body{
+  height: 100%;
+  background-color: var(--color-background);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+ textarea, select {
+  font-family: inherit;
+}
+
+
+
+
+::-webkit-scrollbar          { width: 5px; height: 5px; }
+::-webkit-scrollbar-track    { background: var(--color-gray-100); }
+::-webkit-scrollbar-thumb    { background: var(--color-gray-300); border-radius: 10px; }
+
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+
+@utility text-h-xl {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-h-xl);
+  line-height: var(--line-height-h-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+@utility text-h-lg {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-h-lg);
+  line-height: var(--line-height-h-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+@utility text-h-md {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-h-md);          /* 1.5rem / 24px    */
+  line-height: var(--line-height-h-md);      /* 1.5 / 150%       */
+  font-weight: var(--font-weight-semibold);  /* 600 — not bold   */
+  letter-spacing: 0;
+}
+
+
+
+@utility text-h-sm {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-h-sm);
+  line-height: var(--line-height-h-sm);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 2.4px;
+  text-transform: uppercase;
+}
+
+@utility text-body-lg {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-body-lg);       /* 0.875rem / 14px */
+  line-height: var(--line-height-body-lg);
+  font-weight: var(--font-weight-medium);
+}
+
+@utility text-body-md {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-body-md);       /* 0.75rem / 12px  */
+  line-height: var(--line-height-body-md);
+  font-weight: var(--font-weight-bold);
+}
+
+@utility text-body-sm {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-body-sm);       /* 0.75rem / 12px  */
+  line-height: var(--line-height-body-sm);
+  font-weight: var(--font-weight-regular);   /* subtitles, footer, error hints */
+}
+
+@utility text-label {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-label);         /* 0.75rem / 12px  */
+  line-height: var(--line-height-label);
+  font-weight: var(--font-weight-medium);    /* form labels, field captions     */
+}
+
+/* ── Utility animation classes ────────────────────────────────── */
+.fade-in   { animation: fadeIn   0.25s ease; }
+.slide-down { animation: slideDown 0.20s ease; }
+.modal-in  { animation: modalIn  0.25s ease; }
+.toast-in  { animation: toastIn  0.30s ease; }
+
+/* ── Loading spinner ──────────────────────────────────────────── */
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--color-gray-200);
+  border-top-color: var(--color-navy);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+
+.animate-spin {
+  animation: spin 0.75s linear infinite;
+}
