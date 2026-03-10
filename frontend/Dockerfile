@@ -1,11 +1,28 @@
-FROM node:18-alpine AS build
+FROM node:20-alpine AS build
 WORKDIR /app
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 COPY . .
 RUN npm run build
 
 FROM nginx:alpine
-COPY --from=build /app/build /usr/share/nginx/html
+
+# Create non-root user for nginx
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Copy build files
+COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Change ownership of nginx directories
+RUN chown -R appuser:appgroup /usr/share/nginx/html && \
+    chown -R appuser:appgroup /var/cache/nginx && \
+    chown -R appuser:appgroup /var/log/nginx && \
+    chown -R appuser:appgroup /etc/nginx/conf.d && \
+    touch /var/run/nginx.pid && \
+    chown -R appuser:appgroup /var/run/nginx.pid
+
+# Switch to non-root user
+USER appuser
+
 EXPOSE 80
