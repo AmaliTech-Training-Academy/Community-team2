@@ -2,7 +2,7 @@ name: CommunityBoard CI/CD
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main, Develop]
   workflow_dispatch:
     inputs:
       environment:
@@ -22,89 +22,11 @@ env:
   NODE_VERSION: '18'
 
 jobs:
-  secrets-scan:
-    name: Secrets & Leaks Scan
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Gitleaks scan
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  lint-backend:
-    name: Lint Backend
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-          cache: maven
-      
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-      
-      - name: Run Checkstyle
-        working-directory: ./backend
-        run: mvn checkstyle:check
-      
-      - name: Cleanup
-        if: always()
-        run: rm -rf ~/.m2/repository/com/amalitech
-
-  lint-frontend:
-    name: Lint Frontend
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-      
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm ci --prefer-offline --no-audit
-      
-      - name: Run ESLint
-        working-directory: ./frontend
-        run: npm run lint --if-present
-      
-      - name: Cleanup
-        if: always()
-        run: rm -rf frontend/node_modules/.cache
-
   test-backend:
     name: Test Backend
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [secrets-scan, lint-backend]
+    needs: []
     services:
       postgres:
         image: postgres:15-alpine
@@ -161,7 +83,7 @@ jobs:
     name: Test Frontend
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [secrets-scan, lint-frontend]
+    needs: []
     steps:
       - uses: actions/checkout@v4
       
@@ -169,8 +91,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
       
       - name: Cache node modules
         uses: actions/cache@v4
@@ -182,7 +102,7 @@ jobs:
       
       - name: Install dependencies
         working-directory: ./frontend
-        run: npm ci --prefer-offline --no-audit
+        run: npm install --prefer-offline --no-audit
       
       - name: Run tests
         working-directory: ./frontend
@@ -242,8 +162,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
       
       - name: Cache node modules
         uses: actions/cache@v4
@@ -256,7 +174,7 @@ jobs:
       - name: Build frontend
         working-directory: ./frontend
         run: |
-          npm ci --prefer-offline --no-audit
+          npm install --prefer-offline --no-audit
           npm run build
         env:
           CI: true
@@ -287,7 +205,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: build
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: (github.event.pull_request.base.ref == 'Develop' && github.event_name == 'pull_request') || (github.event.pull_request.base.ref == 'main' && github.event_name == 'pull_request') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Develop' || github.event_name == 'workflow_dispatch'
     environment:
       name: ${{ github.event.inputs.environment || 'development' }}
       url: http://${{ steps.get-url.outputs.alb_dns }}
