@@ -186,7 +186,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     needs: [test-backend, scan-vulnerabilities]
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
       
@@ -244,7 +243,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     needs: [test-frontend, scan-vulnerabilities]
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
       
@@ -303,7 +301,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [push-backend, push-frontend]
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     environment:
       name: ${{ github.event.inputs.environment || 'development' }}
       url: http://${{ steps.get-url.outputs.alb_dns }}
