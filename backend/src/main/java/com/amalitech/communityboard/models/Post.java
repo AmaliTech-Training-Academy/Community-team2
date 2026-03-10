@@ -1,0 +1,47 @@
+package com.amalitech.communityboard.models;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "posts")
+@Builder
+public class Post {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(nullable = false)
+    private Long id;
+
+    @Column(nullable = false)
+    @NotBlank(message = "title cannot be empty")
+    private String title;
+
+    @Column(nullable = false,columnDefinition = "TEXT")
+    @NotBlank(message = "content cannot be empty")
+    private String content;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false,referencedColumnName = "id",name = "user_id")
+    private User author;
+
+    @OneToOne
+    @JoinColumn(nullable = false,referencedColumnName = "id",name = "category_id")
+    private Category category;
+
+    private int viewCount = 0;
+
+    public Post() {}
+
+
+}
