@@ -11,6 +11,7 @@ import java.util.List;
 @Builder
 public class TokenValidationResult {
     private final String subject;
+    private Long userId;
     private final List<String> roles;
     private final boolean isValid;
     private final Date expiration;

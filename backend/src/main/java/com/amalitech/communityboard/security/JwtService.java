@@ -69,6 +69,7 @@ public class JwtService {
                 .claim("type", "access")
                 .claim("roles", roles)
                 .claim("name", user.getUsername())
+                .claim("userId",user.getId())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
                 .signWith(secretKey, SignatureAlgorithm.HS256)
@@ -79,6 +80,7 @@ public class JwtService {
         return Jwts.builder()
                 .subject(user.getEmail())
                 .issuer(issuer)
+                .claim("userId",user.getId())
                 .claim("type", "refresh")
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + jwtRefreshExpirationMs))
@@ -97,12 +99,15 @@ public class JwtService {
                 }
 
                 Claims claims = getClaimsFromToken(token);
+                Long userId = ((Number) claims.get("userId")).longValue();
+                System.out.println("User ID from token: " + userId);
                 boolean valid = claims.getExpiration().after(now);
 
                 return TokenValidationResult.builder()
                         .subject(claims.getSubject())
                         .roles(extractRolesFromClaims(claims))
                         .isValid(valid)
+                        .userId(userId)
                         .expiration(claims.getExpiration())
                         .claims(claims)
                         .cachedAt(now)

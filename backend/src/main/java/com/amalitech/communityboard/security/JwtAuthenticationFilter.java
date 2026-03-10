@@ -15,6 +15,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
@@ -51,9 +52,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
 
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(validationResult.getSubject(), null, authorities);
 
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(validationResult.getSubject(),
+                            null, authorities);
+
+            authentication.setDetails(Map.of(
+                    "userId", validationResult.getUserId()
+            ));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (BadCredentialsException e) {
