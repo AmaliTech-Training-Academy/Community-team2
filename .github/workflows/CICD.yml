@@ -308,14 +308,12 @@ jobs:
         run: |
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.PROJECT_NAME }}-backend --query 'taskDefinition' --region ${{ env.AWS_REGION }})
           NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}" \
-            --arg DB_URL "${{ secrets.RDS_ENDPOINT }}" \
+            --arg DB_URL "jdbc:postgresql://${{ secrets.RDS_ENDPOINT }}/communityboard" \
             --arg DB_USER "${{ secrets.RDS_USERNAME }}" \
-            --arg DB_PASS "${{ secrets.RDS_PASSWORD }}" \
             '.containerDefinitions[0].image = $IMAGE | 
-             .containerDefinitions[0].environment += [
-               {"name": "SPRING_DATASOURCE_URL", "value": ("jdbc:postgresql://" + $DB_URL + "/communityboard")},
+             .containerDefinitions[0].environment = [
+               {"name": "SPRING_DATASOURCE_URL", "value": $DB_URL},
                {"name": "SPRING_DATASOURCE_USERNAME", "value": $DB_USER},
-               {"name": "SPRING_DATASOURCE_PASSWORD", "value": $DB_PASS},
                {"name": "SPRING_PROFILES_ACTIVE", "value": "dev"}
              ] | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
           echo $NEW_TASK_DEF > task-def.json
