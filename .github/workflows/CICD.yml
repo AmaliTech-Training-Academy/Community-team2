@@ -113,7 +113,7 @@ jobs:
       
       - name: Run unit tests
         working-directory: ./frontend
-        run: npm test -- --coverage --watchAll=false --silent
+        run: npm test -- --coverage --run
       
       - name: Upload coverage
         if: always()
@@ -168,7 +168,7 @@ jobs:
       
       - name: Run integration tests
         working-directory: ./frontend
-        run: npm test -- --testPathPattern=integration --watchAll=false --silent
+        run: npm test -- --include='**/*.integration.test.js' --run
 
   # Stage 3: Vulnerability Scan (Parallel, depends on Stage 2)
   scan-vulnerabilities:
