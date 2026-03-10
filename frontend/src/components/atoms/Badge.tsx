@@ -15,7 +15,7 @@ export function Badge({ category }: { category: string }) {
       className={`inline-flex max-w-full shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${cls}`}
       title={category}
     >
-      <span className="block max-w-[40vw] break-words whitespace-normal leading-tight sm:max-w-[18rem] md:max-w-none">
+      <span className="block max-w-[40vw] wrap-break-word whitespace-normal leading-tight sm:max-w-[18rem] md:max-w-none">
         {category}
       </span>
     </span>
