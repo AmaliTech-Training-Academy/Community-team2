@@ -10,14 +10,12 @@ from utils.logging import get_logger
 
 logger = get_logger("clean_comments")
 
-comment_table = "comments"
-
-
 def clean_comments(
     comments_main_df: pd.DataFrame,
     valid_post_ids: Set[int],
     valid_user_ids: Set[int],
-    config: dict
+    config: dict,
+    comment_table: str
 ) -> pd.DataFrame:
     """
     Clean and validate the comments dataset.
@@ -51,7 +49,7 @@ def clean_comments(
         reference_sets = {
             "posts": valid_post_ids,
             "users": valid_user_ids,
-        }
+        } # HAS TO BE DYNAMIC
 
         log_basic_metrics(comments_df, f"{comment_table}_raw")
 

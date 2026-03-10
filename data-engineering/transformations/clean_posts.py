@@ -10,11 +10,8 @@ from utils.data_quality import log_basic_metrics
 
 logger = get_logger("clean_posts")
 
-post_table = "posts"
 
-
-
-def clean_posts(posts_main_df: pd.DataFrame, config: dict) -> pd.DataFrame:
+def clean_posts(posts_main_df: pd.DataFrame, config: dict, post_table: str) -> pd.DataFrame:
     """
     Clean and standardize the posts dataset.
 

@@ -1,13 +1,21 @@
-from sources.csv_source import CSVSource
-from sources.postgres_source import PostgresSource
+
+from extraction.extract import extract_data
 from transformations.clean_comments import clean_comments
 from transformations.clean_posts import clean_posts
 from transformations.clean_users import clean_users
 from utils.config_loader import load_config
 from utils.logging import get_logger
 
-
+# -------------------------
+# Logging Configuration
+# -------------------------
 logger = get_logger("etl_pipeline")
+
+
+user_table = "users"
+post_table = "posts"
+comment_table = "comments"
+
 
 
 def _load_pipeline_config() -> dict:
@@ -22,28 +30,6 @@ def _load_pipeline_config() -> dict:
         raise
 
 
-def ingest_data(config: dict):
-    """
-    Ingest raw datasets from the configured data source.
-    """
-
-    logger.info("Starting data ingestion")
-
-    data_source = config["data_source"]
-    if data_source == "csv":
-        source = CSVSource(config)
-    elif data_source == "postgres":
-        source = PostgresSource(config)
-    else:
-        raise ValueError(f"Unsupported data source: {data_source}")
-
-    users = source.get_users()
-    posts = source.get_posts()
-    comments = source.get_comments()
-
-    logger.info("Data ingestion completed")
-    return users, posts, comments
-
 
 def run_pipeline():
     """
@@ -51,15 +37,16 @@ def run_pipeline():
     """
 
     config = _load_pipeline_config()
-    users_raw, posts_raw, comments_raw = ingest_data(config)
+    users_raw, posts_raw, comments_raw = extract_data(config)
 
-    users_clean = clean_users(users_raw, config)
-    posts_clean = clean_posts(posts_raw, config)
+    users_clean = clean_users(users_raw, config, user_table)
+    posts_clean = clean_posts(posts_raw, config, post_table)
     comments_clean = clean_comments(
         comments_raw,
         valid_post_ids=set(posts_clean["id"]),
         valid_user_ids=set(users_clean["id"]),
         config=config,
+        comment_table=comment_table
     )
 
     result = {

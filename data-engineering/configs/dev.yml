@@ -2,10 +2,36 @@ environment: dev
 
 data_source: csv
 
+database:
+  role_keys:
+    backend: dev_db
+    replica: dev_db
+    analytics: dev_db
+  required_fields:
+  - host
+  - port
+  - database
+  - user
+  - password
+
+postgres_source:
+  db_role: replica
+  tables:
+    users: users
+    posts: posts
+    comments: comments
+
 csv_paths:
   users: sample-data/users.csv
   posts: sample-data/posts.csv
   comments: sample-data/comments.csv
+
+dev_db:
+  host: ${DB_HOST:localhost}
+  port: ${DB_PORT:5432}
+  database: ${DB_NAME:communityboard}
+  user: ${DB_USER:postgres}
+  password: ${DB_PASSWORD:postgres}
 
 sample_data:
   users: 20
@@ -46,12 +72,10 @@ deduplicate_on:
   comments: id
   users: id
 
-
 timestamp_columns:
   posts: created_at
   comments: created_at
   users: created_at
-
 
 foreign_keys:
   comments:

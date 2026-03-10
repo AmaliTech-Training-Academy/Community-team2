@@ -10,10 +10,7 @@ from utils.logging import get_logger
 
 logger = get_logger("clean_users")
 
-user_table = "users"
-
-
-def clean_users(users_main_df: pd.DataFrame, config: dict) -> pd.DataFrame:
+def clean_users(users_main_df: pd.DataFrame, config: dict, user_table: str) -> pd.DataFrame:
     """
     Clean and validate the users dataset.
 
