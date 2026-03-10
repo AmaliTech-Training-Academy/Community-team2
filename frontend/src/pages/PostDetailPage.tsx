@@ -13,6 +13,7 @@ import HomeIcon from "../assets/images/home.svg?react";
 import ClockIcon from "../assets/images/clock.svg?react";
 import PencilIcon from "../assets/images/pencil.svg?react";
 import TrashIcon from "../assets/images/trash.svg?react";
+import Comments from '../assets/images/comments.svg?react';
 
 function getInitials(name: string) {
   return name
@@ -223,9 +224,15 @@ export default function PostDetailPage() {
         </h2>
 
         {comments.length === 0 && (
-          <p className="text-body-sm text-gray-400">
-            No comments yet. Be the first!
-          </p>
+          <div data-testid="comment-empty-state" className="text-center py-16">
+          <div className="text-5xl mb-3 flex justify-center"><Comments /></div>
+          
+          <div className="text-sm text-gray-400">
+            No Comments yet
+          </div>
+        </div>
+
+          
         )}
 
         {comments.map((comment) => {

@@ -12,6 +12,7 @@ import { Spinner } from "../components/atoms/Spinner";
 import { useDebounce } from "../hooks/useDebounce";
 import { useToast } from "../components/atoms/Toast";
 import type { Post } from "../types";
+import Comments from '../assets/images/comments.svg?react';
 
 const POSTS_PER_PAGE = 5;
 
@@ -168,12 +169,10 @@ export default function HomePage() {
         <Spinner />
       ) : posts.length === 0 ? (
         <div data-testid="posts-empty-state" className="text-center py-16">
-          <div className="text-5xl mb-3">📭</div>
-          <div className="text-base font-semibold text-gray-500 mb-1">
-            No posts found
-          </div>
+          <div className="text-5xl mb-3 flex justify-center"><Comments /></div>
+          
           <div className="text-sm text-gray-400">
-            Be the first to post in this category!
+            No posts have been made yet
           </div>
         </div>
       ) : (
