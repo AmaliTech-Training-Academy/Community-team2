@@ -224,11 +224,10 @@ export const mockAnalyticsApi = {
     );
 
     const breakdown: Record<string, number> = {
-      Events: 0,
-      "Lost & Found": 0,
-      Recommendations: 0,
-      "Help Requests": 0,
       News: 0,
+      Events: 0,
+      Discussion: 0,
+      Alert: 0,
     };
     posts.forEach((p) => {
       breakdown[p.category] = (breakdown[p.category] ?? 0) + 1;

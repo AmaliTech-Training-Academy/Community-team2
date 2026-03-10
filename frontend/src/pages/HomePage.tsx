@@ -12,7 +12,8 @@ import { Spinner } from "../components/atoms/Spinner";
 import { useDebounce } from "../hooks/useDebounce";
 import { useToast } from "../components/atoms/Toast";
 import type { Post } from "../types";
-import Comments from '../assets/images/comments.svg?react';
+import Comments from "../assets/images/comments.svg?react";
+import PlusIcon from "../assets/images/plus.svg?react";
 
 const POSTS_PER_PAGE = 5;
 
@@ -151,9 +152,10 @@ export default function HomePage() {
         <button
           data-testid="create-post-btn"
           onClick={() => setShowModal(true)}
-          className="w-full md:w-auto bg-blue-gray-dark text-white text-body-sm font-semibold h-10 px-4 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+          className="w-full md:w-auto bg-blue-gray-light text-white text-body-sm font-semibold h-10 px-4 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
         >
-          + Create post
+          <PlusIcon aria-hidden="true" className="h-5 w-5" />
+          <span>Create post</span>
         </button>
       </div>
 
@@ -169,8 +171,10 @@ export default function HomePage() {
         <Spinner />
       ) : posts.length === 0 ? (
         <div data-testid="posts-empty-state" className="text-center py-16">
-          <div className="text-5xl mb-3 flex justify-center"><Comments /></div>
-          
+          <div className="text-5xl mb-3 flex justify-center">
+            <Comments />
+          </div>
+
           <div className="text-sm text-gray-400">
             No posts have been made yet
           </div>

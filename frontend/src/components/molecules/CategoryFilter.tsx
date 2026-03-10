@@ -11,7 +11,7 @@ export function CategoryFilter({ active, onSelect }: CategoryFilterProps) {
       data-testid="category-filters"
       className="flex items-center gap-2 flex-wrap mb-6"
     >
-      <span className="text-body-sm font-semibold text-blue-gray-dark mr-1">
+      <span className="text-body-sm  text-blue-gray-light mr-1">
         Categories:
       </span>
       {["All", ...CATEGORIES].map((c) => (
@@ -22,8 +22,8 @@ export function CategoryFilter({ active, onSelect }: CategoryFilterProps) {
           onClick={() => onSelect(c)}
           className={`px-2.5 py-1 rounded-md text-body-sm font-medium border transition-all duration-150 ${
             active === c
-              ? "bg-blue-gray-dark text-white border-blue-gray-dark"
-              : "bg-white text-gray-600 border-borderstroke hover:border-gray-400"
+              ? "bg-badge-darkblue text-blue-gray border-blue-gray-dark"
+              : "bg-white text-blue-gray-dark border-blue-gray-dark hover:border-gray-400"
           }`}
         >
           {c}
