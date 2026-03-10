@@ -119,12 +119,12 @@ jobs:
           path: frontend/coverage/
           retention-days: 7
 
-  # Stage 2b: Integration Tests (Parallel, depends on Stage 1)
+  # Stage 3: Integration Tests (Parallel, depends on Stage 2)
   integration-test-backend:
     name: Integration Test Backend
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [lint-backend]
+    needs: [test-backend]
     steps:
       - uses: actions/checkout@v4
       
@@ -143,7 +143,7 @@ jobs:
     name: Integration Test Frontend
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [lint-frontend]
+    needs: [test-frontend]
     steps:
       - uses: actions/checkout@v4
       
@@ -160,12 +160,12 @@ jobs:
         working-directory: ./frontend
         run: npm test
 
-  # Stage 3: Vulnerability Scan (Parallel, depends on Stage 2)
+  # Stage 4: Vulnerability Scan (Parallel, depends on Stage 3)
   scan-vulnerabilities:
     name: Scan Vulnerabilities
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [test-backend, test-frontend, integration-test-backend, integration-test-frontend]
+    needs: [integration-test-backend, integration-test-frontend]
     steps:
       - uses: actions/checkout@v4
       
@@ -183,7 +183,7 @@ jobs:
           sarif_file: 'trivy-results.sarif'
         continue-on-error: true
 
-  # Stage 4: Build (Parallel, depends on Stage 3)
+  # Stage 5: Build (Parallel, depends on Stage 4)
   build-backend:
     name: Build Backend
     runs-on: ubuntu-latest
@@ -238,7 +238,7 @@ jobs:
           path: frontend/build/
           retention-days: 1
 
-  # Stage 5: Scan Docker Images (Parallel, depends on Stage 4)
+  # Stage 6: Scan Docker Images (Parallel, depends on Stage 5)
   scan-images:
     name: Scan Docker Images
     runs-on: ubuntu-latest
@@ -281,7 +281,7 @@ jobs:
           sarif_file: 'frontend-image-scan.sarif'
         continue-on-error: true
 
-  # Stage 6: Docker Build & Push (Parallel, depends on Stage 5)
+  # Stage 7: Docker Build & Push (Parallel, depends on Stage 6)
   push-backend:
     name: Push Backend Image
     runs-on: ubuntu-latest
@@ -352,7 +352,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Stage 7: Deploy (depends on Stage 6)
+  # Stage 8: Deploy (depends on Stage 7)
   deploy:
     name: Deploy to AWS
     runs-on: ubuntu-latest
