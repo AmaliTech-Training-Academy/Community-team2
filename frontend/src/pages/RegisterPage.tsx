@@ -148,7 +148,7 @@ export default function RegisterPage() {
                 data-testid="register-fullName-error"
                 className="text-red-500 mt-1"
               >
-                ⚠ {errors.fullName}
+                 {errors.fullName}
               </Text>
             )}
           </div>
@@ -174,7 +174,7 @@ export default function RegisterPage() {
                 data-testid="register-email-input"
                 className={inputBase(!!errors.email)}
                 type="email"
-                placeholder="you@example.com"
+                placeholder="your@example.com"
                 value={form.email}
                 onChange={(e) => setField("email", e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -186,7 +186,7 @@ export default function RegisterPage() {
                 data-testid="register-email-error"
                 className="text-red-500 mt-1"
               >
-                ⚠ {errors.email}
+                 {errors.email}
               </Text>
             )}
           </div>
@@ -235,7 +235,7 @@ export default function RegisterPage() {
                 data-testid="register-password-error"
                 className="text-red-500 mt-0.5"
               >
-                ⚠ {errors.password}
+                {errors.password}
               </Text>
             )}
           </div>
@@ -281,7 +281,7 @@ export default function RegisterPage() {
                 data-testid="register-confirmPassword-error"
                 className="text-red-500 mt-1"
               >
-                ⚠ {errors.confirmPassword}
+                {errors.confirmPassword}
               </Text>
             )}
           </div>
