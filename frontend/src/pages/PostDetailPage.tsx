@@ -156,8 +156,31 @@ export default function PostDetailPage() {
           >
             {currentPost.title}
           </h1>
-          <div className="flex max-w-[40vw] shrink-0 items-start justify-end self-start sm:max-w-[45%]">
+          <div className="flex max-w-[40vw] shrink-0 items-start justify-end self-start sm:max-w-[45%] gap-2">
             <Badge category={currentPost.category} />
+            {/* Edit/Delete buttons for post owner */}
+            {user?.id === currentPost.authorId && (
+              <>
+                <button
+                  data-testid="post-edit-btn"
+                  onClick={() => setEditModal(true)}
+                  className="bg-transparent border-none p-0 hover:opacity-70 transition-opacity ml-2"
+                  aria-label="Edit post"
+                  title="Edit"
+                >
+                  <PencilIcon />
+                </button>
+                <button
+                  data-testid="post-delete-btn"
+                  onClick={() => setDeleteConfirm(true)}
+                  className="bg-transparent border-none p-0 hover:opacity-70 transition-opacity ml-2"
+                  aria-label="Delete post"
+                  title="Delete"
+                >
+                  <TrashIcon />
+                </button>
+              </>
+            )}
           </div>
         </div>
 
