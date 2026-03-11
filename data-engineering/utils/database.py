@@ -1,4 +1,5 @@
 import psycopg2
+
 from utils.config_loader import load_config
 
 
@@ -64,6 +65,29 @@ def get_db_config(
     return {field: db_config[field] for field in required_fields}
 
 
+def _resolve_db_config(
+    config: dict | None = None,
+    *,
+    db_role: str | None = None,
+    db_config_key: str | None = None,
+    db_config: dict | None = None,
+) -> dict:
+    if db_config is not None:
+        return db_config
+
+    return get_db_config(
+        config,
+        db_role=db_role,
+        db_config_key=db_config_key,
+    )
+
+
+def _normalize_port(port_value):
+    if isinstance(port_value, str) and port_value.isdigit():
+        return int(port_value)
+    return port_value
+
+
 def get_connection(
     config: dict | None = None,
     *,
@@ -75,10 +99,72 @@ def get_connection(
     Open a PostgreSQL connection using an explicit config dict or a config role.
     """
 
-    resolved_db_config = db_config or get_db_config(
+    resolved_db_config = _resolve_db_config(
         config,
         db_role=db_role,
         db_config_key=db_config_key,
+        db_config=db_config,
     )
 
     return psycopg2.connect(**resolved_db_config)
+
+
+def get_sqlalchemy_url(
+    config: dict | None = None,
+    *,
+    db_role: str | None = None,
+    db_config_key: str | None = None,
+    db_config: dict | None = None,
+):
+    """
+    Build a SQLAlchemy URL for a PostgreSQL database from pipeline config.
+    """
+
+    from sqlalchemy.engine import URL
+
+    resolved_db_config = _resolve_db_config(
+        config,
+        db_role=db_role,
+        db_config_key=db_config_key,
+        db_config=db_config,
+    )
+
+    return URL.create(
+        "postgresql+psycopg2",
+        username=resolved_db_config["user"],
+        password=resolved_db_config["password"],
+        host=resolved_db_config["host"],
+        port=_normalize_port(resolved_db_config["port"]),
+        database=resolved_db_config["database"],
+    )
+
+
+def get_sqlalchemy_engine(
+    config: dict | None = None,
+    *,
+    db_role: str | None = None,
+    db_config_key: str | None = None,
+    db_config: dict | None = None,
+    **engine_kwargs,
+):
+    """
+    Create a SQLAlchemy engine for a PostgreSQL database from pipeline config.
+    """
+
+    from sqlalchemy import create_engine
+
+    default_engine_kwargs = {
+        "pool_pre_ping": True,
+        "future": True,
+    }
+    default_engine_kwargs.update(engine_kwargs)
+
+    return create_engine(
+        get_sqlalchemy_url(
+            config,
+            db_role=db_role,
+            db_config_key=db_config_key,
+            db_config=db_config,
+        ),
+        **default_engine_kwargs,
+    )

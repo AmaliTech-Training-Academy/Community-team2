@@ -1,4 +1,4 @@
-environment: dev
+﻿environment: dev
 
 data_source: csv
 
@@ -14,12 +14,66 @@ database:
   - user
   - password
 
-postgres_source:
-  db_role: replica
+backend_source:
+  db_role: backend
+  schema: public
   tables:
     users: users
     posts: posts
     comments: comments
+
+stagging_source:
+  db_role: replica
+  schema: public
+  tables:
+    users: users
+    posts: posts
+    comments: comments
+  ddl:
+    enabled: false
+    migration_table: replica_schema_migrations
+    directory: sql/replica
+
+replica_sync:
+  enabled: false
+  load_mode: incremental
+  truncate_cascade: true
+  chunk_size: 1000
+  create_schema_if_missing: true
+  incremental_keys:
+    users:
+    - id
+    posts:
+    - id
+    comments:
+    - id
+
+warehouse:
+  enabled: false
+  db_role: analytics
+  schema: public
+  load_mode: incremental
+  truncate_cascade: true
+  chunk_size: 1000
+  create_schema_if_missing: true
+  incremental_keys:
+    dim_users:
+    - source_user_id
+    dim_posts:
+    - source_post_id
+    fact_posts:
+    - source_post_id
+    fact_comments:
+    - source_comment_id
+  ddl:
+    enabled: false
+    migration_table: schema_migrations
+    directory: sql/warehouse
+  tables:
+    dim_users: dim_users
+    dim_posts: dim_posts
+    fact_posts: fact_posts
+    fact_comments: fact_comments
 
 csv_paths:
   users: sample-data/users.csv
@@ -65,6 +119,7 @@ required_columns:
   - id
   - username
   - email
+  - role
   - created_at
 
 deduplicate_on:
