@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 @Table(name = "categories")
 @Builder
 @AllArgsConstructor
+@NoArgsConstructor
 public class Category {
 
     @Id
@@ -37,5 +39,4 @@ public class Category {
     private LocalDateTime createdAt;
 
 
-    public Category() {}
 }

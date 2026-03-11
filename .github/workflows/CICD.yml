@@ -3,6 +3,8 @@ name: CommunityBoard CI/CD
 on:
   pull_request:
     branches: [main, Develop]
+  push:
+    branches: [main, Develop]
   workflow_dispatch:
     inputs:
       environment:
@@ -22,11 +24,11 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  # Stage 1: Code Quality (Parallel)
-  lint-backend:
-    name: Lint Backend
+  # Stage 1: Lint & Build (Parallel - Fast fail)
+  lint-build-backend:
+    name: Lint & Build Backend
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       
@@ -41,11 +43,22 @@ jobs:
         working-directory: ./backend
         run: mvn checkstyle:check -B -q
         continue-on-error: true
+      
+      - name: Build backend
+        working-directory: ./backend
+        run: mvn clean package -DskipTests -B -q
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/target/*.jar
+          retention-days: 1
 
-  lint-frontend:
-    name: Lint Frontend
+  lint-build-frontend:
+    name: Lint & Build Frontend
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       
@@ -53,6 +66,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
       
       - name: Install dependencies
         working-directory: ./frontend
@@ -61,13 +76,26 @@ jobs:
       - name: Run ESLint
         working-directory: ./frontend
         run: npm run lint --if-present
+      
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build --silent
+        env:
+          CI: true
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+          retention-days: 1
 
-  # Stage 2: Unit Tests (Parallel, depends on Stage 1)
+  # Stage 2: Tests & Security Scan (Parallel)
   test-backend:
-    name: Unit Test Backend
+    name: Test Backend
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [lint-backend]
+    timeout-minutes: 20
+    needs: [lint-build-backend]
     steps:
       - uses: actions/checkout@v4
       
@@ -82,6 +110,10 @@ jobs:
         working-directory: ./backend
         run: mvn test -B -q -Dspring.profiles.active=test
       
+      - name: Run integration tests
+        working-directory: ./backend
+        run: mvn test -B -q -Dtest=*IntegrationTest -Dspring.profiles.active=test -Dsurefire.failIfNoSpecifiedTests=false
+      
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v4
@@ -91,10 +123,10 @@ jobs:
           retention-days: 7
 
   test-frontend:
-    name: Unit Test Frontend
+    name: Test Frontend
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [lint-frontend]
+    timeout-minutes: 20
+    needs: [lint-build-frontend]
     steps:
       - uses: actions/checkout@v4
       
@@ -102,6 +134,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
       
       - name: Install dependencies
         working-directory: ./frontend
@@ -111,6 +145,11 @@ jobs:
         working-directory: ./frontend
         run: npm run test:coverage -- --exclude='**/*.integration.test.*'
       
+      - name: Run integration tests
+        working-directory: ./frontend
+        run: npm test -- src/api.integration.test.js
+        continue-on-error: true
+      
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v4
@@ -119,54 +158,11 @@ jobs:
           path: frontend/coverage/
           retention-days: 7
 
-  # Stage 3: Integration Tests (Parallel, depends on Stage 2)
-  integration-test-backend:
-    name: Integration Test Backend
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [test-backend]
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-          cache: maven
-      
-      - name: Run integration tests
-        working-directory: ./backend
-        run: mvn test -B -q -Dtest=*IntegrationTest -Dspring.profiles.active=test -Dsurefire.failIfNoSpecifiedTests=false
-
-  integration-test-frontend:
-    name: Integration Test Frontend
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [test-frontend]
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm install
-      
-      - name: Run integration tests
-        working-directory: ./frontend
-        run: npm test -- src/api.integration.test.js
-        continue-on-error: true
-
-  # Stage 4: Vulnerability Scan (Parallel, depends on Stage 3)
   scan-vulnerabilities:
-    name: Scan Vulnerabilities
+    name: Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [integration-test-backend, integration-test-frontend]
+    needs: [lint-build-backend, lint-build-frontend]
     steps:
       - uses: actions/checkout@v4
       
@@ -175,119 +171,37 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-      
-      - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: 'trivy-results.sarif'
-        continue-on-error: true
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
 
-  # Stage 5: Build (Parallel, depends on Stage 4)
-  build-backend:
-    name: Build Backend
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [scan-vulnerabilities]
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-          cache: maven
-      
-      - name: Build backend
-        working-directory: ./backend
-        run: mvn clean package -DskipTests -B -q
-      
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-jar
-          path: backend/target/*.jar
-          retention-days: 1
-
-  build-frontend:
-    name: Build Frontend
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [scan-vulnerabilities]
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      
-      - name: Install and build
-        working-directory: ./frontend
-        run: |
-          npm install
-          npm run build --silent
-        env:
-          CI: true
-      
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend/dist/
-          retention-days: 1
-
-
-
-  # Stage 6: Docker Build & Push (Parallel, depends on Stage 5)
+  # Stage 3: Build & Scan Images, then Push to ECR
   push-backend:
-    name: Push Backend Image
+    name: Build, Scan & Push Backend
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [scan-vulnerabilities]
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Develop'
+    timeout-minutes: 25
+    needs: [test-backend, scan-vulnerabilities]
     steps:
       - uses: actions/checkout@v4
       
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-          mask-aws-account-id: true
-      
-      - name: Login to ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-      
-      - name: Build and push
+      - name: Build backend image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          push: true
-          tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:latest
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}
+          load: true
+          tags: ${{ env.PROJECT_NAME }}-backend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  push-frontend:
-    name: Push Frontend Image
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [scan-vulnerabilities]
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Develop'
-    steps:
-      - uses: actions/checkout@v4
       
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Scan backend image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.PROJECT_NAME }}-backend:${{ github.sha }}'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -301,24 +215,74 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
       
-      - name: Build and push
+      - name: Tag and push to ECR
+        run: |
+          docker tag ${{ env.PROJECT_NAME }}-backend:${{ github.sha }} ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:latest
+          docker tag ${{ env.PROJECT_NAME }}-backend:${{ github.sha }} ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:latest
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}
+      
+      - name: Cleanup
+        if: always()
+        run: docker system prune -af --volumes
+
+  push-frontend:
+    name: Build, Scan & Push Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [test-frontend, scan-vulnerabilities]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build frontend image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
-          push: true
-          tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:latest
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}
+          load: true
+          tags: ${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      
+      - name: Scan frontend image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: true
+      
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Tag and push to ECR
+        run: |
+          docker tag ${{ env.PROJECT_NAME }}-frontend:${{ github.sha }} ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:latest
+          docker tag ${{ env.PROJECT_NAME }}-frontend:${{ github.sha }} ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:latest
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}
+      
+      - name: Cleanup
+        if: always()
+        run: docker system prune -af --volumes
 
-  # Stage 7: Deploy (depends on Stage 6)
+  # Stage 4: Deploy
   deploy:
     name: Deploy to AWS
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     needs: [push-backend, push-frontend]
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Develop'
     environment:
       name: ${{ github.event.inputs.environment || 'development' }}
       url: http://${{ steps.get-url.outputs.alb_dns }}
@@ -343,19 +307,33 @@ jobs:
       - name: Update backend task definition
         run: |
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.PROJECT_NAME }}-backend --query 'taskDefinition' --region ${{ env.AWS_REGION }})
-          NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}" \
-            --arg DB_URL "${{ secrets.RDS_ENDPOINT }}" \
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}" \
+            --arg DB_ENDPOINT "${{ secrets.RDS_ENDPOINT }}" \
             --arg DB_USER "${{ secrets.RDS_USERNAME }}" \
-            --arg DB_PASS "${{ secrets.RDS_PASSWORD }}" \
             '.containerDefinitions[0].image = $IMAGE | 
-             .containerDefinitions[0].environment += [
-               {"name": "SPRING_DATASOURCE_URL", "value": ("jdbc:postgresql://" + $DB_URL + "/communityboard")},
+             .containerDefinitions[0].environment = [
+               {"name": "SPRING_DATASOURCE_URL", "value": ("jdbc:postgresql://" + $DB_ENDPOINT + "/communityboard")},
                {"name": "SPRING_DATASOURCE_USERNAME", "value": $DB_USER},
-               {"name": "SPRING_DATASOURCE_PASSWORD", "value": $DB_PASS},
                {"name": "SPRING_PROFILES_ACTIVE", "value": "dev"}
-             ] | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
-          echo $NEW_TASK_DEF > task-def.json
-          aws ecs register-task-definition --cli-input-json file://task-def.json --region ${{ env.AWS_REGION }}
+             ] |
+             .containerDefinitions[0].healthCheck = {
+               "command": ["CMD-SHELL", "curl -f http://localhost:8080/v3/api-docs || exit 1"],
+               "interval": 30,
+               "timeout": 5,
+               "retries": 3,
+               "startPeriod": 90
+             } | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+          echo "$NEW_TASK_DEF" > backend-task-def.json
+          aws ecs register-task-definition --cli-input-json file://backend-task-def.json --region ${{ env.AWS_REGION }}
+      
+      - name: Update frontend task definition
+        run: |
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.PROJECT_NAME }}-frontend --query 'taskDefinition' --region ${{ env.AWS_REGION }})
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}" \
+            '.containerDefinitions[0].image = $IMAGE | 
+             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+          echo "$NEW_TASK_DEF" > frontend-task-def.json
+          aws ecs register-task-definition --cli-input-json file://frontend-task-def.json --region ${{ env.AWS_REGION }}
       
       - name: Update ECS services
         run: |
@@ -364,6 +342,7 @@ jobs:
             --service ${{ env.PROJECT_NAME }}-backend \
             --task-definition ${{ env.PROJECT_NAME }}-backend \
             --force-new-deployment \
+            --health-check-grace-period-seconds 120 \
             --region ${{ env.AWS_REGION }} \
             --no-cli-pager > /dev/null
           
@@ -377,10 +356,69 @@ jobs:
       
       - name: Wait for deployment
         run: |
-          aws ecs wait services-stable \
-            --cluster ${{ env.PROJECT_NAME }}-cluster \
-            --services ${{ env.PROJECT_NAME }}-backend ${{ env.PROJECT_NAME }}-frontend \
-            --region ${{ env.AWS_REGION }}
+          CLUSTER="${{ env.PROJECT_NAME }}-cluster"
+          REGION="${{ env.AWS_REGION }}"
+          MAX_ATTEMPTS=30
+          POLL_INTERVAL=10
+          
+          for SERVICE_NAME in "${{ env.PROJECT_NAME }}-backend" "${{ env.PROJECT_NAME }}-frontend"; do
+            echo "⏳ Waiting for $SERVICE_NAME to stabilize..."
+            ATTEMPT=0
+            while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+              ATTEMPT=$((ATTEMPT + 1))
+              
+              # Get deployment status
+              DEPLOYMENTS=$(aws ecs describe-services \
+                --cluster "$CLUSTER" --services "$SERVICE_NAME" --region "$REGION" \
+                --query 'services[0].deployments' --output json)
+              
+              PRIMARY_COUNT=$(echo "$DEPLOYMENTS" | jq '[.[] | select(.status=="PRIMARY")] | length')
+              ACTIVE_COUNT=$(echo "$DEPLOYMENTS" | jq 'length')
+              PRIMARY_RUNNING=$(echo "$DEPLOYMENTS" | jq '[.[] | select(.status=="PRIMARY")][0].runningCount // 0')
+              PRIMARY_DESIRED=$(echo "$DEPLOYMENTS" | jq '[.[] | select(.status=="PRIMARY")][0].desiredCount // 0')
+              ROLLOUT=$(echo "$DEPLOYMENTS" | jq -r '[.[] | select(.status=="PRIMARY")][0].rolloutState // "unknown"')
+              
+              echo "  [$ATTEMPT/$MAX_ATTEMPTS] deployments=$ACTIVE_COUNT running=$PRIMARY_RUNNING/$PRIMARY_DESIRED rollout=$ROLLOUT"
+              
+              # Check for failed rollout (circuit breaker triggered)
+              if [ "$ROLLOUT" = "FAILED" ]; then
+                echo "❌ Deployment of $SERVICE_NAME FAILED (circuit breaker rollback triggered)"
+                # Show stopped task reasons
+                STOPPED_TASKS=$(aws ecs list-tasks --cluster "$CLUSTER" --service-name "$SERVICE_NAME" \
+                  --desired-status STOPPED --region "$REGION" --query 'taskArns' --output json)
+                if [ "$(echo "$STOPPED_TASKS" | jq 'length')" -gt 0 ]; then
+                  echo "Stopped task reasons:"
+                  aws ecs describe-tasks --cluster "$CLUSTER" --tasks $(echo "$STOPPED_TASKS" | jq -r '.[:3] | .[]') \
+                    --region "$REGION" --query 'tasks[].{reason:stoppedReason,container:containers[0].reason}' --output table
+                fi
+                exit 1
+              fi
+              
+              # Success: only 1 deployment (PRIMARY) and running == desired
+              if [ "$ACTIVE_COUNT" -eq 1 ] && [ "$PRIMARY_RUNNING" -eq "$PRIMARY_DESIRED" ] && [ "$PRIMARY_DESIRED" -gt 0 ] && [ "$ROLLOUT" = "COMPLETED" ]; then
+                echo "✅ $SERVICE_NAME is stable"
+                break
+              fi
+              
+              if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+                echo "❌ Timed out waiting for $SERVICE_NAME"
+                echo "Service events:"
+                aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE_NAME" --region "$REGION" \
+                  --query 'services[0].events[:5]' --output table
+                STOPPED_TASKS=$(aws ecs list-tasks --cluster "$CLUSTER" --service-name "$SERVICE_NAME" \
+                  --desired-status STOPPED --region "$REGION" --query 'taskArns' --output json)
+                if [ "$(echo "$STOPPED_TASKS" | jq 'length')" -gt 0 ]; then
+                  echo "Stopped task reasons:"
+                  aws ecs describe-tasks --cluster "$CLUSTER" --tasks $(echo "$STOPPED_TASKS" | jq -r '.[:3] | .[]') \
+                    --region "$REGION" --query 'tasks[].{reason:stoppedReason,container:containers[0].reason}' --output table
+                fi
+                exit 1
+              fi
+              
+              sleep $POLL_INTERVAL
+            done
+          done
+          echo "✅ All services are stable"
       
       - name: Get ALB URL
         id: get-url
@@ -396,7 +434,7 @@ jobs:
         id: health-check
         run: |
           for i in {1..20}; do
-            if curl -sf http://${{ steps.get-url.outputs.alb_dns }}/api/health > /dev/null 2>&1 || curl -sf http://${{ steps.get-url.outputs.alb_dns }}/api-docs > /dev/null 2>&1; then
+            if curl -sf http://${{ steps.get-url.outputs.alb_dns }}/api/health > /dev/null 2>&1 || curl -sf http://${{ steps.get-url.outputs.alb_dns }}/v3/api-docs > /dev/null 2>&1; then
               echo "Backend healthy"
               echo "status=healthy" >> $GITHUB_OUTPUT
               exit 0
@@ -410,7 +448,7 @@ jobs:
         if: steps.health-check.outputs.status == 'healthy'
         run: |
           for i in {1..3}; do
-            curl -w "Request $i: %{time_total}s\n" -o /dev/null -s http://${{ steps.get-url.outputs.alb_dns }}/api-docs
+            curl -w "Request $i: %{time_total}s\n" -o /dev/null -s http://${{ steps.get-url.outputs.alb_dns }}/v3/api-docs
           done
         continue-on-error: true
       
