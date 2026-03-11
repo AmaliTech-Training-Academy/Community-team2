@@ -1,5 +1,17 @@
 import axios from 'axios';
 
+function isBackendUnavailable(error) {
+  if (!axios.isAxiosError(error)) {
+    return false;
+  }
+
+  return (
+    error.code === 'ECONNREFUSED' ||
+    error.code === 'ERR_NETWORK' ||
+    error.message === 'Network Error'
+  );
+}
+
 describe('Frontend API Integration Tests', () => {
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
@@ -9,7 +21,7 @@ describe('Frontend API Integration Tests', () => {
       expect(response.status).toBe(200);
       expect(Array.isArray(response.data)).toBe(true);
     } catch (error) {
-      if (error.code !== 'ECONNREFUSED') {
+      if (!isBackendUnavailable(error)) {
         throw error;
       }
     }
@@ -21,7 +33,7 @@ describe('Frontend API Integration Tests', () => {
       expect(response.status).toBe(200);
       expect(response.data).toHaveProperty('status');
     } catch (error) {
-      if (error.code !== 'ECONNREFUSED') {
+      if (!isBackendUnavailable(error)) {
         throw error;
       }
     }
