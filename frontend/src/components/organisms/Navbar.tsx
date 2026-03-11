@@ -11,14 +11,17 @@ import CloseIcon from "../../assets/images/close.svg?react";
 function UserAvatar({
   name,
   size = "sm",
+  testId,
 }: {
   name: string;
   size?: "sm" | "md";
+  testId?: string;
 }) {
   const cls = size === "md" ? "h-10 w-10 text-sm" : "h-8 w-8 text-xs";
   return (
     <div
-      className={`${cls} flex shrink-0 items-center justify-center rounded-full bg-gray-300 font-medium text-blue-gray-dark`}
+      data-testid={testId}
+      className={`${cls} flex shrink-0 items-center justify-center rounded-full bg-badge-gray font-medium text-blue-gray-dark`}
     >
       {initials(name)}
     </div>
@@ -75,7 +78,7 @@ export function Navbar() {
 
               {/* User info */}
               <div className="flex items-center gap-2.5">
-                <UserAvatar name={user?.name || ""} />
+                <UserAvatar name={user?.name || ""} testId="navbar-avatar" />
                 <div className="flex flex-col items-start gap-1 leading-none">
                   <span
                     data-testid="navbar-username"
@@ -167,7 +170,7 @@ export function Navbar() {
             <button
               data-testid="navbar-mobile-logout-btn"
               onClick={handleLogout}
-              className="flex items-center gap-3 py-4 text-body-lg text-red-500 text-left hover:opacity-70 transition-opacity"
+              className="flex items-center gap-3 py-4 text-body-lg text-alert text-left hover:opacity-70 transition-opacity"
             >
               <LogoutIcon aria-hidden="true" className="h-5 w-5" />
               Log out

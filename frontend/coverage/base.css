@@ -222,3 +222,14 @@ pre.prettyprint {
 .footer, .push {
   height: 48px;
 }
+
+/* coverage-width-classes:start */
+.w-0 { width: 0%; }
+.w-100 { width: 100%; }
+.w-8 { width: 8%; }
+.w-92 { width: 92%; }
+.w-17 { width: 17%; }
+.w-83 { width: 83%; }
+.w-40 { width: 40%; }
+.w-60 { width: 60%; }
+/* coverage-width-classes:end */
