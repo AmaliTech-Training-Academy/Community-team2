@@ -11,13 +11,16 @@ import CloseIcon from "../../assets/images/close.svg?react";
 function UserAvatar({
   name,
   size = "sm",
+  testId,
 }: {
   name: string;
   size?: "sm" | "md";
+  testId?: string;
 }) {
   const cls = size === "md" ? "h-10 w-10 text-sm" : "h-8 w-8 text-xs";
   return (
     <div
+      data-testid={testId}
       className={`${cls} flex shrink-0 items-center justify-center rounded-full bg-badge-gray font-medium text-blue-gray-dark`}
     >
       {initials(name)}
@@ -75,7 +78,7 @@ export function Navbar() {
 
               {/* User info */}
               <div className="flex items-center gap-2.5">
-                <UserAvatar name={user?.name || ""} />
+                <UserAvatar name={user?.name || ""} testId="navbar-avatar" />
                 <div className="flex flex-col items-start gap-1 leading-none">
                   <span
                     data-testid="navbar-username"
@@ -125,7 +128,7 @@ export function Navbar() {
           {/* User header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-borderstroke">
             <div className="flex items-center gap-3">
-              <UserAvatar name={user?.name || ""} size="md"/>
+              <UserAvatar name={user?.name || ""} size="md" />
               <div className="flex flex-col leading-tight">
                 <span className="text-body-lg font-semibold text-blue-gray-dark">
                   {user?.name}

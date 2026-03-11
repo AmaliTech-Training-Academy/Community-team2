@@ -373,7 +373,10 @@ export default function PostDetailPage() {
             data-testid="delete-modal"
             className="modal-in bg-white rounded-xl shadow-2xl w-full max-w-sm p-6"
           >
-            <h3 className="text-body-lg font-bold text-blue-gray-dark mb-3">
+            <h3
+              data-testid="delete-modal-title"
+              className="text-body-lg font-bold text-blue-gray-dark mb-3"
+            >
               Delete Post
             </h3>
             <p className="text-body-sm text-blue-gray mb-5">

@@ -220,7 +220,10 @@ export default function DashboardPage() {
           data-testid="chart-card-posts-by-category"
           className="bg-white border border-borderstroke rounded-lg p-6"
         >
-          <h3 className="text-body-lg font-semibold text-blue-gray-dark mb-4">
+          <h3
+            data-testid="chart-posts-by-category-title"
+            className="text-body-lg font-semibold text-blue-gray-dark mb-4"
+          >
             Posts by Category
           </h3>
           <div className="relative h-56">
@@ -232,7 +235,10 @@ export default function DashboardPage() {
           data-testid="chart-card-posts-day-of-week"
           className="bg-white border border-borderstroke rounded-lg p-6"
         >
-          <h3 className="text-body-lg font-semibold text-blue-gray-dark mb-4">
+          <h3
+            data-testid="chart-posts-day-of-week-title"
+            className="text-body-lg font-semibold text-blue-gray-dark mb-4"
+          >
             Posts Day of Week
           </h3>
           <div className="relative h-56">
