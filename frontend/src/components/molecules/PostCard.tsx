@@ -3,7 +3,8 @@ import type { Post } from "../../types";
 import { Badge } from "../atoms/Badge";
 import { timeAgo } from "../../utils";
 import ClockIcon from "../../assets/images/clock-small.svg?react";
-import CommentIcon from "../../assets/images/comment-bubble.svg?react";
+import CommentIcon from "../../assets/images/comments-stat.svg?react";
+import ImageIndicatorIcon from "../../assets/images/image-indicator.svg?react";
 
 interface PostCardProps {
   post: Post;
@@ -52,6 +53,7 @@ export const PostCard = memo(function PostCard({
         >
           {post.body}
         </p>
+        <div className="border-t border-borderstroke" aria-hidden="true" />
         <div className="flex items-center gap-3 text-body-sm">
           <span
             data-testid="post-card-author"
@@ -71,7 +73,7 @@ export const PostCard = memo(function PostCard({
               className="text-gray-400"
               title="Has image"
             >
-              🖼
+              <ImageIndicatorIcon aria-hidden="true" className="h-3.5 w-3.5" />
             </span>
           )}
           <span

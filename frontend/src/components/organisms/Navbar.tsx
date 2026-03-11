@@ -18,7 +18,7 @@ function UserAvatar({
   const cls = size === "md" ? "h-10 w-10 text-sm" : "h-8 w-8 text-xs";
   return (
     <div
-      className={`${cls} flex shrink-0 items-center justify-center rounded-full bg-gray-300 font-medium text-blue-gray-dark`}
+      className={`${cls} flex shrink-0 items-center justify-center rounded-full bg-badge-gray font-medium text-blue-gray-dark`}
     >
       {initials(name)}
     </div>
@@ -125,7 +125,7 @@ export function Navbar() {
           {/* User header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-borderstroke">
             <div className="flex items-center gap-3">
-              <UserAvatar name={user?.name || ""} size="md" />
+              <UserAvatar name={user?.name || ""} size="md"/>
               <div className="flex flex-col leading-tight">
                 <span className="text-body-lg font-semibold text-blue-gray-dark">
                   {user?.name}
@@ -167,7 +167,7 @@ export function Navbar() {
             <button
               data-testid="navbar-mobile-logout-btn"
               onClick={handleLogout}
-              className="flex items-center gap-3 py-4 text-body-lg text-red-500 text-left hover:opacity-70 transition-opacity"
+              className="flex items-center gap-3 py-4 text-body-lg text-alert text-left hover:opacity-70 transition-opacity"
             >
               <LogoutIcon aria-hidden="true" className="h-5 w-5" />
               Log out
