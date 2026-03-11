@@ -14,6 +14,10 @@ import com.amalitech.communityboard.repository.PostRepository;
 import com.amalitech.communityboard.repository.UserRepository;
 import com.amalitech.communityboard.service.interfaces.CommentInterface;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -30,6 +34,11 @@ public class CommentService implements CommentInterface {
     private final CommentMapper commentMapper;
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "comments-by-post", key = "#request.postId"),
+            @CacheEvict(value = "comments-by-user", key = "#userId"),
+            @CacheEvict(value = "comments-all",     allEntries = true)
+    })
     public CommentResponse createComment(CommentRequest request, Long userId) {
 
         Post post = postRepository.findById(request.getPostId())
@@ -55,6 +64,7 @@ public class CommentService implements CommentInterface {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "comments", key = "#id")
     public CommentResponse getCommentById(Long id) {
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found"));
@@ -63,6 +73,10 @@ public class CommentService implements CommentInterface {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            value = "comments-all",
+            key   = "#pageable.pageNumber + '-' + #pageable.pageSize + '-' + #pageable.sort"
+    )
     public Page<CommentResponse> getAllComments(Pageable pageable) {
         Page<Comment> comments = commentRepository.findAll(pageable);
         return comments.map(commentMapper::toResponse);
@@ -70,6 +84,10 @@ public class CommentService implements CommentInterface {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            value = "comments-by-post",
+            key   = "#postId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize"
+    )
     public Page<CommentResponse> getCommentByPostId(Long postId, Pageable pageable) {
         Page<Comment> comments = commentRepository.findByPostId(postId, pageable);
         return comments.map(commentMapper::toResponse);
@@ -77,12 +95,24 @@ public class CommentService implements CommentInterface {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            value = "comments-by-user",
+            key   = "#userId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize"
+    )
     public Page<CommentResponse> getCommentByUserId(Long userId, Pageable pageable) {
         Page<Comment> comments = commentRepository.findByUserId(userId, pageable);
         return comments.map(commentMapper::toResponse);
     }
 
     @Override
+    @Caching(
+            put  = { @CachePut(value = "comments", key = "#id") },
+            evict = {
+                    @CacheEvict(value = "comments-by-post", allEntries = true),
+                    @CacheEvict(value = "comments-by-user", allEntries = true),
+                    @CacheEvict(value = "comments-all",     allEntries = true)
+            }
+    )
     public CommentResponse updateComment(Long id, CommentUpdateRequest comment) {
         Comment existing = commentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found"));
@@ -91,6 +121,12 @@ public class CommentService implements CommentInterface {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "comments",         key = "#id"),
+            @CacheEvict(value = "comments-by-post", allEntries = true),
+            @CacheEvict(value = "comments-by-user", allEntries = true),
+            @CacheEvict(value = "comments-all",     allEntries = true)
+    })
     public void deleteComment(Long id) {
         if (!commentRepository.existsById(id)) {
             throw new EntityNotFoundException("Comment not found");

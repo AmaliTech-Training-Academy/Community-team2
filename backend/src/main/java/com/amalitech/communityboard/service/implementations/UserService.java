@@ -18,6 +18,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -47,6 +51,7 @@ public class UserService implements UserInterface {
 
     @Override
     @Transactional
+    @CachePut(value = "users", key = "#result.id")
     public UserResponse createUser(UserRequest userrequest) {
         if (userRepository.existsByEmail(userrequest.getEmail()) || userRepository.existsByUsername(userrequest.getUsername())) {
             throw new UserExists("User with given email or username already exists");
@@ -62,6 +67,7 @@ public class UserService implements UserInterface {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "users", key = "#id")
     public UserResponse getUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("user not found"));
@@ -70,6 +76,7 @@ public class UserService implements UserInterface {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "users-page", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<UserResponse> getAllUsers(Pageable pageable) {
         Page<User> users = userRepository.findAll(pageable);
         return users.map(userMapper::toResponse);
@@ -77,6 +84,8 @@ public class UserService implements UserInterface {
 
     @Override
     @Transactional
+    @CachePut(value = "users", key = "#id")
+    @CacheEvict(value = "users-page", allEntries = true)
     public UserResponse updateUser(Long id, UserUpdateRequest user) {
         User existing = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("user not found"));
@@ -101,6 +110,10 @@ public class UserService implements UserInterface {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "users",      key = "#id"),
+            @CacheEvict(value = "users-page", allEntries = true)
+    })
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
             throw new EntityNotFoundException("User not found");
@@ -192,6 +205,7 @@ public class UserService implements UserInterface {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "users", key = "'email:' + #email")
     public UserResponse getCurrentUser(String email) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User not found"));
         return userMapper.toResponse(user);

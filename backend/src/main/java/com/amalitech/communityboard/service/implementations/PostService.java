@@ -15,6 +15,10 @@ import com.amalitech.communityboard.repository.UserRepository;
 import com.amalitech.communityboard.service.interfaces.PostInterface;
 import com.amalitech.communityboard.specification.PostSpecifications;
 import lombok.AllArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -32,6 +36,7 @@ public class PostService implements PostInterface {
 
 
     @Override
+    @CacheEvict(value = "posts-filtered", allEntries = true)
     public PostResponse createPost(PostRequest post,Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("user not found"));
@@ -48,6 +53,7 @@ public class PostService implements PostInterface {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "posts", key = "#id")
     public PostResponse getPostById(Long id) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("post not found"));
@@ -57,6 +63,10 @@ public class PostService implements PostInterface {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            value = "posts-filtered",
+            keyGenerator = "postCacheKeyGenerator"
+    )
     public Page<PostResponse> getAllPosts(PostFilter filter, Pageable pageable) {
         Specification<Post> spec = PostSpecifications.fromFilter(filter);
         Page<Post> posts = postRepository.findAll(spec, pageable);
@@ -65,6 +75,10 @@ public class PostService implements PostInterface {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            value = "posts-filtered",
+            keyGenerator = "postCacheKeyGenerator"
+    )
     public Page<PostResponse> getPostByUserId(Long userId, PostFilter filter, Pageable pageable) {
         if (filter == null) {
             filter = new PostFilter();
@@ -74,6 +88,10 @@ public class PostService implements PostInterface {
     }
 
     @Override
+    @Caching(
+            put    = { @CachePut(value = "posts", key = "#id") },
+            evict  = { @CacheEvict(value = "posts-filtered", allEntries = true) }
+    )
     public PostResponse updatePost(Long id, PostUpdateRequest post) {
         Post existing = postRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("post not found"));
@@ -94,6 +112,10 @@ public class PostService implements PostInterface {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "posts",          key = "#id"),
+            @CacheEvict(value = "posts-filtered", allEntries = true)
+    })
     public void deletePost(Long id) {
         if (!postRepository.existsById(id)) {
             throw new EntityNotFoundException("post not found");
