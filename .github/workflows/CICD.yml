@@ -308,19 +308,7 @@ jobs:
         run: |
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.PROJECT_NAME }}-backend --query 'taskDefinition' --region ${{ env.AWS_REGION }})
           NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}" \
-            --arg DB_ENDPOINT "${{ secrets.RDS_ENDPOINT }}" \
-            --arg DB_USER "${{ secrets.RDS_USERNAME }}" \
-            --arg DB_PASSWORD "${{ secrets.RDS_PASSWORD }}" \
-            --arg JWT_SECRET "${{ secrets.JWT_SECRET }}" \
-            '.containerDefinitions[0].image = $IMAGE | 
-             .containerDefinitions[0].environment = [
-               {"name": "SPRING_DATASOURCE_URL", "value": ("jdbc:postgresql://" + $DB_ENDPOINT + "/communityboard")},
-               {"name": "SPRING_DATASOURCE_USERNAME", "value": $DB_USER},
-               {"name": "SPRING_DATASOURCE_PASSWORD", "value": $DB_PASSWORD},
-               {"name": "JWT_SECRET", "value": $JWT_SECRET},
-               {"name": "SPRING_PROFILES_ACTIVE", "value": "dev"}
-             ] |
-             .containerDefinitions[0].secrets = [] |
+            '.containerDefinitions[0].image = $IMAGE |
              .containerDefinitions[0].healthCheck = {
                "command": ["CMD-SHELL", "curl -f http://localhost:8080/v3/api-docs || exit 1"],
                "interval": 30,
@@ -367,7 +355,7 @@ jobs:
           POLL_INTERVAL=10
           
           for SERVICE_NAME in "${{ env.PROJECT_NAME }}-backend" "${{ env.PROJECT_NAME }}-frontend"; do
-            echo "⏳ Waiting for $SERVICE_NAME to stabilize..."
+            echo "Waiting for $SERVICE_NAME to stabilize..."
             ATTEMPT=0
             while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
               ATTEMPT=$((ATTEMPT + 1))
@@ -387,7 +375,7 @@ jobs:
               
               # Check for failed rollout (circuit breaker triggered)
               if [ "$ROLLOUT" = "FAILED" ]; then
-                echo "❌ Deployment of $SERVICE_NAME FAILED (circuit breaker rollback triggered)"
+                echo "[ERROR] Deployment of $SERVICE_NAME FAILED (circuit breaker rollback triggered)"
                 # Show stopped task reasons
                 STOPPED_TASKS=$(aws ecs list-tasks --cluster "$CLUSTER" --service-name "$SERVICE_NAME" \
                   --desired-status STOPPED --region "$REGION" --query 'taskArns' --output json)
@@ -401,12 +389,12 @@ jobs:
               
               # Success: only 1 deployment (PRIMARY) and running == desired
               if [ "$ACTIVE_COUNT" -eq 1 ] && [ "$PRIMARY_RUNNING" -eq "$PRIMARY_DESIRED" ] && [ "$PRIMARY_DESIRED" -gt 0 ] && [ "$ROLLOUT" = "COMPLETED" ]; then
-                echo "✅ $SERVICE_NAME is stable"
+                echo "[SUCCESS] $SERVICE_NAME is stable"
                 break
               fi
               
               if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-                echo "❌ Timed out waiting for $SERVICE_NAME"
+                echo "[ERROR] Timed out waiting for $SERVICE_NAME"
                 echo "Service events:"
                 aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE_NAME" --region "$REGION" \
                   --query 'services[0].events[:5]' --output table
@@ -423,7 +411,7 @@ jobs:
               sleep $POLL_INTERVAL
             done
           done
-          echo "✅ All services are stable"
+          echo "[SUCCESS] All services are stable"
       
       - name: Get ALB URL
         id: get-url
