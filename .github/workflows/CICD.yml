@@ -310,12 +310,17 @@ jobs:
           NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}" \
             --arg DB_ENDPOINT "${{ secrets.RDS_ENDPOINT }}" \
             --arg DB_USER "${{ secrets.RDS_USERNAME }}" \
+            --arg DB_PASSWORD "${{ secrets.RDS_PASSWORD }}" \
+            --arg JWT_SECRET "${{ secrets.JWT_SECRET }}" \
             '.containerDefinitions[0].image = $IMAGE | 
              .containerDefinitions[0].environment = [
                {"name": "SPRING_DATASOURCE_URL", "value": ("jdbc:postgresql://" + $DB_ENDPOINT + "/communityboard")},
                {"name": "SPRING_DATASOURCE_USERNAME", "value": $DB_USER},
+               {"name": "SPRING_DATASOURCE_PASSWORD", "value": $DB_PASSWORD},
+               {"name": "JWT_SECRET", "value": $JWT_SECRET},
                {"name": "SPRING_PROFILES_ACTIVE", "value": "dev"}
              ] |
+             .containerDefinitions[0].secrets = [] |
              .containerDefinitions[0].healthCheck = {
                "command": ["CMD-SHELL", "curl -f http://localhost:8080/v3/api-docs || exit 1"],
                "interval": 30,
