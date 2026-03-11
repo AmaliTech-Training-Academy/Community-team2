@@ -6,18 +6,27 @@ resource "aws_secretsmanager_secret" "db_credentials" {
 resource "aws_secretsmanager_secret_version" "db_credentials" {
   secret_id = aws_secretsmanager_secret.db_credentials.id
   secret_string = jsonencode({
-    username = var.db_username
-    password = var.db_password
-    engine   = "postgres"
-    host     = aws_db_instance.postgres.address
-    port     = 5432
-    dbname   = "communityboard"
+    username     = var.db_username
+    password     = var.db_password
+    engine       = "postgres"
+    host         = aws_db_instance.postgres.address
+    port         = 5432
+    dbname       = "communityboard"
+    replicadb    = "replicadb"
+    analyticsdb  = "analyticsdb"
+    jdbc_url     = "jdbc:postgresql://${aws_db_instance.postgres.address}:5432/communityboard"
+    replica_url  = "jdbc:postgresql://${aws_db_instance.postgres.address}:5432/replicadb"
+    analytics_url = "jdbc:postgresql://${aws_db_instance.postgres.address}:5432/analyticsdb"
   })
 }
 
 resource "aws_db_subnet_group" "main" {
   name       = "${var.project_name}-db-subnet"
   subnet_ids = var.subnet_ids
+
+  lifecycle {
+    ignore_changes = [subnet_ids]
+  }
 }
 
 resource "aws_db_instance" "postgres" {
@@ -45,6 +54,23 @@ resource "aws_db_instance" "postgres" {
   }
 }
 
+# Create additional databases using local-exec provisioner
+resource "null_resource" "create_databases" {
+  provisioner "local-exec" {
+    command = <<-EOT
+      PGPASSWORD='${var.db_password}' psql -h ${aws_db_instance.postgres.address} -U ${var.db_username} -d postgres -c "CREATE DATABASE replicadb;" || true
+      PGPASSWORD='${var.db_password}' psql -h ${aws_db_instance.postgres.address} -U ${var.db_username} -d postgres -c "CREATE DATABASE analyticsdb;" || true
+    EOT
+  }
+
+  depends_on = [aws_db_instance.postgres]
+
+  triggers = {
+    db_instance = aws_db_instance.postgres.id
+  }
+}
+
 # Single RDS instance hosts all databases:
 # - communityboard (backend API)
-# - analytics and airflow metadata created by applications at runtime
+# - replicadb (replica/read operations)
+# - analyticsdb (analytics and reporting)

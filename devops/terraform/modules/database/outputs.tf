@@ -13,3 +13,11 @@ output "database_name" {
 output "username" {
   value = var.db_username
 }
+
+output "replicadb_name" {
+  value = "replicadb"
+}
+
+output "analyticsdb_name" {
+  value = "analyticsdb"
+}
