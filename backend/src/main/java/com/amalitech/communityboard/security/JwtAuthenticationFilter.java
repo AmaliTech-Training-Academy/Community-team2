@@ -1,6 +1,7 @@
 package com.amalitech.communityboard.security;
 
 import com.amalitech.communityboard.dto.TokenValidationResult;
+import com.amalitech.communityboard.models.User;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -52,9 +53,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
 
+            User user = new User();
+            user.setId(validationResult.getUserId());
+            user.setEmail(validationResult.getSubject());
 
+            CustomUserDetails userDetails = new CustomUserDetails(user, authorities);
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(validationResult.getSubject(),
+                    new UsernamePasswordAuthenticationToken(userDetails,
                             null, authorities);
 
             authentication.setDetails(Map.of(

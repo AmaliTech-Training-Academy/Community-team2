@@ -1,19 +1,21 @@
 package com.amalitech.communityboard.dto.request;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class PostRequest {
-    @NotBlank
-    private String title;
+public class CommentRequest {
+
+    @NotNull
+    private Long postId;
+
     @NotBlank
     private String content;
-    @NotNull(message = "categoryId cannot be null")
-    private Long categoryId;
 
+    @Nullable
+    private Long parentCommentId;
 }

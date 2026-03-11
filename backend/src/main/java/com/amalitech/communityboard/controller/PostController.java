@@ -4,6 +4,7 @@ import com.amalitech.communityboard.dto.ResponseDto;
 import com.amalitech.communityboard.dto.request.PostRequest;
 import com.amalitech.communityboard.dto.request.PostUpdateRequest;
 import com.amalitech.communityboard.dto.response.PostResponse;
+import com.amalitech.communityboard.security.CustomUserDetails;
 import com.amalitech.communityboard.service.interfaces.PostInterface;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -19,10 +20,11 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/posts")
+@RequestMapping("/api/v1/posts")
 @Tag(name = "Posts", description = "Post management endpoints")
 public class PostController {
 
@@ -40,8 +42,8 @@ public class PostController {
                     content = @Content(schema = @Schema(implementation = PostResponse.class))),
             @ApiResponse(responseCode = "400", description = "Validation error")
     })
-    public ResponseDto<PostResponse> createPost(@Valid @RequestBody PostRequest request) {
-        PostResponse postResponse = postService.createPost(request);
+    public ResponseDto<PostResponse> createPost(@Valid @RequestBody PostRequest request, @AuthenticationPrincipal CustomUserDetails principal) {
+        PostResponse postResponse = postService.createPost(request,principal.getId());
         return new ResponseDto<>(HttpStatus.CREATED, "post created", postResponse);
     }
 
@@ -71,7 +73,7 @@ public class PostController {
     }
 
     @GetMapping("/by-user/{userId}")
-    @PreAuthorize("hasRole('ADMIN') or #userId == principal.id")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get posts by user", description = "Retrieve posts created by a specific user")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Posts retrieved",
@@ -83,7 +85,7 @@ public class PostController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @userSecurity.isPostOwner(#id, principal.id)")
+    @PreAuthorize("hasRole('ADMIN') or @userSecurity.isPostOwner(#id, authentication)")
     @Operation(summary = "Update post", description = "Update an existing post. Only owner or admin can update.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Post updated",
@@ -91,13 +93,16 @@ public class PostController {
             @ApiResponse(responseCode = "404", description = "Post not found"),
             @ApiResponse(responseCode = "403", description = "Access denied")
     })
-    public ResponseDto<PostResponse> updatePost(@PathVariable Long id, @Valid @RequestBody PostUpdateRequest request) {
+    public ResponseDto<PostResponse> updatePost(
+            @PathVariable Long id,
+            @Valid @RequestBody PostUpdateRequest request) {
+
         PostResponse updated = postService.updatePost(id, request);
         return new ResponseDto<>(HttpStatus.OK, "post updated", updated);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @userSecurity.isPostOwner(#id, principal.id)")
+    @PreAuthorize("hasRole('ADMIN') or @userSecurity.isPostOwner(#id, authentication)")
     @Operation(summary = "Delete post", description = "Delete a post. Only owner or admin can delete.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Post deleted"),
