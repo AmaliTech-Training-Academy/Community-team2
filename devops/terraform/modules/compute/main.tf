@@ -227,7 +227,7 @@ resource "aws_lb_target_group" "backend" {
     healthy_threshold   = 2
     unhealthy_threshold = 3
     timeout             = 5
-    interval            = 30
+    interval            = 10
   }
 }
 
@@ -243,7 +243,7 @@ resource "aws_lb_target_group" "frontend" {
     healthy_threshold   = 2
     unhealthy_threshold = 3
     timeout             = 5
-    interval            = 30
+    interval            = 10
   }
 }
 
@@ -387,7 +387,7 @@ resource "aws_ecs_service" "backend" {
   launch_type            = "FARGATE"
   enable_execute_command = true
 
-  health_check_grace_period_seconds = 60
+  health_check_grace_period_seconds = 120
 
   deployment_circuit_breaker {
     enable   = true

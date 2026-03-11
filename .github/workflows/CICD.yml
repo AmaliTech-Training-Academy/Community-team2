@@ -281,7 +281,7 @@ jobs:
   deploy:
     name: Deploy to AWS
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     needs: [push-backend, push-frontend]
     environment:
       name: ${{ github.event.inputs.environment || 'development' }}
@@ -307,7 +307,7 @@ jobs:
       - name: Update backend task definition
         run: |
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.PROJECT_NAME }}-backend --query 'taskDefinition' --region ${{ env.AWS_REGION }})
-          NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}" \
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}" \
             --arg DB_ENDPOINT "${{ secrets.RDS_ENDPOINT }}" \
             --arg DB_USER "${{ secrets.RDS_USERNAME }}" \
             '.containerDefinitions[0].image = $IMAGE | 
@@ -315,17 +315,24 @@ jobs:
                {"name": "SPRING_DATASOURCE_URL", "value": ("jdbc:postgresql://" + $DB_ENDPOINT + "/communityboard")},
                {"name": "SPRING_DATASOURCE_USERNAME", "value": $DB_USER},
                {"name": "SPRING_PROFILES_ACTIVE", "value": "dev"}
-             ] | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
-          echo $NEW_TASK_DEF > backend-task-def.json
+             ] |
+             .containerDefinitions[0].healthCheck = {
+               "command": ["CMD-SHELL", "curl -f http://localhost:8080/api-docs || exit 1"],
+               "interval": 30,
+               "timeout": 5,
+               "retries": 3,
+               "startPeriod": 90
+             } | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+          echo "$NEW_TASK_DEF" > backend-task-def.json
           aws ecs register-task-definition --cli-input-json file://backend-task-def.json --region ${{ env.AWS_REGION }}
       
       - name: Update frontend task definition
         run: |
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.PROJECT_NAME }}-frontend --query 'taskDefinition' --region ${{ env.AWS_REGION }})
-          NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}" \
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}" \
             '.containerDefinitions[0].image = $IMAGE | 
              del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
-          echo $NEW_TASK_DEF > frontend-task-def.json
+          echo "$NEW_TASK_DEF" > frontend-task-def.json
           aws ecs register-task-definition --cli-input-json file://frontend-task-def.json --region ${{ env.AWS_REGION }}
       
       - name: Update ECS services
@@ -335,6 +342,7 @@ jobs:
             --service ${{ env.PROJECT_NAME }}-backend \
             --task-definition ${{ env.PROJECT_NAME }}-backend \
             --force-new-deployment \
+            --health-check-grace-period-seconds 120 \
             --region ${{ env.AWS_REGION }} \
             --no-cli-pager > /dev/null
           
@@ -348,10 +356,69 @@ jobs:
       
       - name: Wait for deployment
         run: |
-          aws ecs wait services-stable \
-            --cluster ${{ env.PROJECT_NAME }}-cluster \
-            --services ${{ env.PROJECT_NAME }}-backend ${{ env.PROJECT_NAME }}-frontend \
-            --region ${{ env.AWS_REGION }}
+          CLUSTER="${{ env.PROJECT_NAME }}-cluster"
+          REGION="${{ env.AWS_REGION }}"
+          MAX_ATTEMPTS=30
+          POLL_INTERVAL=10
+          
+          for SERVICE_NAME in "${{ env.PROJECT_NAME }}-backend" "${{ env.PROJECT_NAME }}-frontend"; do
+            echo "⏳ Waiting for $SERVICE_NAME to stabilize..."
+            ATTEMPT=0
+            while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+              ATTEMPT=$((ATTEMPT + 1))
+              
+              # Get deployment status
+              DEPLOYMENTS=$(aws ecs describe-services \
+                --cluster "$CLUSTER" --services "$SERVICE_NAME" --region "$REGION" \
+                --query 'services[0].deployments' --output json)
+              
+              PRIMARY_COUNT=$(echo "$DEPLOYMENTS" | jq '[.[] | select(.status=="PRIMARY")] | length')
+              ACTIVE_COUNT=$(echo "$DEPLOYMENTS" | jq 'length')
+              PRIMARY_RUNNING=$(echo "$DEPLOYMENTS" | jq '[.[] | select(.status=="PRIMARY")][0].runningCount // 0')
+              PRIMARY_DESIRED=$(echo "$DEPLOYMENTS" | jq '[.[] | select(.status=="PRIMARY")][0].desiredCount // 0')
+              ROLLOUT=$(echo "$DEPLOYMENTS" | jq -r '[.[] | select(.status=="PRIMARY")][0].rolloutState // "unknown"')
+              
+              echo "  [$ATTEMPT/$MAX_ATTEMPTS] deployments=$ACTIVE_COUNT running=$PRIMARY_RUNNING/$PRIMARY_DESIRED rollout=$ROLLOUT"
+              
+              # Check for failed rollout (circuit breaker triggered)
+              if [ "$ROLLOUT" = "FAILED" ]; then
+                echo "❌ Deployment of $SERVICE_NAME FAILED (circuit breaker rollback triggered)"
+                # Show stopped task reasons
+                STOPPED_TASKS=$(aws ecs list-tasks --cluster "$CLUSTER" --service-name "$SERVICE_NAME" \
+                  --desired-status STOPPED --region "$REGION" --query 'taskArns' --output json)
+                if [ "$(echo "$STOPPED_TASKS" | jq 'length')" -gt 0 ]; then
+                  echo "Stopped task reasons:"
+                  aws ecs describe-tasks --cluster "$CLUSTER" --tasks $(echo "$STOPPED_TASKS" | jq -r '.[:3] | .[]') \
+                    --region "$REGION" --query 'tasks[].{reason:stoppedReason,container:containers[0].reason}' --output table
+                fi
+                exit 1
+              fi
+              
+              # Success: only 1 deployment (PRIMARY) and running == desired
+              if [ "$ACTIVE_COUNT" -eq 1 ] && [ "$PRIMARY_RUNNING" -eq "$PRIMARY_DESIRED" ] && [ "$PRIMARY_DESIRED" -gt 0 ] && [ "$ROLLOUT" = "COMPLETED" ]; then
+                echo "✅ $SERVICE_NAME is stable"
+                break
+              fi
+              
+              if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+                echo "❌ Timed out waiting for $SERVICE_NAME"
+                echo "Service events:"
+                aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE_NAME" --region "$REGION" \
+                  --query 'services[0].events[:5]' --output table
+                STOPPED_TASKS=$(aws ecs list-tasks --cluster "$CLUSTER" --service-name "$SERVICE_NAME" \
+                  --desired-status STOPPED --region "$REGION" --query 'taskArns' --output json)
+                if [ "$(echo "$STOPPED_TASKS" | jq 'length')" -gt 0 ]; then
+                  echo "Stopped task reasons:"
+                  aws ecs describe-tasks --cluster "$CLUSTER" --tasks $(echo "$STOPPED_TASKS" | jq -r '.[:3] | .[]') \
+                    --region "$REGION" --query 'tasks[].{reason:stoppedReason,container:containers[0].reason}' --output table
+                fi
+                exit 1
+              fi
+              
+              sleep $POLL_INTERVAL
+            done
+          done
+          echo "✅ All services are stable"
       
       - name: Get ALB URL
         id: get-url
