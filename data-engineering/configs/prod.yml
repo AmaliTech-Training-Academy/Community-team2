@@ -1,0 +1,98 @@
+environment: prod
+
+data_source: postgres
+
+database:
+  role_keys:
+    backend: backend_postgres_db
+    replica: backend_replica_postgres_db
+    analytics: analytics_postgres_db
+  required_fields:
+  - host
+  - port
+  - database
+  - user
+  - password
+
+postgres_source:
+  db_role: replica
+  tables:
+    users_table: users
+    posts_table: posts
+    comments_table: comments
+
+backend_postgres_db:
+  host: ${DB_HOST}
+  port: ${DB_PORT}
+  database: ${DB_NAME}
+  user: ${DB_USER}
+  password: ${DB_PASSWORD}
+
+backend_replica_postgres_db:
+  host: ${DB_HOST}
+  port: ${DB_PORT}
+  database: ${DB_NAME}
+  user: ${DB_USER}
+  password: ${DB_PASSWORD}
+
+analytics_postgres_db:
+  host: ${DB_HOST}
+  port: ${DB_PORT}
+  database: ${DB_NAME}
+  user: ${DB_USER}
+  password: ${DB_PASSWORD}
+
+sample_data:
+  users: 20
+  posts: 60
+  comments: 220
+  active_users_ratio: 0.3
+
+categories:
+- NEWS
+- EVENT
+- DISCUSSION
+- ALERT
+
+required_columns:
+  posts:
+  - id
+  - user_id
+  - title
+  - content
+  - category
+  - created_at
+
+  comments:
+  - id
+  - post_id
+  - user_id
+  - content
+  - created_at
+
+  users:
+  - id
+  - username
+  - email
+  - created_at
+
+deduplicate_on:
+  posts: id
+  comments: id
+  users: id
+
+timestamp_columns:
+  posts: created_at
+  comments: created_at
+  users: created_at
+
+foreign_keys:
+  comments:
+    post_id: posts
+    user_id: users
+
+pipeline:
+  schedule: "@hourly"
+
+logging:
+  level: INFO
