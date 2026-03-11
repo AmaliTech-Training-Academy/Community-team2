@@ -1,4 +1,4 @@
-﻿from dataclasses import dataclass
+from dataclasses import dataclass
 from pathlib import Path
 import re
 
@@ -10,7 +10,6 @@ VALID_LOAD_MODES = {"append", "truncate", "incremental"}
 WAREHOUSE_TABLE_KEYS = (
     "dim_users",
     "dim_posts",
-    "fact_posts",
     "fact_comments",
 )
 

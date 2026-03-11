@@ -1,4 +1,4 @@
-﻿from typing import Mapping
+from typing import Mapping
 
 import pandas as pd
 
@@ -6,7 +6,6 @@ from loading.load_to_warehouse.star_schema import (
     build_dim_posts_frame,
     build_dim_users_frame,
     build_fact_comments_frame,
-    build_fact_posts_frame,
     validate_source_datasets,
 )
 from loading.load_to_warehouse.warehouse_config import (
@@ -64,7 +63,7 @@ def load_to_warehouse(datasets: Mapping[str, pd.DataFrame], config: dict) -> dic
                         ", ".join(settings.target_tables.values()),
                     )
 
-                # Load dimensions first so facts can resolve warehouse surrogate keys.
+                # Load dimensions first so comment facts can resolve warehouse surrogate keys.
                 dim_users_df = build_dim_users_frame(datasets["users"])
                 load_summary["dim_users"] = load_dataset(
                     cursor,
@@ -97,18 +96,6 @@ def load_to_warehouse(datasets: Mapping[str, pd.DataFrame], config: dict) -> dic
                     source_key_column="source_post_id",
                     surrogate_key_column="post_key",
                     source_ids=dim_posts_df["source_post_id"].tolist(),
-                )
-
-                fact_posts_df = build_fact_posts_frame(
-                    datasets["posts"],
-                    user_key_map,
-                    post_key_map,
-                )
-                load_summary["fact_posts"] = load_dataset(
-                    cursor,
-                    settings=settings,
-                    table_key="fact_posts",
-                    dataset_df=fact_posts_df,
                 )
 
                 fact_comments_df = build_fact_comments_frame(

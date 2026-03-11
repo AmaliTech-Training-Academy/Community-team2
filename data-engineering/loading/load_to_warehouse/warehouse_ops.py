@@ -34,14 +34,13 @@ def render_migration_sql(
     """Render migration SQL by replacing tokens with actual values from settings.
     Supported tokens are defined in the 'tokens' dictionary and can be used in migration SQL as {{ token_name }}.
     """
+    migration_sql = migration_sql.lstrip("\ufeff")
     tokens = {
         "warehouse_schema": quote_identifier(settings.schema_name),
         "warehouse_dim_users_table": quote_identifier(settings.target_tables["dim_users"]),
         "warehouse_dim_posts_table": quote_identifier(settings.target_tables["dim_posts"]),
-        "warehouse_fact_posts_table": quote_identifier(settings.target_tables["fact_posts"]),
         "warehouse_fact_comments_table": quote_identifier(settings.target_tables["fact_comments"]),
         "warehouse_users_table": quote_identifier(settings.target_tables["dim_users"]),
-        "warehouse_posts_table": quote_identifier(settings.target_tables["fact_posts"]),
         "warehouse_comments_table": quote_identifier(settings.target_tables["fact_comments"]),
     }
 

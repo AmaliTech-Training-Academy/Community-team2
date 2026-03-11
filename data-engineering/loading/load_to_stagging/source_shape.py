@@ -2,6 +2,8 @@
 
 import pandas as pd
 
+from utils.data_quality import strip_string_values
+
 
 REQUIRED_SOURCE_DATASETS = ("users", "posts", "comments")
 
@@ -39,20 +41,24 @@ def _require_columns(
 
 def build_users_frame(users_df: pd.DataFrame, required_columns: tuple[str, ...]) -> pd.DataFrame:
     replica_users_df = users_df.copy()
-    if "username" in required_columns and "username" not in replica_users_df.columns and "name" in replica_users_df.columns:
-        replica_users_df = replica_users_df.rename(columns={"name": "username"})
+    if "full_name" in required_columns and "full_name" not in replica_users_df.columns:
+        if "username" in replica_users_df.columns:
+            replica_users_df = replica_users_df.rename(columns={"username": "full_name"})
+        elif "name" in replica_users_df.columns:
+            replica_users_df = replica_users_df.rename(columns={"name": "full_name"})
     if "role" in required_columns and "role" not in replica_users_df.columns:
         replica_users_df["role"] = None
 
+    replica_users_df = strip_string_values(replica_users_df)
     replica_users_df = _require_columns(replica_users_df, "users", required_columns)
     return replica_users_df.sort_values("id").reset_index(drop=True)
 
 
 def build_posts_frame(posts_df: pd.DataFrame, required_columns: tuple[str, ...]) -> pd.DataFrame:
-    replica_posts_df = _require_columns(posts_df.copy(), "posts", required_columns)
+    replica_posts_df = _require_columns(strip_string_values(posts_df.copy()), "posts", required_columns)
     return replica_posts_df.sort_values("id").reset_index(drop=True)
 
 
 def build_comments_frame(comments_df: pd.DataFrame, required_columns: tuple[str, ...]) -> pd.DataFrame:
-    replica_comments_df = _require_columns(comments_df.copy(), "comments", required_columns)
+    replica_comments_df = _require_columns(strip_string_values(comments_df.copy()), "comments", required_columns)
     return replica_comments_df.sort_values("id").reset_index(drop=True)

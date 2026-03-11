@@ -27,23 +27,24 @@ def _load_pipeline_config() -> dict:
         raise
 
 
-def run_replica_sync_pipeline() -> dict:
+def run_replica_sync_pipeline() -> dict[str, int]:
     """
     Run the replica sync pipeline and return sync counts.
     """
     config = _load_pipeline_config()
 
     try:
-        return run_replica_sync(config)
+        result = run_replica_sync(config)
+        logger.info("Replica sync pipeline executed successfully: %s", result)
+        return result
     except Exception:
         logger.exception("Replica sync pipeline failed")
         raise
 
 
-def run_etl_pipeline():
+def run_etl_pipeline() -> dict:
     """
-    Run the end-to-end data flow: sync backend to replica, transform replica data,
-    and load analytics tables.
+    Transform replica data and load the analytics warehouse.
     """
 
     config = _load_pipeline_config()
@@ -59,7 +60,13 @@ def run_etl_pipeline():
         comment_table=comment_table,
     )
 
-    load_to_warehouse(
+    transformed_counts = {
+        "users": len(users_clean),
+        "posts": len(posts_clean),
+        "comments": len(comments_clean),
+    }
+
+    warehouse_counts = load_to_warehouse(
         {
             "users": users_clean,
             "posts": posts_clean,
@@ -68,4 +75,17 @@ def run_etl_pipeline():
         config,
     )
 
-    logger.info("Pipeline executed successfully")
+    result = {
+        **transformed_counts,
+        "warehouse_load": warehouse_counts,
+    }
+    logger.info("ETL pipeline executed successfully: %s", result)
+    return result
+
+
+# Backward-compatible alias for older imports.
+run_pipeline = run_etl_pipeline
+
+
+if __name__ == "__main__":
+    run_etl_pipeline()

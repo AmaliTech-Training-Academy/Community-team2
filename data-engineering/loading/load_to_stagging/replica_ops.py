@@ -23,6 +23,7 @@ MIGRATION_TOKEN_PATTERN = re.compile(r"\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}")
 
 
 def render_replica_sql(sql_text: str, *, settings: ReplicaLoadSettings) -> str:
+    sql_text = sql_text.lstrip("\ufeff")
     tokens = {
         "replica_schema": f'"{settings.schema_name}"',
         "replica_users_table": f'"{settings.target_tables["users"]}"',

@@ -1,7 +1,7 @@
 import pandas as pd
 from utils.data_validation import validate_schema
 from utils.logging import get_logger
-from utils.data_quality import log_basic_metrics
+from utils.data_quality import log_basic_metrics, strip_string_values
 
 
 # -------------------------
@@ -37,7 +37,7 @@ def clean_posts(posts_main_df: pd.DataFrame, config: dict, post_table: str) -> p
 
         logger.info("Starting posts transformation")
 
-        posts_df = posts_main_df.copy()
+        posts_df = strip_string_values(posts_main_df.copy())
 
         log_basic_metrics(posts_df, f"{post_table}_raw")
 
@@ -64,7 +64,7 @@ def clean_posts(posts_main_df: pd.DataFrame, config: dict, post_table: str) -> p
         # Normalize categories
         # -------------------------
 
-        posts_df["category"] = posts_df["category"].str.upper()
+        posts_df["category"] = posts_df["category"].astype("string").str.upper()
 
         # -------------------------
         # Filter invalid categories

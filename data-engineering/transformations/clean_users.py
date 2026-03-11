@@ -1,7 +1,7 @@
 import pandas as pd
 
 from utils.data_validation import validate_schema
-from utils.data_quality import log_basic_metrics
+from utils.data_quality import log_basic_metrics, strip_string_values
 from utils.logging import get_logger
 
 # -------------------------
@@ -25,9 +25,14 @@ def clean_users(users_main_df: pd.DataFrame, config: dict, user_table: str) -> p
         logger.info("Starting users transformation")
 
         users_df = users_main_df.copy()
-        if "username" not in users_df.columns and "name" in users_df.columns:
-            logger.info("Renaming legacy 'name' column to 'username'")
-            users_df = users_df.rename(columns={"name": "username"})
+        if "full_name" not in users_df.columns and "username" in users_df.columns:
+            logger.info("Renaming source 'username' column to 'full_name'")
+            users_df = users_df.rename(columns={"username": "full_name"})
+        elif "full_name" not in users_df.columns and "name" in users_df.columns:
+            logger.info("Renaming legacy 'name' column to 'full_name'")
+            users_df = users_df.rename(columns={"name": "full_name"})
+
+        users_df = strip_string_values(users_df)
 
         log_basic_metrics(users_df, f"{user_table}_raw")
 
@@ -46,8 +51,17 @@ def clean_users(users_main_df: pd.DataFrame, config: dict, user_table: str) -> p
 
         logger.info(f"Removed {before - after} duplicate users")
 
+        if "email" in users_df.columns:
+            users_df["email"] = users_df["email"].map(
+                lambda value: value.lower() if isinstance(value, str) else value
+            )
+
         if "role" in users_df.columns:
-            users_df["role"] = users_df["role"].astype(str).str.lower()
+            normalized_role = users_df["role"].astype("string").str.lower()
+            users_df["role"] = normalized_role.mask(
+                normalized_role.isna() | normalized_role.eq(""),
+                "unknown",
+            )
 
         # -------------------------
         # Normalize timestamps
