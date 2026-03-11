@@ -19,14 +19,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @AllArgsConstructor
 @Service
+@Transactional
 public class PostService implements PostInterface {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final PostMapper postMapper;
+
+
     @Override
     public PostResponse createPost(PostRequest post,Long userId) {
         User user = userRepository.findById(userId)
@@ -43,6 +47,7 @@ public class PostService implements PostInterface {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PostResponse getPostById(Long id) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("post not found"));
@@ -51,6 +56,7 @@ public class PostService implements PostInterface {
 
 
     @Override
+    @Transactional(readOnly = true)
     public Page<PostResponse> getAllPosts(PostFilter filter, Pageable pageable) {
         Specification<Post> spec = PostSpecifications.fromFilter(filter);
         Page<Post> posts = postRepository.findAll(spec, pageable);
@@ -58,6 +64,7 @@ public class PostService implements PostInterface {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<PostResponse> getPostByUserId(Long userId, PostFilter filter, Pageable pageable) {
         if (filter == null) {
             filter = new PostFilter();
@@ -83,13 +90,14 @@ public class PostService implements PostInterface {
             existing.setCategory(category);
         }
 
-        return postMapper.toResponse(postRepository.save(existing));
+        return postMapper.toResponse(existing);
     }
 
     @Override
     public void deletePost(Long id) {
-        Post post = postRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("post not found"));
-        postRepository.delete(post);
+        if (!postRepository.existsById(id)) {
+            throw new EntityNotFoundException("post not found");
+        }
+        postRepository.deleteById(id);
     }
 }

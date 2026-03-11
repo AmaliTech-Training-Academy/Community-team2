@@ -17,9 +17,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class CommentService implements CommentInterface {
 
     private final CommentRepository commentRepository;
@@ -52,25 +54,29 @@ public class CommentService implements CommentInterface {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CommentResponse getCommentById(Long id) {
         Comment comment = commentRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("comment not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Comment not found"));
         return commentMapper.toResponse(comment);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<CommentResponse> getAllComments(Pageable pageable) {
         Page<Comment> comments = commentRepository.findAll(pageable);
         return comments.map(commentMapper::toResponse);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<CommentResponse> getCommentByPostId(Long postId, Pageable pageable) {
         Page<Comment> comments = commentRepository.findByPostId(postId, pageable);
         return comments.map(commentMapper::toResponse);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<CommentResponse> getCommentByUserId(Long userId, Pageable pageable) {
         Page<Comment> comments = commentRepository.findByUserId(userId, pageable);
         return comments.map(commentMapper::toResponse);
@@ -79,15 +85,16 @@ public class CommentService implements CommentInterface {
     @Override
     public CommentResponse updateComment(Long id, CommentUpdateRequest comment) {
         Comment existing = commentRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("comment not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Comment not found"));
         existing.setContent(comment.getContent());
-        return commentMapper.toResponse(commentRepository.save(existing));
+        return commentMapper.toResponse(existing);
     }
 
     @Override
     public void deleteComment(Long id) {
-        Comment comment = commentRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("comment not found"));
-        commentRepository.delete(comment);
+        if (!commentRepository.existsById(id)) {
+            throw new EntityNotFoundException("Comment not found");
+        }
+        commentRepository.deleteById(id);
     }
 }
