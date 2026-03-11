@@ -233,7 +233,7 @@ resource "aws_lb_target_group" "backend" {
 
 resource "aws_lb_target_group" "frontend" {
   name        = "${var.project_name}-frontend-tg"
-  port        = 80
+  port        = 8080
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "ip"
@@ -365,7 +365,7 @@ resource "aws_ecs_task_definition" "frontend" {
     name  = "frontend"
     image = var.frontend_image_url
     portMappings = [{
-      containerPort = 80
+      containerPort = 8080
       protocol      = "tcp"
     }]
     logConfiguration = {
@@ -436,7 +436,7 @@ resource "aws_ecs_service" "frontend" {
   load_balancer {
     target_group_arn = aws_lb_target_group.frontend.arn
     container_name   = "frontend"
-    container_port   = 80
+    container_port   = 8080
   }
 
   lifecycle {
