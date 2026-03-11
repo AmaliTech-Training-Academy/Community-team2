@@ -223,7 +223,7 @@ resource "aws_lb_target_group" "backend" {
   target_type = "ip"
 
   health_check {
-    path                = "/api-docs"
+    path                = "/v3/api-docs"
     healthy_threshold   = 2
     unhealthy_threshold = 3
     timeout             = 5
@@ -269,7 +269,7 @@ resource "aws_lb_listener_rule" "backend" {
 
   condition {
     path_pattern {
-      values = ["/api/*", "/swagger-ui/*", "/api-docs"]
+      values = ["/api/*", "/swagger-ui/*", "/v3/api-docs*"]
     }
   }
 }
