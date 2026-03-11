@@ -39,11 +39,11 @@ public class Post {
     @JoinColumn(nullable = false,referencedColumnName = "id",name = "user_id")
     private User author;
 
-    @OneToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false,referencedColumnName = "id",name = "category_id")
     private Category category;
 
     private int viewCount = 0;
 
-    
+
 }
