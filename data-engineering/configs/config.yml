@@ -1,0 +1,216 @@
+﻿defaults:
+  backend_source:
+    db_role: backend
+    schema: public
+    tables:
+      users: users
+      posts: posts
+      comments: comments
+
+  stagging_source:
+    db_role: replica
+    schema: public
+    tables:
+      users: users
+      posts: posts
+      comments: comments
+    ddl:
+      enabled: false
+      migration_table: replica_schema_migrations
+      directory: sql/replica
+
+  replica_sync:
+    enabled: false
+    load_mode: incremental
+    truncate_cascade: true
+    chunk_size: 1000
+    create_schema_if_missing: true
+    incremental_keys:
+      users:
+      - id
+      posts:
+      - id
+      comments:
+      - id
+
+  warehouse:
+    enabled: false
+    db_role: analytics
+    schema: public
+    load_mode: incremental
+    truncate_cascade: true
+    chunk_size: 1000
+    create_schema_if_missing: true
+    incremental_keys:
+      dim_users:
+      - source_user_id
+      dim_posts:
+      - source_post_id
+      fact_posts:
+      - source_post_id
+      fact_comments:
+      - source_comment_id
+    ddl:
+      enabled: false
+      migration_table: schema_migrations
+      directory: sql/warehouse
+    tables:
+      dim_users: dim_users
+      dim_posts: dim_posts
+      fact_posts: fact_posts
+      fact_comments: fact_comments
+
+  csv_paths:
+    users: sample-data/users.csv
+    posts: sample-data/posts.csv
+    comments: sample-data/comments.csv
+
+  sample_data:
+    users: 20
+    posts: 60
+    comments: 220
+    active_users_ratio: 0.3
+
+  categories:
+  - NEWS
+  - EVENT
+  - DISCUSSION
+  - ALERT
+
+  required_columns:
+    posts:
+    - id
+    - user_id
+    - title
+    - content
+    - category
+    - created_at
+
+    comments:
+    - id
+    - post_id
+    - user_id
+    - content
+    - created_at
+
+    users:
+    - id
+    - username
+    - email
+    - created_at
+
+  deduplicate_on:
+    posts: id
+    comments: id
+    users: id
+
+  timestamp_columns:
+    posts: created_at
+    comments: created_at
+    users: created_at
+
+  foreign_keys:
+    comments:
+      post_id: posts
+      user_id: users
+
+  pipeline:
+    schedule: '@hourly'
+
+  logging:
+    level: INFO
+
+  database:
+    required_fields:
+    - host
+    - port
+    - database
+    - user
+    - password
+    connect_timeout_seconds: 10
+    statement_timeout_ms: 300000
+    retry:
+      max_attempts: 3
+      initial_delay_seconds: 1
+      backoff_multiplier: 2
+
+environments:
+  dev:
+    environment: dev
+    data_source: csv
+    database:
+      role_keys:
+        backend: dev_db
+        replica: dev_db
+        analytics: dev_db
+    stagging_source:
+      schema: public
+      ddl:
+        enabled: false
+    warehouse:
+      enabled: false
+      schema: public
+      chunk_size: 1000
+      tables:
+        dim_users: dim_users
+        dim_posts: dim_posts
+        fact_posts: fact_posts
+        fact_comments: fact_comments
+    dev_db:
+      host: ${DB_HOST:localhost}
+      port: ${DB_PORT:5432}
+      database: ${DB_NAME:communityboard}
+      user: ${DB_USER:postgres}
+      password: ${DB_PASSWORD:postgres}
+    required_columns:
+      users:
+      - id
+      - username
+      - role
+      - email
+      - created_at
+
+  prod:
+    environment: prod
+    data_source: postgres
+    database:
+      role_keys:
+        backend: backend_postgres_db
+        replica: backend_replica_postgres_db
+        analytics: analytics_postgres_db
+    stagging_source:
+      schema: replica_raw
+      ddl:
+        enabled: true
+    replica_sync:
+      enabled: true
+      chunk_size: 5000
+    warehouse:
+      enabled: true
+      schema: analytics
+      chunk_size: 5000
+      ddl:
+        enabled: true
+      tables:
+        dim_users: dim_users_table
+        dim_posts: dim_posts_table
+        fact_posts: fact_posts_table
+        fact_comments: fact_comments_table
+    backend_postgres_db:
+      host: ${DB_HOST}
+      port: ${DB_PORT}
+      database: ${DB_NAME}
+      user: ${DB_USER}
+      password: ${DB_PASSWORD}
+    backend_replica_postgres_db:
+      host: ${DB_HOST}
+      port: ${DB_PORT}
+      database: ${DB_NAME}
+      user: ${DB_USER}
+      password: ${DB_PASSWORD}
+    analytics_postgres_db:
+      host: ${DB_HOST}
+      port: ${DB_PORT}
+      database: ${DB_NAME}
+      user: ${DB_USER}
+      password: ${DB_PASSWORD}

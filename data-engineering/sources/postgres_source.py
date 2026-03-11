@@ -3,7 +3,7 @@
 import pandas as pd
 from psycopg2 import sql
 
-from utils.database import get_connection, get_db_config
+from utils.database import execute_with_db_retry, get_connection, get_db_config
 from .base_source import DataSource
 
 
@@ -19,6 +19,7 @@ class PostgresSource(DataSource):
         if config is None:
             raise ValueError("PostgresSource requires a loaded config")
 
+        self.config = config
         self.settings_key = settings_key
         source_config = config.get(settings_key)
         if not isinstance(source_config, dict):
@@ -47,7 +48,7 @@ class PostgresSource(DataSource):
         Establish a connection to the configured PostgreSQL source.
         """
 
-        return get_connection(db_config=self.db_config)
+        return get_connection(self.config, db_config=self.db_config)
 
     def _require_identifier(self, value: str, setting_path: str) -> str:
         if not isinstance(value, str) or not IDENTIFIER_PATTERN.fullmatch(value):
@@ -61,12 +62,19 @@ class PostgresSource(DataSource):
         )
 
     def _read_table(self, table_name: str) -> pd.DataFrame:
-        with self._connect() as conn:
-            query = sql.SQL("SELECT * FROM {}.{}").format(
-                sql.Identifier(self.schema_name),
-                sql.Identifier(table_name),
-            )
-            return pd.read_sql_query(query.as_string(conn), conn)
+        def _read_query() -> pd.DataFrame:
+            with self._connect() as conn:
+                query = sql.SQL("SELECT * FROM {}.{}").format(
+                    sql.Identifier(self.schema_name),
+                    sql.Identifier(table_name),
+                )
+                return pd.read_sql_query(query.as_string(conn), conn)
+
+        return execute_with_db_retry(
+            _read_query,
+            config=self.config,
+            operation_name=f"extract {self.schema_name}.{table_name}",
+        )
 
     def get_users(self) -> pd.DataFrame:
         return self._read_table(self.users_table)
