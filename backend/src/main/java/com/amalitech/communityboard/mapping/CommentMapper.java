@@ -8,9 +8,9 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface CommentMapper {
-    @Mapping(target = "userId",source = "user.id")
-    @Mapping(target = "postId",source = "post.id")
-    @Mapping(target = "parentCommentId",source = "parent.id")
+    @Mapping(target = "userId", source = "user.id")
+    @Mapping(target = "postId", source = "post.id")
+    @Mapping(target = "parentCommentId", source = "parent.id")
     CommentResponse toResponse(Comment comment);
     Comment toEntity(CommentRequest comment);
 

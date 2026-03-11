@@ -29,14 +29,14 @@ public class CategoryController {
     ) {
         Page<CategoryResponse> categories = categoryService.getAllCategories(pageable);
 
-        return new ResponseDto<>(HttpStatus.OK,"categories retrieved", categories);
+        return new ResponseDto<>(HttpStatus.OK, "categories retrieved", categories);
     }
 
     @GetMapping("/{id}")
     public ResponseDto<CategoryResponse> getCategoryById(@PathVariable Long id) {
         CategoryResponse category = categoryService.getCategoryById(id);
 
-        return new ResponseDto<>(HttpStatus.OK,"category retrieved", category);
+        return new ResponseDto<>(HttpStatus.OK, "category retrieved", category);
     }
 
 

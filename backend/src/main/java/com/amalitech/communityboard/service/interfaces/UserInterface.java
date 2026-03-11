@@ -16,13 +16,13 @@ public interface UserInterface {
     UserResponse updateUser(Long id, UserUpdateRequest user);
     void deleteUser(Long id);
 
-    AuthResponse loginUser(AuthRequest auth,HttpServletResponse response);
+    AuthResponse loginUser(AuthRequest auth, HttpServletResponse response);
 
     void clearRefreshCookie(HttpServletResponse response);
 
     void setCookie(String token, HttpServletResponse response);
     
-    AuthResponse refreshToken(String refresh,HttpServletResponse response);
+    AuthResponse refreshToken(String refresh, HttpServletResponse response);
 
     UserResponse getCurrentUser(String email);
 }

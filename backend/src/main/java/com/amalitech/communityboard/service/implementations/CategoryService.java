@@ -22,7 +22,7 @@ public class CategoryService implements CategoryInterface {
     @Override
     public CategoryResponse getCategoryById(Long id) {
         Category category = categoryRepository.findById(id).orElseThrow(
-                ()-> new EntityNotFoundException("category not found")
+                () -> new EntityNotFoundException("category not found")
         );
         return categoryMapper.toResponse(category);
     }
