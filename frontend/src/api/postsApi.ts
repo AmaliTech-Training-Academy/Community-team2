@@ -1,11 +1,13 @@
 import axiosInstance from './axiosInstance';
-import type { Post, PostsResponse, Comment } from '../types';
+import type { Post, PostsResponse, Comment, PostFilters } from '../types';
 import {
-  fetchPostsRaw,
   hydratePost,
   hydratePosts,
   mapCreatedOrUpdatedComment,
   type BackendCommentCreateRequest,
+  fetchCategories,
+  type BackendPage,
+  type ResponseDto,
   resolveCategoryId,
   type BackendCommentResponse,
   type BackendPostCreateRequest,
@@ -15,6 +17,62 @@ import {
 type BackendPostCreateResponse = BackendPostResponse | { data: BackendPostResponse };
 type BackendCommentMutationResponse = BackendCommentResponse | { data: BackendCommentResponse };
 type BackendPostMutationResponse = BackendPostResponse | { data: BackendPostResponse };
+type BackendPostsResponse = BackendPostResponse[] | BackendPage<BackendPostResponse> | ResponseDto<BackendPage<BackendPostResponse>>;
+
+function unwrapPage<T>(
+  payload: T[] | BackendPage<T> | ResponseDto<BackendPage<T>>,
+): T[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    'data' in payload &&
+    payload.data &&
+    typeof payload.data === 'object'
+  ) {
+    return payload.data.content ?? [];
+  }
+
+  return (payload as BackendPage<T>).content ?? [];
+}
+
+async function resolveFilterCategoryId(filters?: PostFilters): Promise<number | undefined> {
+  if (typeof filters?.categoryId === 'number') {
+    return filters.categoryId;
+  }
+
+  if (!filters?.category || filters.category === 'All') {
+    return undefined;
+  }
+
+  const categories = await fetchCategories();
+  const match = categories.find((item) => item.name.trim().toLowerCase() === filters.category?.trim().toLowerCase());
+
+  if (match) {
+    return match.id;
+  }
+
+  return resolveCategoryId(filters.category);
+}
+
+async function buildPostFilterParams(filters?: PostFilters): Promise<Record<string, string | number>> {
+  const categoryId = await resolveFilterCategoryId(filters);
+  const params: Record<string, string | number> = {};
+
+  if (filters?.title?.trim()) params.title = filters.title.trim();
+  if (filters?.content?.trim()) params.content = filters.content.trim();
+  if (typeof categoryId === 'number') params.categoryId = categoryId;
+  if (typeof filters?.authorId === 'number') params.authorId = filters.authorId;
+  if (filters?.createdAfter?.trim()) params.createdAfter = filters.createdAfter.trim();
+  if (filters?.createdBefore?.trim()) params.createdBefore = filters.createdBefore.trim();
+  if (typeof filters?.minViews === 'number') params.minViews = filters.minViews;
+  if (typeof filters?.maxViews === 'number') params.maxViews = filters.maxViews;
+
+  return params;
+}
 
 function unwrapCreatedPost(
   payload: BackendPostCreateResponse,
@@ -62,21 +120,11 @@ function unwrapComment(
 }
 
 export const postsApi = {
-  getAll: async (params?: { category?: string; search?: string }): Promise<PostsResponse> => {
-    let posts = await hydratePosts(await fetchPostsRaw());
-
-    if (params?.category && params.category !== 'All') {
-      posts = posts.filter((post) => post.category === params.category);
-    }
-
-    if (params?.search) {
-      const query = params.search.toLowerCase();
-      posts = posts.filter(
-        (post) =>
-          post.title.toLowerCase().includes(query) ||
-          post.body.toLowerCase().includes(query),
-      );
-    }
+  getAll: async (filters?: PostFilters): Promise<PostsResponse> => {
+    const response = await axiosInstance.get<BackendPostsResponse>('/posts', {
+      params: await buildPostFilterParams(filters),
+    });
+    const posts = await hydratePosts(unwrapPage(response.data));
 
     return { posts, total: posts.length };
   },

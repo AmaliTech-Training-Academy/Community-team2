@@ -47,7 +47,7 @@ describe("usePostsStore", () => {
     usePostsStore.setState({
       posts: [],
       currentPost: null,
-      filters: { category: "All", search: "" },
+      filters: { category: "All", title: "" },
       listLoading: false,
       detailLoading: false,
     });

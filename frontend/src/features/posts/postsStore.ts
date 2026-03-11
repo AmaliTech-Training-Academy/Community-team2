@@ -21,18 +21,14 @@ interface PostsState {
 export const usePostsStore = create<PostsState>((set, get) => ({
   posts: [],
   currentPost: null,
-  filters: { category: "All", search: "" },
+  filters: { category: "All", title: "" },
   listLoading: false,
   detailLoading: false,
 
   fetchPosts: async () => {
     set({ listLoading: true });
     try {
-      const { category, search } = get().filters;
-      const params: Record<string, string> = {};
-      if (category && category !== "All") params.category = category;
-      if (search) params.search = search;
-      const data = await api.posts.getAll(params);
+      const data = await api.posts.getAll(get().filters);
       set({ posts: data.posts });
     } finally {
       set({ listLoading: false });

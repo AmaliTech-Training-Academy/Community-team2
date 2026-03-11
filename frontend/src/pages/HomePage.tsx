@@ -103,7 +103,7 @@ export default function HomePage() {
   const debSearch = useDebounce(search, 400);
 
   useEffect(() => {
-    setFilters({ search: debSearch });
+    setFilters({ title: debSearch });
     setPage(1);
   }, [debSearch, setFilters]);
 

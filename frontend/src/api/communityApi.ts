@@ -10,13 +10,13 @@ import type {
 
 type BackendUserRole = "ADMIN" | "MEMBER";
 
-interface ResponseDto<T> {
+export interface ResponseDto<T> {
   status?: string;
   message?: string;
   data?: T;
 }
 
-interface BackendPage<T> {
+export interface BackendPage<T> {
   content: T[];
   totalElements: number;
 }

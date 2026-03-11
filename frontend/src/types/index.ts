@@ -36,8 +36,15 @@ export interface PostsResponse {
 }
 
 export interface PostFilters {
+  title?: string;
+  content?: string;
+  categoryId?: number;
+  authorId?: number;
+  createdAfter?: string;
+  createdBefore?: string;
+  minViews?: number;
+  maxViews?: number;
   category?: Category | "All";
-  search?: string;
 }
 
 export interface Analytics {
