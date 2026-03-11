@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { Category, Post } from "../../types";
-import { CATEGORIES } from "../../types";
 import { useAuthStore } from "../../features/auth/authStore";
 import { usePostsStore } from "../../features/posts/postsStore";
+import { useCategoriesStore } from "../../features/categories/categoriesStore";
 import { useToast } from "../atoms/Toast";
 import { ImageUpload } from "../atoms/ImageUpload";
 import { useImageUpload } from "../../hooks/useImageUpload";
@@ -23,6 +23,8 @@ export function PostModal({ post, onClose, onSaved }: PostModalProps) {
   const user = useAuthStore((s) => s.user);
   const createPost = usePostsStore((s) => s.createPost);
   const updatePost = usePostsStore((s) => s.updatePost);
+  const categories = useCategoriesStore((s) => s.categories);
+  const fetchCategories = useCategoriesStore((s) => s.fetch);
   const toast = useToast();
 
   const [form, setForm] = useState<FormState>({
@@ -59,6 +61,10 @@ export function PostModal({ post, onClose, onSaved }: PostModalProps) {
       document.body.style.overflow = prevOverflow;
     };
   }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const setField = useCallback(
     <K extends keyof FormState>(k: K, v: FormState[K]) => {
@@ -249,7 +255,7 @@ export function PostModal({ post, onClose, onSaved }: PostModalProps) {
                   data-testid="post-category-dropdown"
                   className="slide-down absolute top-full left-0 right-0 z-50 bg-white border border-borderstroke rounded-lg shadow-lg overflow-hidden mt-2"
                 >
-                  {CATEGORIES.map((c) => (
+                  {categories.map((c) => (
                     <div
                       key={c}
                       data-testid={`post-category-option-${c.toLowerCase().replace(/[^a-z]/g, "-")}`}

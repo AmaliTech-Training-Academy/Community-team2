@@ -7,17 +7,7 @@ export interface User {
   role: UserRole;
 }
 
-export type Category =
-  | "News"
-  | "Events"
-  | "Discussion"
-  | "Alert";
-export const CATEGORIES: Category[] = [
-  "News",
-  "Events",
-  "Discussion",
-  "Alert",
-];
+export type Category = string;
 
 export interface Comment {
   id: number;
@@ -73,7 +63,6 @@ export interface Toast {
   message: string;
   type: "success" | "error" | "warning";
 }
-
 
 export interface Subscription {
   email: string;

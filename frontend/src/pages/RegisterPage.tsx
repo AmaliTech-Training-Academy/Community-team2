@@ -82,14 +82,14 @@ export default function RegisterPage() {
   );
 
   const inputBase = (hasError: boolean) =>
-    `w-full pl-9 pr-3 py-2.5 rounded-xl text-body-lg text-blue-gray-light focus:outline-none transition-colors border ${
+    `w-full pl-9 pr-3 py-2.5 rounded-xl text-body-lg text-blue-gray-light placeholder:text-[#5A6F7C] focus:outline-none transition-colors border ${
       hasError
         ? "border-red-400 bg-red-50"
         : "border-borderstroke bg-primary focus:border-navy focus:bg-white"
     }`;
 
   const inputWithEye = (hasError: boolean) =>
-    `w-full pl-9 pr-9 py-2.5 rounded-xl text-body-lg text-blue-gray-light focus:outline-none transition-colors border ${
+    `w-full pl-9 pr-9 py-2.5 rounded-xl text-body-lg text-blue-gray-light placeholder:text-[#5A6F7C] focus:outline-none transition-colors border ${
       hasError
         ? "border-red-400 bg-red-50"
         : "border-borderstroke bg-primary focus:border-navy focus:bg-white"
@@ -124,7 +124,11 @@ export default function RegisterPage() {
               Full Name
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+              <span
+                className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
+                  errors.fullName ? "text-red-600" : "text-[#5A6F7C]"
+                }`}
+              >
                 <UserIcon />
               </span>
               <input
@@ -158,8 +162,12 @@ export default function RegisterPage() {
               Email
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <EmailIcon />
+              <span
+                className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
+                  errors.email ? "text-red-600" : "text-[#5A6F7C]"
+                }`}
+              >
+                <EmailIcon stroke="currentColor" />
               </span>
               <input
                 id="register-email"
@@ -192,8 +200,12 @@ export default function RegisterPage() {
               Password
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <Lock />
+              <span
+                className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
+                  errors.password ? "text-red-600" : "text-[#5A6F7C]"
+                }`}
+              >
+                <Lock stroke="currentColor" />
               </span>
               <input
                 id="register-password"
@@ -237,8 +249,12 @@ export default function RegisterPage() {
               Confirm Password
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <Lock />
+              <span
+                className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
+                  errors.confirmPassword ? "text-red-600" : "text-[#5A6F7C]"
+                }`}
+              >
+                <Lock stroke="currentColor" />
               </span>
               <input
                 id="register-confirmPassword"

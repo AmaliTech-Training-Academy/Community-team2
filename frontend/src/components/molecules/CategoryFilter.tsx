@@ -1,11 +1,16 @@
-import { CATEGORIES } from "../../types";
+import type { Category } from "../../types";
 
 interface CategoryFilterProps {
   active: string;
+  categories: Category[];
   onSelect: (c: string) => void;
 }
 
-export function CategoryFilter({ active, onSelect }: CategoryFilterProps) {
+export function CategoryFilter({
+  active,
+  categories,
+  onSelect,
+}: CategoryFilterProps) {
   return (
     <div
       data-testid="category-filters"
@@ -14,7 +19,7 @@ export function CategoryFilter({ active, onSelect }: CategoryFilterProps) {
       <span className="text-body-sm  text-blue-gray-light mr-1">
         Categories:
       </span>
-      {["All", ...CATEGORIES].map((c) => (
+      {["All", ...categories].map((c) => (
         <button
           key={c}
           data-testid={`category-filter-btn-${c.toLowerCase().replace(/[^a-z]/g, "-")}`}

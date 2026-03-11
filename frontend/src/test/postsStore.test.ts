@@ -14,10 +14,6 @@ vi.mock("../api/index", () => ({
   },
 }));
 
-vi.mock("../features/subscriptions/notificationService", () => ({
-  getMockNotificationMessages: vi.fn(() => []),
-}));
-
 const mockPost: Post = {
   id: 42,
   title: "Test Post Title",
