@@ -143,7 +143,9 @@ function fallbackCategory(categoryId: number): Category {
 
 export async function fetchCategoryNames(): Promise<Category[]> {
   const categories = await fetchCategories();
-  return [...new Set(categories.map((category) => normalizeCategory(category.name)))];
+  return [
+    ...new Set(categories.map((category) => normalizeCategory(category.name))),
+  ];
 }
 
 export function mapUser(raw: BackendUserResponse): User {
@@ -191,6 +193,13 @@ function buildStoredUserLookup(): Map<number, User> {
   return currentUser
     ? new Map([[currentUser.id, currentUser]])
     : new Map<number, User>();
+}
+
+export async function fetchUserById(userId: number): Promise<User> {
+  const response = await axiosInstance.get<
+    BackendUserResponse | ResponseDto<BackendUserResponse>
+  >(`/users/${userId}`);
+  return mapUser(unwrapDto(response.data));
 }
 
 export async function fetchUsers(): Promise<User[]> {
@@ -246,7 +255,7 @@ export async function fetchCommentsRaw(params?: {
   return items;
 }
 
-async function loadPostDependencies(postIds?: number[]) {
+async function loadPostDependencies(postIds?: number[], postAuthorIds: number[] = []) {
   const [categoriesResult, commentsResult] = await Promise.allSettled([
     fetchCategories(),
     postIds && postIds.length === 1
@@ -259,7 +268,24 @@ async function loadPostDependencies(postIds?: number[]) {
   const comments =
     commentsResult.status === "fulfilled" ? commentsResult.value : [];
 
+  const userIds = [
+    ...new Set(
+      [...postAuthorIds, ...comments.map((comment) => comment.userId)].filter(
+        Number.isFinite,
+      ),
+    ),
+  ];
+  const userResults = await Promise.allSettled(
+    userIds.map((userId) => fetchUserById(userId)),
+  );
   const usersById = buildStoredUserLookup();
+
+  userResults.forEach((result) => {
+    if (result.status === "fulfilled") {
+      usersById.set(result.value.id, result.value);
+    }
+  });
+
   const categoriesById = buildLookup(categories);
   const commentsByPostId = new Map<number, Comment[]>();
 
@@ -286,6 +312,7 @@ export async function hydratePosts(
 ): Promise<Post[]> {
   const dependencies = await loadPostDependencies(
     rawPosts.map((post) => post.id),
+    rawPosts.map((post) => post.userId),
   );
 
   return rawPosts
@@ -298,7 +325,7 @@ export async function hydratePosts(
 }
 
 export async function hydratePost(rawPost: BackendPostResponse): Promise<Post> {
-  const dependencies = await loadPostDependencies([rawPost.id]);
+  const dependencies = await loadPostDependencies([rawPost.id], [rawPost.userId]);
   return mapPost(rawPost, dependencies);
 }
 
@@ -330,7 +357,9 @@ function mapPost(
 export async function resolveCategoryId(category: Category): Promise<number> {
   const categories = await fetchCategories();
   const match = categories.find(
-    (item) => normalizeCategory(item.name).toLowerCase() === normalizeCategory(category).toLowerCase(),
+    (item) =>
+      normalizeCategory(item.name).toLowerCase() ===
+      normalizeCategory(category).toLowerCase(),
   );
 
   if (!match) {
