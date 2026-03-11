@@ -25,4 +25,4 @@ RUN chown -R appuser:appgroup /usr/share/nginx/html && \
 # Switch to non-root user
 USER appuser
 
-EXPOSE 80
+EXPOSE 8080
