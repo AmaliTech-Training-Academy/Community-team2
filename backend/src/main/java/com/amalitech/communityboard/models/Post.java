@@ -45,5 +45,7 @@ public class Post {
 
     private int viewCount = 0;
 
+    private String imageUrl;
+
 
 }

@@ -15,6 +15,7 @@ import com.amalitech.communityboard.repository.UserRepository;
 import com.amalitech.communityboard.service.interfaces.PostInterface;
 import com.amalitech.communityboard.specification.PostSpecifications;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -24,29 +25,47 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.concurrent.CompletableFuture;
 
 @AllArgsConstructor
 @Service
 @Transactional
+@Slf4j
 public class PostService implements PostInterface {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final PostMapper postMapper;
+    private final CloudinaryService cloudinaryService;
 
 
     @Override
     @CacheEvict(value = "posts-filtered", allEntries = true)
-    public PostResponse createPost(PostRequest post,Long userId) {
+    public PostResponse createPost(PostRequest post, Long userId, MultipartFile image) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("user not found"));
 
         Category category = categoryRepository.findById(post.getCategoryId())
                 .orElseThrow(() -> new EntityNotFoundException("category not found"));
 
+        String imageUrl = null;
+
+        if (image != null && !image.isEmpty()) {
+            try {
+                CompletableFuture<String> imageFuture = cloudinaryService.uploadImage(image);
+                imageUrl = imageFuture.join();
+            } catch (Exception ex) {
+                log.error("[IMAGE UPLOAD] Failed to upload image for post. Proceeding without image.", ex);
+                // imageUrl remains null; post will be saved without an image
+            }
+        }
+
         Post entity = postMapper.toEntity(post);
         entity.setAuthor(user);
         entity.setCategory(category);
+        entity.setImageUrl(imageUrl);
 
         return postMapper.toResponse(postRepository.save(entity));
     }

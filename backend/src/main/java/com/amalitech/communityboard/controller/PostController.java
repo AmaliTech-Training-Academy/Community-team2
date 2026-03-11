@@ -19,10 +19,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/posts")
@@ -35,7 +37,7 @@ public class PostController {
         this.postService = postService;
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN') or hasRole('MEMBER')")
     @Operation(summary = "Create post", description = "Create a new post for the authenticated user")
     @ApiResponses(value = {
@@ -43,8 +45,12 @@ public class PostController {
                     content = @Content(schema = @Schema(implementation = PostResponse.class))),
             @ApiResponse(responseCode = "400", description = "Validation error")
     })
-    public ResponseDto<PostResponse> createPost(@Valid @RequestBody PostRequest request, @AuthenticationPrincipal CustomUserDetails principal) {
-        PostResponse postResponse = postService.createPost(request,principal.getId());
+    public ResponseDto<PostResponse> createPost(
+            @Valid @RequestPart("post") PostRequest request,
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+
+        PostResponse postResponse = postService.createPost(request, principal.getId(), image);
         return new ResponseDto<>(HttpStatus.CREATED, "post created", postResponse);
     }
 
