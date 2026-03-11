@@ -1,6 +1,6 @@
-import axiosInstance from './axiosInstance';
-import type { Analytics } from '../types';
+import type { Analytics } from "../types";
+import { buildAnalytics } from "./communityApi";
 
 export const analyticsApi = {
-  get: () => axiosInstance.get<Analytics>('/analytics').then(r => r.data),
+  get: (): Promise<Analytics> => buildAnalytics(),
 };

@@ -14,10 +14,6 @@ vi.mock("../api/index", () => ({
   },
 }));
 
-vi.mock("../features/subscriptions/notificationService", () => ({
-  getMockNotificationMessages: vi.fn(() => []),
-}));
-
 const mockPost: Post = {
   id: 42,
   title: "Test Post Title",
@@ -51,7 +47,7 @@ describe("usePostsStore", () => {
     usePostsStore.setState({
       posts: [],
       currentPost: null,
-      filters: { category: "All", search: "" },
+      filters: { category: "All", title: "" },
       listLoading: false,
       detailLoading: false,
     });
