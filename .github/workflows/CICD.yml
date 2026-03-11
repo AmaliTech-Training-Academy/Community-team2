@@ -316,8 +316,17 @@ jobs:
                {"name": "SPRING_DATASOURCE_USERNAME", "value": $DB_USER},
                {"name": "SPRING_PROFILES_ACTIVE", "value": "dev"}
              ] | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
-          echo $NEW_TASK_DEF > task-def.json
-          aws ecs register-task-definition --cli-input-json file://task-def.json --region ${{ env.AWS_REGION }}
+          echo $NEW_TASK_DEF > backend-task-def.json
+          aws ecs register-task-definition --cli-input-json file://backend-task-def.json --region ${{ env.AWS_REGION }}
+      
+      - name: Update frontend task definition
+        run: |
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.PROJECT_NAME }}-frontend --query 'taskDefinition' --region ${{ env.AWS_REGION }})
+          NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-frontend:${{ github.sha }}" \
+            '.containerDefinitions[0].image = $IMAGE | 
+             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+          echo $NEW_TASK_DEF > frontend-task-def.json
+          aws ecs register-task-definition --cli-input-json file://frontend-task-def.json --region ${{ env.AWS_REGION }}
       
       - name: Update ECS services
         run: |
