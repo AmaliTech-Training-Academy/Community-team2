@@ -1,6 +1,7 @@
 package com.amalitech.communityboard.controller;
 
 import com.amalitech.communityboard.dto.ResponseDto;
+import com.amalitech.communityboard.dto.request.PostFilter;
 import com.amalitech.communityboard.dto.request.PostRequest;
 import com.amalitech.communityboard.dto.request.PostUpdateRequest;
 import com.amalitech.communityboard.dto.response.PostResponse;
@@ -54,8 +55,9 @@ public class PostController {
             @ApiResponse(responseCode = "200", description = "Posts retrieved",
                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = PostResponse.class))))
     })
-    public ResponseDto<Page<PostResponse>> getAllPosts(@PageableDefault(size = 10) Pageable pageable) {
-        Page<PostResponse> posts = postService.getAllPost(pageable);
+    public ResponseDto<Page<PostResponse>> getAllPosts(@ModelAttribute PostFilter filter,
+                                                       @PageableDefault(size = 10) Pageable pageable) {
+        Page<PostResponse> posts = postService.getAllPosts(filter, pageable);
         return new ResponseDto<>(HttpStatus.OK, "posts retrieved", posts);
     }
 
@@ -79,8 +81,10 @@ public class PostController {
             @ApiResponse(responseCode = "200", description = "Posts retrieved",
                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = PostResponse.class))))
     })
-    public ResponseDto<Page<PostResponse>> getPostsByUser(@PathVariable Long userId, @PageableDefault(size = 10) Pageable pageable) {
-        Page<PostResponse> posts = postService.getPostByUserId(userId, pageable);
+    public ResponseDto<Page<PostResponse>> getPostsByUser(@PathVariable Long userId,
+                                                          @ModelAttribute PostFilter filter,
+                                                          @PageableDefault(size = 10) Pageable pageable) {
+        Page<PostResponse> posts = postService.getPostByUserId(userId, filter, pageable);
         return new ResponseDto<>(HttpStatus.OK, "posts retrieved", posts);
     }
 

@@ -1,5 +1,6 @@
 package com.amalitech.communityboard.service.implementations;
 
+import com.amalitech.communityboard.dto.request.PostFilter;
 import com.amalitech.communityboard.dto.request.PostRequest;
 import com.amalitech.communityboard.dto.request.PostUpdateRequest;
 import com.amalitech.communityboard.dto.response.PostResponse;
@@ -12,9 +13,11 @@ import com.amalitech.communityboard.repository.CategoryRepository;
 import com.amalitech.communityboard.repository.PostRepository;
 import com.amalitech.communityboard.repository.UserRepository;
 import com.amalitech.communityboard.service.interfaces.PostInterface;
+import com.amalitech.communityboard.specification.PostSpecifications;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 @AllArgsConstructor
@@ -46,16 +49,21 @@ public class PostService implements PostInterface {
         return postMapper.toResponse(post);
     }
 
+
     @Override
-    public Page<PostResponse> getAllPost(Pageable pageable) {
-        Page<Post> posts = postRepository.findAll(pageable);
+    public Page<PostResponse> getAllPosts(PostFilter filter, Pageable pageable) {
+        Specification<Post> spec = PostSpecifications.fromFilter(filter);
+        Page<Post> posts = postRepository.findAll(spec, pageable);
         return posts.map(postMapper::toResponse);
     }
 
     @Override
-    public Page<PostResponse> getPostByUserId(Long userId, Pageable pageable) {
-        Page<Post> posts = postRepository.findByAuthor_Id(userId, pageable);
-        return posts.map(postMapper::toResponse);
+    public Page<PostResponse> getPostByUserId(Long userId, PostFilter filter, Pageable pageable) {
+        if (filter == null) {
+            filter = new PostFilter();
+        }
+        filter.setAuthorId(userId);
+        return getAllPosts(filter, pageable);
     }
 
     @Override
