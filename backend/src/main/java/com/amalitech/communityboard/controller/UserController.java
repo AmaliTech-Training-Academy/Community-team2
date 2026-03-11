@@ -86,7 +86,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.details['userId']")
+    @PreAuthorize("hasRole('ADMIN') or @userSecurity.isOwner(#id,authentication)")
     @Operation(summary = "Update user", description = "Update an existing user's data")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User updated",
@@ -100,7 +100,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.details['userId']")
+    @PreAuthorize("hasRole('ADMIN') or @userSecurity.isOwner(#id,authentication)")
     @Operation(summary = "Delete user", description = "Delete a user by id")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "User deleted"),

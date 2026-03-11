@@ -25,8 +25,8 @@ public class PostService implements PostInterface {
     private final CategoryRepository categoryRepository;
     private final PostMapper postMapper;
     @Override
-    public PostResponse createPost(PostRequest post) {
-        User user = userRepository.findById(post.getUserId())
+    public PostResponse createPost(PostRequest post,Long userId) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("user not found"));
 
         Category category = categoryRepository.findById(post.getCategoryId())
