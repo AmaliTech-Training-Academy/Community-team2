@@ -34,15 +34,16 @@ def _resolve_env_variables(value):
         if match:
             env_var = match.group(1)
             default = match.group(2)
-
-            env_value = os.getenv(env_var, default)
+            env_value = os.getenv(env_var)
 
             if env_value is None:
-                raise ValueError(
-                    f"Environment variable '{env_var}' is not set and no default provided."
-                )
+                if default is None:
+                    raise ValueError(
+                        f"Environment variable '{env_var}' is not set and no default provided."
+                    )
+                env_value = default
 
-            return env_value
+            return _coerce_placeholder_value(env_value, default)
 
     return value
 
@@ -130,7 +131,6 @@ def load_config():
     ]
 
     path = next((candidate for candidate in candidates if candidate.exists()), None)
-
     if path is None:
         searched = ", ".join(str(candidate) for candidate in candidates)
         raise FileNotFoundError(

@@ -14,3 +14,8 @@ __pycache__/
 *.pyc
 .DS_Store
 sample-data/test.ipynb
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.ipynb_checkpoints/

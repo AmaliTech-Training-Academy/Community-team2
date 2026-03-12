@@ -75,7 +75,7 @@ def generate_users(n: int) -> pd.DataFrame:
         for i in range(1, n + 1):
             users.append({
                 "id": i,
-                "username": fake.user_name(),
+                "full_name": fake.name(),
                 "email": fake.email(),
                 "role": random.choice(["member", "admin"]),
                 "created_at": fake.date_time_this_year()
@@ -121,6 +121,8 @@ def generate_posts(n: int, users_df: pd.DataFrame) -> pd.DataFrame:
                 "user_id": pick_user(),
                 "title": fake.sentence(nb_words=6),
                 "content": fake.text(max_nb_chars=200),
+                "view_count": random.randint(0, 1000),
+                "image_url": fake.image_url(),
                 "category": random.choice(CATEGORIES),
                 "created_at": generate_post_time()
             })
@@ -174,6 +176,7 @@ def generate_comments(posts_df: pd.DataFrame, users_df: pd.DataFrame) -> pd.Data
                     "post_id": post.id,
                     "user_id": random.choice(user_ids),
                     "content": fake.sentence(),
+                    "deleted": False,
                     "created_at": comment_time
                 })
 

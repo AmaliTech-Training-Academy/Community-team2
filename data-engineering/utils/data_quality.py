@@ -1,4 +1,5 @@
 import pandas as pd
+
 from utils.logging import get_logger
 
 # -------------------------
@@ -53,3 +54,21 @@ def log_basic_metrics(df: pd.DataFrame, dataset_name: str) -> None:
     log_row_count(df, dataset_name)
     log_null_counts(df, dataset_name)
     log_duplicate_count(df, dataset_name)
+
+
+
+def strip_string_values(dataframe: pd.DataFrame) -> pd.DataFrame:
+    normalized_df = dataframe.copy()
+    string_columns = [
+        column_name
+        for column_name in normalized_df.columns
+        if pd.api.types.is_object_dtype(normalized_df[column_name])
+        or pd.api.types.is_string_dtype(normalized_df[column_name])
+    ]
+
+    for column_name in string_columns:
+        normalized_df[column_name] = normalized_df[column_name].map(
+            lambda value: value.strip() if isinstance(value, str) else value
+        )
+
+    return normalized_df

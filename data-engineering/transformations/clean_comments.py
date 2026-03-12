@@ -1,7 +1,7 @@
 import pandas as pd
 from typing import Set
 from utils.data_validation import validate_schema, validate_foreign_key
-from utils.data_quality import log_basic_metrics
+from utils.data_quality import log_basic_metrics, strip_string_values
 from utils.logging import get_logger
 
 # -------------------------
@@ -45,7 +45,7 @@ def clean_comments(
     try:
         logger.info("Starting comments transformation")
 
-        comments_df = comments_main_df.copy()
+        comments_df = strip_string_values(comments_main_df.copy())
         reference_sets = {
             "posts": valid_post_ids,
             "users": valid_user_ids,

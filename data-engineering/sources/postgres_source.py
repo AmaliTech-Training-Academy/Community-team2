@@ -42,6 +42,11 @@ class PostgresSource(DataSource):
         self.users_table = self._require_table_name(tables, "users")
         self.posts_table = self._require_table_name(tables, "posts")
         self.comments_table = self._require_table_name(tables, "comments")
+        categories_table = tables.get("categories")
+        self.categories_table = None if categories_table is None else self._require_identifier(
+            categories_table,
+            f"{self.settings_key}.tables.categories",
+        )
 
     def _connect(self):
         """

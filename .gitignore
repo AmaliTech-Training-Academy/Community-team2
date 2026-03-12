@@ -42,3 +42,8 @@ __pycache__/
 .terraform/
 *.tfvars
 !terraform.tfvars.example
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.amazonq/
