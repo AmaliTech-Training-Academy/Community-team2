@@ -3,7 +3,14 @@ package com.amalitech.communityboard.models;
 
 import com.amalitech.communityboard.dto.enums.AccountProvider;
 import com.amalitech.communityboard.dto.enums.UserRole;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -25,14 +32,14 @@ public class User {
 
     @Column(unique = true)
     @NotBlank(message = "username cannot be empty")
-    @Size(min = 2,message = "username cannot be less than 2 letters")
+    @Size(min = 2, message = "username cannot be less than 2 letters")
     private String username;
 
     @Email
     @Column(unique = true)
     private String email;
 
-    @Size(min = 8,message = "password should not be less than 8 characters")
+    @Size(min = 8, message = "password should not be less than 8 characters")
     @NotBlank(message = "password cannot be empty")
     private String password;
 
@@ -48,10 +55,10 @@ public class User {
     public User() {}
 
     public User(String username, String email, String password, UserRole userRole, AccountProvider accountProvider) {
-        this.username=username;
-        this.email=email;
-        this.password=password;
-        this.role=userRole;
-        this.provider=accountProvider;
+        this.username = username;
+        this.email = email;
+        this.password = password;
+        this.role = userRole;
+        this.provider = accountProvider;
     }
 }

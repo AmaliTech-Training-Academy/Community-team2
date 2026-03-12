@@ -7,6 +7,32 @@ resource "aws_ecs_cluster" "main" {
   }
 }
 
+# Service Discovery Namespace for container-to-container communication
+resource "aws_service_discovery_private_dns_namespace" "main" {
+  name        = "${var.project_name}.local"
+  description = "Private DNS namespace for ECS service discovery"
+  vpc         = var.vpc_id
+}
+
+resource "aws_service_discovery_service" "backend" {
+  name = "backend"
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.main.id
+
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
+
+    routing_policy = "MULTIVALUE"
+  }
+
+  health_check_custom_config {
+    failure_threshold = 1
+  }
+}
+
 resource "aws_cloudwatch_log_group" "backend" {
   name              = "/ecs/${var.project_name}-backend"
   retention_in_days = 7
@@ -233,7 +259,7 @@ resource "aws_lb_target_group" "backend" {
 
 resource "aws_lb_target_group" "frontend" {
   name        = "${var.project_name}-frontend-tg"
-  port        = 8080
+  port        = 80
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "ip"
@@ -365,7 +391,7 @@ resource "aws_ecs_task_definition" "frontend" {
     name  = "frontend"
     image = var.frontend_image_url
     portMappings = [{
-      containerPort = 8080
+      containerPort = 80
       protocol      = "tcp"
     }]
     logConfiguration = {
@@ -406,6 +432,10 @@ resource "aws_ecs_service" "backend" {
     container_port   = 8080
   }
 
+  service_registries {
+    registry_arn = aws_service_discovery_service.backend.arn
+  }
+
   lifecycle {
     ignore_changes = [task_definition, desired_count]
   }
@@ -436,7 +466,7 @@ resource "aws_ecs_service" "frontend" {
   load_balancer {
     target_group_arn = aws_lb_target_group.frontend.arn
     container_name   = "frontend"
-    container_port   = 8080
+    container_port   = 80
   }
 
   lifecycle {

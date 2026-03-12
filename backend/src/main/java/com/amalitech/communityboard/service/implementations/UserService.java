@@ -123,8 +123,9 @@ public class UserService implements UserInterface {
 
 
     @Override
-    public AuthResponse loginUser(AuthRequest auth,HttpServletResponse response) {
-        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(auth.getEmail(), auth.getPassword()));
+    public AuthResponse loginUser(AuthRequest auth, HttpServletResponse response) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(auth.getEmail(), auth.getPassword()));
 
         if (authentication.isAuthenticated()) {
 
@@ -139,7 +140,7 @@ public class UserService implements UserInterface {
 
             setCookie(refreshToken, response);
 
-            return new AuthResponse(accessToken, "Bearer",userMapper.toResponse(user));
+            return new AuthResponse(accessToken, "Bearer", userMapper.toResponse(user));
         } else {
             throw new BadCredentialsException("Invalid credentials");
         }
@@ -187,7 +188,8 @@ public class UserService implements UserInterface {
         try {
 
             String subject = jwtService.extractSubject(refresh);
-            User user = userRepository.findByEmail(subject).orElseThrow(() -> new EntityNotFoundException("User not found"));
+            User user = userRepository.findByEmail(subject)
+                    .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
             Map<String, String> newTokens = jwtService.generateToken(user);
             String newAccessToken = newTokens.get("access");
@@ -196,7 +198,7 @@ public class UserService implements UserInterface {
             setCookie(newRefreshToken, response);
             log.info("[REFRESH] Token refreshed successfully for user: {}", subject);
 
-            return new AuthResponse(newAccessToken, "Bearer",userMapper.toResponse(user));
+            return new AuthResponse(newAccessToken, "Bearer", userMapper.toResponse(user));
         } catch (Exception e) {
             log.error("[REFRESH] Token refresh failed: {}", e.getMessage(), e);
             throw e;

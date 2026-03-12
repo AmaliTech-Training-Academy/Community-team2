@@ -8,7 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface PostInterface {
-    PostResponse createPost(PostRequest post,Long userId);
+    PostResponse createPost(PostRequest post, Long userId);
     PostResponse getPostById(Long id);
     Page<PostResponse> getAllPosts(PostFilter filter, Pageable pageable);
     Page<PostResponse> getPostByUserId(Long userId, PostFilter filter, Pageable pageable);
