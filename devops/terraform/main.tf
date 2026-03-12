@@ -137,7 +137,7 @@ module "monitoring" {
   alert_email            = var.alert_email
   ecs_cluster_name       = module.compute.ecs_cluster_name
   backend_service_name   = module.compute.backend_service_name
-  db_instance_id         = module.database.database_name
+  db_instance_id         = module.database.db_instance_id
 }
 
 # ============================================================================

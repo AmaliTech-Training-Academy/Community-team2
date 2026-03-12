@@ -8,6 +8,7 @@ import EmailIcon from "../assets/images/mail.svg?react";
 import Lock from "../assets/images/lock.svg?react";
 import EyeOn from "../assets/images/eye-on.svg?react";
 import EyeOff from "../assets/images/eye-off.svg?react";
+import UserIcon from "../assets/images/user.svg?react";
 
 const EMAIL_RE = /\S+@\S+\.\S+/;
 
@@ -81,14 +82,14 @@ export default function RegisterPage() {
   );
 
   const inputBase = (hasError: boolean) =>
-    `w-full pl-9 pr-3 py-2.5 rounded-xl text-body-lg text-blue-gray-light focus:outline-none transition-colors border ${
+    `w-full pl-9 pr-3 py-2.5 rounded-xl text-body-lg text-blue-gray-light placeholder:text-[#5A6F7C] focus:outline-none transition-colors border ${
       hasError
         ? "border-red-400 bg-red-50"
         : "border-borderstroke bg-primary focus:border-navy focus:bg-white"
     }`;
 
   const inputWithEye = (hasError: boolean) =>
-    `w-full pl-9 pr-9 py-2.5 rounded-xl text-body-lg text-blue-gray-light focus:outline-none transition-colors border ${
+    `w-full pl-9 pr-9 py-2.5 rounded-xl text-body-lg text-blue-gray-light placeholder:text-[#5A6F7C] focus:outline-none transition-colors border ${
       hasError
         ? "border-red-400 bg-red-50"
         : "border-borderstroke bg-primary focus:border-navy focus:bg-white"
@@ -123,8 +124,12 @@ export default function RegisterPage() {
               Full Name
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <EmailIcon />
+              <span
+                className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
+                  errors.fullName ? "text-red-600" : "text-[#5A6F7C]"
+                }`}
+              >
+                <UserIcon />
               </span>
               <input
                 id="register-fullName"
@@ -143,7 +148,7 @@ export default function RegisterPage() {
                 data-testid="register-fullName-error"
                 className="text-red-500 mt-1"
               >
-                ⚠ {errors.fullName}
+                 {errors.fullName}
               </Text>
             )}
           </div>
@@ -157,15 +162,19 @@ export default function RegisterPage() {
               Email
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <EmailIcon />
+              <span
+                className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
+                  errors.email ? "text-red-600" : "text-[#5A6F7C]"
+                }`}
+              >
+                <EmailIcon stroke="currentColor" />
               </span>
               <input
                 id="register-email"
                 data-testid="register-email-input"
                 className={inputBase(!!errors.email)}
                 type="email"
-                placeholder="you@example.com"
+                placeholder="your@example.com"
                 value={form.email}
                 onChange={(e) => setField("email", e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -177,7 +186,7 @@ export default function RegisterPage() {
                 data-testid="register-email-error"
                 className="text-red-500 mt-1"
               >
-                ⚠ {errors.email}
+                 {errors.email}
               </Text>
             )}
           </div>
@@ -191,8 +200,12 @@ export default function RegisterPage() {
               Password
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <Lock />
+              <span
+                className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
+                  errors.password ? "text-red-600" : "text-[#5A6F7C]"
+                }`}
+              >
+                <Lock stroke="currentColor" />
               </span>
               <input
                 id="register-password"
@@ -222,7 +235,7 @@ export default function RegisterPage() {
                 data-testid="register-password-error"
                 className="text-red-500 mt-0.5"
               >
-                ⚠ {errors.password}
+                {errors.password}
               </Text>
             )}
           </div>
@@ -236,8 +249,12 @@ export default function RegisterPage() {
               Confirm Password
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <Lock />
+              <span
+                className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
+                  errors.confirmPassword ? "text-red-600" : "text-[#5A6F7C]"
+                }`}
+              >
+                <Lock stroke="currentColor" />
               </span>
               <input
                 id="register-confirmPassword"
@@ -264,7 +281,7 @@ export default function RegisterPage() {
                 data-testid="register-confirmPassword-error"
                 className="text-red-500 mt-1"
               >
-                ⚠ {errors.confirmPassword}
+                {errors.confirmPassword}
               </Text>
             )}
           </div>

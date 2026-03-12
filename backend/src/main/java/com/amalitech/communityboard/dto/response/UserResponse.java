@@ -3,7 +3,9 @@ package com.amalitech.communityboard.dto.response;
 import com.amalitech.communityboard.dto.enums.AccountProvider;
 import com.amalitech.communityboard.dto.enums.UserRole;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
@@ -11,6 +13,8 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @AllArgsConstructor
+@Builder
+@NoArgsConstructor
 public class UserResponse {
     private Long id;
     private String username;

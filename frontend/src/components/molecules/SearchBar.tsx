@@ -1,4 +1,5 @@
 import SearchIcon from "../../assets/images/search.svg?react";
+import ClearIcon from "../../assets/images/clear.svg?react";
 
 interface SearchBarProps {
   value: string;
@@ -7,15 +8,18 @@ interface SearchBarProps {
 
 export function SearchBar({ value, onChange }: SearchBarProps) {
   return (
-    <div data-testid="search-bar" className="flex items-center gap-2">
+    <div
+      data-testid="search-bar"
+      className="flex w-full items-center gap-2 md:h-10.5 md:w-158.75"
+    >
       {/* Input with SVG icon + clear */}
       <div className="relative flex-1 min-w-0">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-          <SearchIcon aria-hidden="true" />
+        <span className="pointer-events-none absolute left-3 top-1/2 flex h-4 w-4 -translate-y-1/2 items-center justify-center text-gray-400">
+          <SearchIcon aria-hidden="true" className="h-4 w-4" />
         </span>
         <input
           data-testid="search-input"
-          className="w-full pl-9 pr-8 h-10 border border-borderstroke rounded-lg text-body-lg bg-white text-blue-gray-dark placeholder:text-gray-400 focus:outline-none focus:border-navy transition-colors"
+          className="h-10 w-full rounded-lg border border-borderstroke bg-primary pl-9 pr-10 text-body-lg text-blue-gray-dark placeholder:text-gray-400 transition-colors focus:border-navy focus:outline-none md:h-10.5"
           placeholder="Search by title of post..."
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -24,9 +28,11 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
           <button
             data-testid="search-clear-btn"
             onClick={() => onChange("")}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg leading-none"
+            className="absolute right-3 top-1/2 flex h-4 w-4 -translate-y-1/2 items-center justify-center text-gray-400 transition-colors hover:text-gray-600"
+            aria-label="Clear search"
+            type="button"
           >
-            ×
+            <ClearIcon aria-hidden="true" className="h-4 w-4" />
           </button>
         )}
       </div>
@@ -34,10 +40,10 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
       {/* Navy search submit button */}
       <button
         data-testid="search-submit-btn"
-        className="shrink-0 w-10 h-10 flex items-center justify-center bg-blue-gray-dark rounded-lg text-white hover:opacity-90 transition-opacity"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-gray-light text-white transition-opacity hover:opacity-90 md:h-10.5 md:w-10.5"
         aria-label="Search"
       >
-        <SearchIcon aria-hidden="true" />
+        <SearchIcon aria-hidden="true" className="h-4 w-4" />
       </button>
     </div>
   );

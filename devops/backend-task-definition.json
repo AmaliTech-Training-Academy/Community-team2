@@ -1,0 +1,49 @@
+{
+  "family": "communityboard-backend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::010679547158:role/communityboard-ecs-task-execution",
+  "taskRoleArn": "arn:aws:iam::010679547158:role/communityboard-ecs-task-role",
+  "containerDefinitions": [
+    {
+      "name": "backend",
+      "image": "010679547158.dkr.ecr.eu-west-1.amazonaws.com/communityboard-backend:latest",
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "SPRING_DATASOURCE_URL",
+          "value": "jdbc:postgresql://communityboard-db-public.cfuou2mwe5a1.eu-west-1.rds.amazonaws.com:5432/communityboard"
+        },
+        {
+          "name": "SPRING_DATASOURCE_USERNAME",
+          "value": "postgres"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "SPRING_DATASOURCE_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-1:010679547158:secret:communityboard-db-credentials-KwV16V:password::"
+        },
+        {
+          "name": "JWT_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-1:010679547158:secret:communityboard-jwt-secret-uuIWiU"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/communityboard-backend",
+          "awslogs-region": "eu-west-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

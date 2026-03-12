@@ -10,6 +10,18 @@ output "database_name" {
   value = aws_db_instance.postgres.db_name
 }
 
+output "db_instance_id" {
+  value = aws_db_instance.postgres.id
+}
+
 output "username" {
   value = var.db_username
+}
+
+output "replicadb_name" {
+  value = "replicadb"
+}
+
+output "analyticsdb_name" {
+  value = "analyticsdb"
 }
