@@ -1,4 +1,10 @@
-import { decodeJwt, initials, isTokenValid, timeAgo } from "../utils";
+import {
+  decodeJwt,
+  initials,
+  isTokenValid,
+  timeAgo,
+  toErrorMessage,
+} from "../utils";
 
 function encodeBase64Url(value: string) {
   return btoa(value)
@@ -97,6 +103,23 @@ describe("utils", () => {
       expect(
         isTokenValid(createJwt({ exp: Math.floor(Date.now() / 1000) - 3600 })),
       ).toBe(false);
+    });
+  });
+
+  describe("toErrorMessage", () => {
+    it("returns a plain string error unchanged", () => {
+      expect(toErrorMessage("Invalid credentials")).toBe("Invalid credentials");
+    });
+
+    it("returns an Error message when present", () => {
+      expect(toErrorMessage(new Error("Backend unavailable"))).toBe(
+        "Backend unavailable",
+      );
+    });
+
+    it("falls back for empty values", () => {
+      expect(toErrorMessage("", "Fallback message")).toBe("Fallback message");
+      expect(toErrorMessage(null, "Fallback message")).toBe("Fallback message");
     });
   });
 });

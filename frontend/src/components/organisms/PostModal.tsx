@@ -109,9 +109,10 @@ export function PostModal({ post, onClose, onSaved }: PostModalProps) {
           category,
           body,
           imageUrl,
+          imageFile: imgUpload.image?.file,
           author: user!.name,
           authorId: user!.id,
-        } as any);
+        });
         toast("Post created successfully");
       }
       onSaved?.(saved);

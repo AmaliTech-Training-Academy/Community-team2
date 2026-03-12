@@ -8,6 +8,7 @@ import Lock from "../assets/images/lock.svg?react";
 import EyeOn from "../assets/images/eye-on.svg?react";
 import EyeOff from "../assets/images/eye-off.svg?react";
 import EmailIcon from "../assets/images/mail.svg?react";
+import { toErrorMessage } from "../utils";
 
 const EMAIL_RE = /\S+@\S+\.\S+/;
 
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const fieldsRef = useRef({ email, password });
@@ -38,17 +40,21 @@ export default function LoginPage() {
     const errs = validate();
     if (Object.keys(errs).length) {
       setErrors(errs);
+      setSubmitError("");
       return;
     }
     setLoading(true);
     setErrors({});
+    setSubmitError("");
     try {
       const { email: e, password: p } = fieldsRef.current;
       await login(e, p);
       toast("Authenticated successfully");
       navigate("/");
     } catch (err: unknown) {
-      setErrors({ email: String(err) });
+      setSubmitError(
+        toErrorMessage(err, "Unable to sign in. Please try again."),
+      );
     } finally {
       setLoading(false);
     }
@@ -62,6 +68,9 @@ export default function LoginPage() {
   );
 
   const toggleShowPass = useCallback(() => setShowPass((s) => !s), []);
+
+  const emailHasError = Boolean(errors.email);
+  const passwordHasError = Boolean(errors.password);
 
   return (
     <div
@@ -84,7 +93,9 @@ export default function LoginPage() {
         <div>
           <div className="mb-4">
             <label
-              className=" text-body-sm block text-blue-gray-light mb-1.5"
+              className={`text-body-sm block mb-1.5 ${
+                emailHasError ? "text-red-600" : "text-blue-gray-light"
+              }`}
               htmlFor="login-email"
             >
               Email
@@ -92,7 +103,7 @@ export default function LoginPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  errors.email ? "text-red-600" : "text-[#5A6F7C]"
+                  emailHasError ? "text-red-600" : "text-[#5A6F7C]"
                 }`}
               >
                 <EmailIcon stroke="currentColor" />
@@ -108,7 +119,13 @@ export default function LoginPage() {
                 type="email"
                 placeholder="your@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setSubmitError("");
+                  if (errors.email) {
+                    setErrors((current) => ({ ...current, email: "" }));
+                  }
+                }}
                 onKeyDown={handleKeyDown}
               />
             </div>
@@ -125,7 +142,9 @@ export default function LoginPage() {
 
           <div className="mb-6">
             <label
-              className="text-body-sm block text-blue-gray-light mb-1.5"
+              className={`text-body-sm block mb-1.5 ${
+                passwordHasError ? "text-red-600" : "text-blue-gray-light"
+              }`}
               htmlFor="login-password"
             >
               Password
@@ -133,7 +152,7 @@ export default function LoginPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  errors.password ? "text-red-600" : "text-[#5A6F7C]"
+                  passwordHasError ? "text-red-600" : "text-[#5A6F7C]"
                 }`}
               >
                 <Lock stroke="currentColor" />
@@ -149,13 +168,21 @@ export default function LoginPage() {
                 type={showPass ? "text" : "password"}
                 placeholder="Enter password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setSubmitError("");
+                  if (errors.password) {
+                    setErrors((current) => ({ ...current, password: "" }));
+                  }
+                }}
                 onKeyDown={handleKeyDown}
               />
               <button
                 data-testid="login-toggle-password-btn"
                 type="button"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+                className={`absolute right-2.5 top-1/2 -translate-y-1/2 transition-colors ${
+                  passwordHasError ? "text-red-600" : "text-[#5A6F7C]"
+                }`}
                 onClick={toggleShowPass}
               >
                 {showPass ? <EyeOff /> : <EyeOn />}
@@ -170,9 +197,27 @@ export default function LoginPage() {
                 {errors.password}
               </Text>
             )}
+
+            <div className="mt-3 flex justify-end">
+              <Link
+                to="/forgot-password"
+                className="text-body-sm font-medium text-orange underline decoration-orange/40 underline-offset-4 transition-colors hover:text-[#8c3200]"
+              >
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           <div>
+            {submitError && (
+              <Text
+                variant="body-sm"
+                data-testid="login-submit-error"
+                className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700"
+              >
+                {submitError}
+              </Text>
+            )}
             <button
               data-testid="login-submit-btn"
               onClick={handleSubmit}

@@ -1,25 +1,50 @@
 export function timeAgo(dateStr: string): string {
   const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
-  if (diff < 60) return 'just now';
+  if (diff < 60) return "just now";
   if (diff < 3600) return `about ${Math.floor(diff / 60)} min ago`;
-  if (diff < 86400) return `about ${Math.floor(diff / 3600)} hour${Math.floor(diff / 3600) > 1 ? 's' : ''} ago`;
-  return `${Math.floor(diff / 86400)} day${Math.floor(diff / 86400) > 1 ? 's' : ''} ago`;
+  if (diff < 86400)
+    return `about ${Math.floor(diff / 3600)} hour${Math.floor(diff / 3600) > 1 ? "s" : ""} ago`;
+  return `${Math.floor(diff / 86400)} day${Math.floor(diff / 86400) > 1 ? "s" : ""} ago`;
 }
 
 export function initials(name: string): string {
-  return name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+  return (
+    name
+      ?.split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "?"
+  );
+}
+
+export function toErrorMessage(
+  error: unknown,
+  fallback = "Something went wrong. Please try again.",
+): string {
+  if (typeof error === "string") {
+    const message = error.trim();
+    return message || fallback;
+  }
+
+  if (error instanceof Error) {
+    const message = error.message.trim();
+    return message || fallback;
+  }
+
+  return fallback;
 }
 
 // ── JWT utilities ────────────────────────────────────────────────────────────
 
 export interface JwtPayload {
-  sub: string;           // subject — usually email or userId
+  sub: string; // subject — usually email or userId
   name?: string;
   email?: string;
   role?: string;
   roles?: string[];
-  exp?: number;          // expiry — Unix timestamp in seconds
-  iat?: number;          // issued at
+  exp?: number; // expiry — Unix timestamp in seconds
+  iat?: number; // issued at
   [key: string]: unknown;
 }
 
@@ -29,11 +54,13 @@ export interface JwtPayload {
  */
 export function decodeJwt(token: string): JwtPayload | null {
   try {
-    const parts = token.split('.');
+    const parts = token.split(".");
     if (parts.length !== 3) return null;
     // Base64url → Base64 → JSON
-    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const json = atob(payload.padEnd(payload.length + (4 - (payload.length % 4)) % 4, '='));
+    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(
+      payload.padEnd(payload.length + ((4 - (payload.length % 4)) % 4), "="),
+    );
     return JSON.parse(json) as JwtPayload;
   } catch {
     return null;
