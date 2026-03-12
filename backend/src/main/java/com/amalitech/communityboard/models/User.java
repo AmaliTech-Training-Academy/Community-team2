@@ -62,7 +62,7 @@ public class User {
     @Enumerated(EnumType.STRING)
     private AccountProvider provider = AccountProvider.LOCAL;
 
-    public User() {
+    public User() {}
 
     public User(String username, String email, String password, UserRole userRole, AccountProvider accountProvider) {
         this.username = username;
