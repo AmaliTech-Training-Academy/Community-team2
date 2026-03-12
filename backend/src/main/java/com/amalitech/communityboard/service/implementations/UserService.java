@@ -35,6 +35,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
+import org.springframework.security.authentication.LockedException;
 
 import java.util.Map;
 
@@ -136,25 +139,38 @@ public class UserService implements UserInterface {
 
     @Override
     public AuthResponse loginUser(AuthRequest auth, HttpServletResponse response) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(auth.getEmail(), auth.getPassword()));
-
-        if (authentication.isAuthenticated()) {
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(auth.getEmail(), auth.getPassword()));
 
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
             if (userDetails == null) {
                 throw new BadCredentialsException("Authentication failed: user details unavailable");
             }
+
             User user = userDetails.getUser();
             Map<String, String> tokens = jwtService.generateToken(user);
-            String accessToken = tokens.get("access");
-            String refreshToken = tokens.get("refresh");
 
-            setCookie(refreshToken, response);
+            setCookie(tokens.get("refresh"), response);
 
-            return new AuthResponse(accessToken, "Bearer", userMapper.toResponse(user));
-        } else {
-            throw new BadCredentialsException("Invalid credentials");
+            log.info("[AUTH] Login successful for user: {}", auth.getEmail());
+            return new AuthResponse(tokens.get("access"), "Bearer", userMapper.toResponse(user));
+
+        } catch (BadCredentialsException e) {
+            log.warn("[AUTH] Login failed — incorrect password for email: {}", auth.getEmail());
+            throw new BadCredentialsException("The password you entered is incorrect. Please try again.");
+
+        } catch (InternalAuthenticationServiceException e) {
+            log.warn("[AUTH] Login failed — no account found for email: {}", auth.getEmail());
+            throw new BadCredentialsException("No account found with that email address.");
+
+        } catch (DisabledException e) {
+            log.warn("[AUTH] Login failed — account disabled for email: {}", auth.getEmail());
+            throw new DisabledException("Your account has been disabled. Please contact support.");
+
+        } catch (LockedException e) {
+            log.warn("[AUTH] Login failed — account locked for email: {}", auth.getEmail());
+            throw new LockedException("Your account is temporarily locked. Please try again later.");
         }
     }
 

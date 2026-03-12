@@ -376,7 +376,7 @@ class UserServiceTest {
 
             when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                     .thenReturn(authentication);
-            when(authentication.isAuthenticated()).thenReturn(true);
+            lenient().when(authentication.isAuthenticated()).thenReturn(true);
             when(authentication.getPrincipal()).thenReturn(userDetails);
             when(userDetails.getUser()).thenReturn(sampleUser);
             when(jwtService.generateToken(sampleUser))
@@ -400,7 +400,7 @@ class UserServiceTest {
             CustomUserDetails userDetails = mock(CustomUserDetails.class);
 
             when(authenticationManager.authenticate(any())).thenReturn(authentication);
-            when(authentication.isAuthenticated()).thenReturn(true);
+            lenient().when(authentication.isAuthenticated()).thenReturn(true);
             when(authentication.getPrincipal()).thenReturn(userDetails);
             when(userDetails.getUser()).thenReturn(sampleUser);
             when(jwtService.generateToken(sampleUser))
