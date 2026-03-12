@@ -146,6 +146,7 @@ public class PostService implements PostInterface {
         if (!postRepository.existsById(id)) {
             throw new EntityNotFoundException("post not found");
         }
+
         postRepository.deleteById(id);
     }
 }

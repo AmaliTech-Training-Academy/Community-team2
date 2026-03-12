@@ -26,6 +26,8 @@ describe("TEST_IDS", () => {
   });
 
   it("exposes register password toggle ids", () => {
+    expect(TEST_IDS.REGISTER.USERNAME_INPUT).toBe("register-fullName-input");
+    expect(TEST_IDS.REGISTER.USERNAME_ERROR).toBe("register-fullName-error");
     expect(TEST_IDS.REGISTER.TOGGLE_PASSWORD).toBe(
       "register-toggle-password-btn",
     );

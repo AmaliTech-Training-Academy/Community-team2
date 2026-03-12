@@ -14,14 +14,12 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.SoftDelete;
 
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @Entity
-@SoftDelete
 @Table(name = "comments")
 public class Comment {
     @Id
