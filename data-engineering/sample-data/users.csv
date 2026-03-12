@@ -1,4 +1,4 @@
-id,name,email,role,created_at
+id,full_name,email,role,created_at
 1,Allison Hill,donaldgarcia@example.net,member,2026-02-22 22:47:46
 2,Javier Johnson,jesseguzman@example.net,member,2026-01-20 07:19:31
 3,Meredith Barnes,zlawrence@example.org,admin,2026-01-16 12:01:59

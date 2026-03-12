@@ -1,3 +1,5 @@
+import re
+
 import pandas as pd
 
 from utils.data_validation import validate_schema
@@ -9,6 +11,52 @@ from utils.logging import get_logger
 # -------------------------
 
 logger = get_logger("clean_users")
+_NAME_WHITESPACE_PATTERN = re.compile(r"\s+")
+_ALLOWED_NAME_PUNCTUATION = {" ", "'", "-", "."}
+
+
+def _clean_full_name_value(value):
+    if not isinstance(value, str):
+        return value
+
+    cleaned_characters = []
+    for character in value:
+        if character.isalpha() or character in _ALLOWED_NAME_PUNCTUATION:
+            cleaned_characters.append(character)
+        elif character.isspace():
+            cleaned_characters.append(" ")
+
+    cleaned_value = "".join(cleaned_characters)
+    cleaned_value = _NAME_WHITESPACE_PATTERN.sub(" ", cleaned_value).strip(" .-'")
+    return cleaned_value
+
+
+def _normalize_full_name_column(users_df: pd.DataFrame) -> pd.DataFrame:
+    if "full_name" not in users_df.columns:
+        return users_df
+
+    original_names = users_df["full_name"].astype("string")
+    cleaned_names = original_names.map(
+        lambda value: _clean_full_name_value(value) if pd.notna(value) else value
+    )
+    invalid_names = cleaned_names.isna() | cleaned_names.eq("")
+    fallback_count = int(invalid_names.sum())
+    changed_names = int(
+        ((original_names.fillna("") != cleaned_names.fillna("")) & original_names.notna()).sum()
+    )
+
+    users_df["full_name"] = cleaned_names.mask(invalid_names, "Unknown User")
+
+    if changed_names > 0:
+        logger.info("Cleaned %s user full_name values", changed_names)
+    if fallback_count > 0:
+        logger.warning(
+            "%s user full_name values were unusable after cleaning. Replaced with 'Unknown User'",
+            fallback_count,
+        )
+
+    return users_df
+
 
 def clean_users(users_main_df: pd.DataFrame, config: dict, user_table: str) -> pd.DataFrame:
     """
@@ -33,6 +81,7 @@ def clean_users(users_main_df: pd.DataFrame, config: dict, user_table: str) -> p
             users_df = users_df.rename(columns={"name": "full_name"})
 
         users_df = strip_string_values(users_df)
+        users_df = _normalize_full_name_column(users_df)
 
         log_basic_metrics(users_df, f"{user_table}_raw")
 

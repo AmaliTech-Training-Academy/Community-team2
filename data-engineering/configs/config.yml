@@ -1,8 +1,8 @@
-﻿data_source: ${PIPELINE_DATA_SOURCE:csv}
+﻿data_source: ${PIPELINE_DATA_SOURCE}
 
 backend_source:
   db_role: backend
-  schema: ${BACKEND_SOURCE_SCHEMA:public}
+  schema: public
   tables:
     users: users
     posts: posts
@@ -11,7 +11,7 @@ backend_source:
 
 stagging_source:
   db_role: replica
-  schema: ${STAGGING_SOURCE_SCHEMA:replica_raw}
+  schema: replica_raw
   tables:
     users: users
     posts: posts
@@ -25,7 +25,7 @@ replica_sync:
   enabled: ${REPLICA_SYNC_ENABLED:false}
   load_mode: incremental
   truncate_cascade: true
-  chunk_size: ${REPLICA_SYNC_CHUNK_SIZE:5000}
+  chunk_size: 5000
   create_schema_if_missing: true
   incremental_keys:
     users:
@@ -38,10 +38,10 @@ replica_sync:
 warehouse:
   enabled: ${WAREHOUSE_ENABLED:false}
   db_role: analytics
-  schema: ${WAREHOUSE_SCHEMA:analytics}
+  schema: analytics
   load_mode: incremental
   truncate_cascade: true
-  chunk_size: ${WAREHOUSE_CHUNK_SIZE:5000}
+  chunk_size: 5000
   create_schema_if_missing: true
   incremental_keys:
     dim_users:
@@ -58,12 +58,19 @@ warehouse:
     dim_users: dim_users_table
     dim_posts: dim_posts_table
     fact_comments: fact_comments_table
+  kpis:
+    enabled: true
+    refresh_after_load: true
+    materialized_views:
+      top_contributors: kpi_top_contributors_mv
+      activity_trends: kpi_activity_trends_mv
+      posts_per_category: kpi_posts_per_category_mv
 
 airflow:
   dag:
     id: community_etl_pipeline
     description: Sync backend data to replica and load the analytics warehouse.
-    start_date: '2026-01-01T00:00:00+00:00'
+    start_date: '2026-03-12T00:00:00+00:00'
     schedule: '@hourly'
     catchup: false
     max_active_runs: 1
@@ -88,17 +95,17 @@ airflow:
       task_id: load_analytics_warehouse
       execution_timeout_minutes: 40
   monitoring:
-    enabled: ${AIRFLOW_MONITORING_ENABLED:true}
+    enabled: true
     log_task_events: true
     log_result_summary: true
   notifications:
     email:
       enabled: ${AIRFLOW_EMAIL_NOTIFICATIONS_ENABLED:false}
       to: ${AIRFLOW_EMAIL_TO:}
-      on_failure: ${AIRFLOW_EMAIL_NOTIFY_ON_FAILURE:true}
-      on_retry: ${AIRFLOW_EMAIL_NOTIFY_ON_RETRY:true}
-      on_success: ${AIRFLOW_EMAIL_NOTIFY_ON_SUCCESS:false}
-      subject_prefix: ${AIRFLOW_EMAIL_SUBJECT_PREFIX:[community-etl]}
+      on_failure: true
+      on_retry: true
+      on_success: false
+      subject_prefix: "[community-etl]"
     webhook:
       enabled: false
       url: ${AIRFLOW_ALERT_WEBHOOK_URL:}
@@ -184,19 +191,19 @@ backend_postgres_db:
   host: ${BACKEND_DB_HOST:localhost}
   port: ${BACKEND_DB_PORT:5432}
   database: ${BACKEND_DB_NAME:communityboard}
-  user: ${BACKEND_DB_USER:postgres}
-  password: ${BACKEND_DB_PASSWORD:postgres}
+  user: ${BACKEND_DB_USER}
+  password: ${BACKEND_DB_PASSWORD}
 
 backend_replica_postgres_db:
   host: ${REPLICA_DB_HOST:localhost}
   port: ${REPLICA_DB_PORT:5432}
   database: ${REPLICA_DB_NAME:communityboard}
-  user: ${REPLICA_DB_USER:postgres}
-  password: ${REPLICA_DB_PASSWORD:postgres}
+  user: ${REPLICA_DB_USER}
+  password: ${REPLICA_DB_PASSWORD}
 
 analytics_postgres_db:
   host: ${ANALYTICS_DB_HOST:localhost}
   port: ${ANALYTICS_DB_PORT:5432}
   database: ${ANALYTICS_DB_NAME:communityboard}
-  user: ${ANALYTICS_DB_USER:postgres}
-  password: ${ANALYTICS_DB_PASSWORD:postgres}
+  user: ${ANALYTICS_DB_USER}
+  password: ${ANALYTICS_DB_PASSWORD}

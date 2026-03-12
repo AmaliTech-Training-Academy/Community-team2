@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from pathlib import Path
 import sys
@@ -15,7 +15,6 @@ PROJECT_ROOT = DAG_DIR.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from pipelines.etl_pipeline import run_etl_pipeline, run_replica_sync_pipeline
 from utils.airflow_runtime import emit_airflow_event, get_airflow_settings
 from utils.logging import get_logger
 
@@ -43,6 +42,9 @@ def _log_task_success(context: Context) -> None:
 
 
 def _run_replica_sync_task() -> dict[str, int]:
+    # Defer pipeline imports until task runtime so Airflow can parse the DAG quickly.
+    from pipelines.etl_pipeline import run_replica_sync_pipeline
+
     result = run_replica_sync_pipeline()
     if AIRFLOW_SETTINGS.monitoring.enabled and AIRFLOW_SETTINGS.monitoring.log_result_summary:
         logger.info("Replica sync task completed: %s", result)
@@ -50,6 +52,9 @@ def _run_replica_sync_task() -> dict[str, int]:
 
 
 def _run_etl_task() -> dict:
+    # Defer pipeline imports until task runtime so Airflow can parse the DAG quickly.
+    from pipelines.etl_pipeline import run_etl_pipeline
+
     result = run_etl_pipeline()
     if AIRFLOW_SETTINGS.monitoring.enabled and AIRFLOW_SETTINGS.monitoring.log_result_summary:
         logger.info("ETL task completed: %s", result)

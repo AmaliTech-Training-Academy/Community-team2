@@ -18,6 +18,7 @@ from loading.load_to_warehouse.warehouse_ops import (
     ensure_target_tables_exist,
     fetch_key_map,
     load_dataset,
+    refresh_kpi_materialized_views,
     truncate_target_tables,
 )
 from utils.database import execute_with_db_retry, get_connection
@@ -43,7 +44,7 @@ def load_to_warehouse(datasets: Mapping[str, pd.DataFrame], config: dict) -> dic
     validate_source_datasets(datasets)
     settings = build_warehouse_load_settings(config)
 
-    def _load_warehouse() -> tuple[dict[str, int], list[str]]:
+    def _load_warehouse() -> tuple[dict[str, int], list[str], list[str]]:
         load_summary: dict[str, int] = {}
         with get_connection(config, db_role=settings.db_role) as connection:
             applied_migrations = apply_warehouse_ddl(connection, settings=settings)
@@ -110,16 +111,26 @@ def load_to_warehouse(datasets: Mapping[str, pd.DataFrame], config: dict) -> dic
                     dataset_df=fact_comments_df,
                 )
 
-        return load_summary, applied_migrations
+                refreshed_kpi_views = refresh_kpi_materialized_views(
+                    cursor,
+                    settings=settings,
+                )
 
-    load_summary, applied_migrations = execute_with_db_retry(
+        return load_summary, applied_migrations, refreshed_kpi_views
+
+    load_summary, applied_migrations, refreshed_kpi_views = execute_with_db_retry(
         _load_warehouse,
         config=config,
         operation_name="warehouse load",
     )
     logger.info(
-        "Warehouse loading completed successfully: %s%s",
+        "Warehouse loading completed successfully: %s%s%s",
         load_summary,
         f" | applied migrations: {', '.join(applied_migrations)}" if applied_migrations else "",
+        (
+            f" | refreshed KPI materialized views: {', '.join(refreshed_kpi_views)}"
+            if refreshed_kpi_views
+            else ""
+        ),
     )
     return load_summary
