@@ -8,7 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface CommentInterface {
-    CommentResponse createComment(CommentRequest comment,Long userId);
+    CommentResponse createComment(CommentRequest comment, Long userId);
     CommentResponse getCommentById(Long id);
     Page<CommentResponse> getAllComments(Pageable pageable);
     Page<CommentResponse> getCommentByPostId(Long postId, Pageable pageable);

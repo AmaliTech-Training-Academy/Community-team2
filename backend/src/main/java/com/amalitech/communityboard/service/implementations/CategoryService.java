@@ -26,7 +26,7 @@ public class CategoryService implements CategoryInterface {
     @Cacheable(value = "categories", key = "#id")
     public CategoryResponse getCategoryById(Long id) {
         Category category = categoryRepository.findById(id).orElseThrow(
-                ()-> new EntityNotFoundException("category not found")
+                () -> new EntityNotFoundException("category not found")
         );
         return categoryMapper.toResponse(category);
     }

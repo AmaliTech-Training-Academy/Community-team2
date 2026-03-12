@@ -1,6 +1,14 @@
 package com.amalitech.communityboard.models;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,7 +36,7 @@ public class Post {
     @NotBlank(message = "title cannot be empty")
     private String title;
 
-    @Column(nullable = false,columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     @NotBlank(message = "content cannot be empty")
     private String content;
 
@@ -36,11 +44,11 @@ public class Post {
     private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false,referencedColumnName = "id",name = "user_id")
+    @JoinColumn(nullable = false, referencedColumnName = "id", name = "user_id")
     private User author;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false,referencedColumnName = "id",name = "category_id")
+    @JoinColumn(nullable = false, referencedColumnName = "id", name = "category_id")
     private Category category;
 
     private int viewCount = 0;
