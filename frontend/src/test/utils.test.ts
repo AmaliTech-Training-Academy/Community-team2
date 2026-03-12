@@ -4,6 +4,9 @@ import {
   isTokenValid,
   timeAgo,
   toErrorMessage,
+  USERNAME_HELP_TEXT,
+  USERNAME_TAKEN_MESSAGE,
+  validateUsername,
 } from "../utils";
 
 function encodeBase64Url(value: string) {
@@ -120,6 +123,47 @@ describe("utils", () => {
     it("falls back for empty values", () => {
       expect(toErrorMessage("", "Fallback message")).toBe("Fallback message");
       expect(toErrorMessage(null, "Fallback message")).toBe("Fallback message");
+    });
+  });
+
+  describe("validateUsername", () => {
+    it("accepts valid usernames", () => {
+      expect(validateUsername("kofi_osei")).toBeNull();
+      expect(validateUsername("Gertrude.98")).toBeNull();
+    });
+
+    it("rejects usernames that are too short", () => {
+      expect(validateUsername("ab")).toBe(
+        "Username must be at least 3 characters.",
+      );
+    });
+
+    it("rejects usernames with invalid characters", () => {
+      expect(validateUsername("kofi osei")).toBe(
+        "Use only letters, numbers, dots, or underscores.",
+      );
+    });
+
+    it("rejects usernames that start or end with separators", () => {
+      expect(validateUsername(".kofi")).toBe(
+        "Username cannot start or end with a dot or underscore.",
+      );
+      expect(validateUsername("kofi_")).toBe(
+        "Username cannot start or end with a dot or underscore.",
+      );
+    });
+
+    it("rejects reserved usernames case-insensitively", () => {
+      expect(validateUsername("Admin")).toBe(
+        "This username is reserved. Please choose another one.",
+      );
+    });
+
+    it("exposes username helper copy constants", () => {
+      expect(USERNAME_HELP_TEXT).toContain("3-20 characters");
+      expect(USERNAME_TAKEN_MESSAGE).toBe(
+        "This username is already on our team. Try another?",
+      );
     });
   });
 });

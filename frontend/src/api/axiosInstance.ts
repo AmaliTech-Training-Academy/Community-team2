@@ -233,6 +233,22 @@ function classifyAuthRequestError(
   return null;
 }
 
+function classifyAuthNetworkError(
+  requestUrl: string,
+  method: string,
+): string | null {
+  const normalizedUrl = requestUrl.toLowerCase();
+  const normalizedMethod = method.toLowerCase();
+  const isLoginRequest =
+    normalizedMethod === "post" && /\/users\/login(?:\?|$)/.test(normalizedUrl);
+
+  if (isLoginRequest) {
+    return "Unable to connect to the login service. Please ensure you're online or try again shortly.";
+  }
+
+  return null;
+}
+
 export function classifyAxiosError(error: unknown): string {
   if (!axios.isAxiosError(error)) {
     return error instanceof Error
@@ -241,8 +257,19 @@ export function classifyAxiosError(error: unknown): string {
   }
 
   const axiosErr = error as AxiosError;
+  const requestUrl = axiosErr.config?.url ?? "";
+  const requestMethod = axiosErr.config?.method ?? "get";
 
   if (!axiosErr.response) {
+    const authNetworkMessage = classifyAuthNetworkError(
+      requestUrl,
+      requestMethod,
+    );
+
+    if (authNetworkMessage) {
+      return authNetworkMessage;
+    }
+
     if (axiosErr.code === "ECONNABORTED") {
       return "Request timed out. The server took too long to respond — it may be overloaded or down.";
     }
@@ -256,8 +283,6 @@ export function classifyAxiosError(error: unknown): string {
   }
 
   const status = axiosErr.response.status;
-  const requestUrl = axiosErr.config?.url ?? "";
-  const requestMethod = axiosErr.config?.method ?? "get";
   const serverMessage = extractPrimaryServerMessage(axiosErr.response.data);
   const authSpecificMessage = classifyAuthRequestError(
     status,

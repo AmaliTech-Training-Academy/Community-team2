@@ -3,8 +3,10 @@ import type { AuthResponse, User, UserRole } from "../types";
 import { decodeJwt } from "../utils";
 import {
   mapUser,
+  type BackendPage,
   type BackendAuthResponse,
   type BackendUserResponse,
+  type ResponseDto,
 } from "./communityApi";
 
 interface WrappedBackendAuthResponse {
@@ -135,15 +137,40 @@ export const authApi = {
     await axiosInstance.post("/users/forgot-password", { email });
   },
 
-  register: async (fullName: string, email: string, password: string) => {
-    // Send multiple name fields to accommodate backend variants (username/name/fullName).
-    // This is a defensive change to improve compatibility while we verify the backend's
-    // expected payload shape. If backend expects a different field, remove the extra
-    // keys once confirmed.
+  checkUsernameAvailability: async (
+    username: string,
+  ): Promise<boolean | null> => {
+    const normalizedUsername = username.trim().toLowerCase();
+
+    if (!normalizedUsername) {
+      return null;
+    }
+
+    try {
+      const response = await axiosInstance.get<
+        BackendUserResponse[] | ResponseDto<BackendPage<BackendUserResponse>>
+      >("/users", {
+        params: { page: 0, size: 500 },
+      });
+
+      const payload = response.data;
+      const users = Array.isArray(payload)
+        ? payload
+        : (payload?.data?.content ?? []);
+
+      return !users.some(
+        (user) => user.username.trim().toLowerCase() === normalizedUsername,
+      );
+    } catch {
+      return null;
+    }
+  },
+
+  register: async (username: string, email: string, password: string) => {
     await axiosInstance.post("/users", {
-      username: fullName,
-      name: fullName,
-      fullName,
+      username,
+      name: username,
+      fullName: username,
       email,
       password,
       role: "MEMBER",
