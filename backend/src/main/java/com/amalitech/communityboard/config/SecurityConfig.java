@@ -61,8 +61,8 @@ public class SecurityConfig {
                      .requestMatchers("/v3/api-docs/**",
                              "/swagger-ui.html",
                              "/swagger-ui/**").permitAll()
-                        .requestMatchers(HttpMethod.GET,"/api/v1/categories").permitAll()
-                        .requestMatchers(HttpMethod.PUT,"/api/v1/users/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/categories").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/users/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptionHandling -> exceptionHandling
                         .authenticationEntryPoint(authenticationEntryPoint)

@@ -1,7 +1,15 @@
 package com.amalitech.communityboard.models;
 
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,11 +30,11 @@ public class Comment {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false,referencedColumnName = "id",name = "post_id")
+    @JoinColumn(nullable = false, referencedColumnName = "id", name = "post_id")
     private Post post;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false,referencedColumnName = "id",name = "user_id")
+    @JoinColumn(nullable = false, referencedColumnName = "id", name = "user_id")
     private User user;
 
     @NotBlank(message = "content cannot be empty")

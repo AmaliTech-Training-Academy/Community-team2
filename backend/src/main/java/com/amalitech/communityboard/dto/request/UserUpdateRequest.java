@@ -1,6 +1,5 @@
 package com.amalitech.communityboard.dto.request;
 
-import com.amalitech.communityboard.dto.enums.AccountProvider;
 import com.amalitech.communityboard.dto.enums.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;

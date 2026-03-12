@@ -29,7 +29,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         Collection<? extends GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
 
         return new CustomUserDetails(
-                user,authorities
+                user, authorities
         );
     }
 }
