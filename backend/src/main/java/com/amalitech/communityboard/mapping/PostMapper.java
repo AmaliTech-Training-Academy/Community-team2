@@ -8,8 +8,8 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface PostMapper {
-    @Mapping(target = "categoryId",source = "category.id")
-    @Mapping(target = "userId",source = "author.id")
+    @Mapping(target = "categoryId", source = "category.id")
+    @Mapping(target = "userId", source = "author.id")
      PostResponse toResponse(Post save);
 
     Post toEntity(PostRequest post);

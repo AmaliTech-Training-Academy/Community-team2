@@ -1,5 +1,6 @@
 package com.amalitech.communityboard.service.implementations;
 
+import com.amalitech.communityboard.dto.request.PostFilter;
 import com.amalitech.communityboard.dto.request.PostRequest;
 import com.amalitech.communityboard.dto.request.PostUpdateRequest;
 import com.amalitech.communityboard.dto.response.PostResponse;
@@ -14,32 +15,62 @@ import com.amalitech.communityboard.repository.PostRepository;
 import com.amalitech.communityboard.repository.UserRepository;
 import com.amalitech.communityboard.service.interfaces.PostInteractionService;
 import com.amalitech.communityboard.service.interfaces.PostInterface;
+import com.amalitech.communityboard.specification.PostSpecifications;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.concurrent.CompletableFuture;
 
 @AllArgsConstructor
 @Service
+@Transactional
+@Slf4j
 public class PostService implements PostInterface {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final PostMapper postMapper;
+    private final CloudinaryService cloudinaryService;
+
+
     private final ApplicationEventPublisher eventPublisher;
     private final PostInteractionService postInteractionService;
     @Override
-    public PostResponse createPost(PostRequest post,Long userId) {
+    @CacheEvict(value = "posts-filtered", allEntries = true)
+    public PostResponse createPost(PostRequest post, Long userId, MultipartFile image) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("user not found"));
 
         Category category = categoryRepository.findById(post.getCategoryId())
                 .orElseThrow(() -> new EntityNotFoundException("category not found"));
 
+        String imageUrl = null;
+
+        if (image != null && !image.isEmpty()) {
+            try {
+                CompletableFuture<String> imageFuture = cloudinaryService.uploadImage(image);
+                imageUrl = imageFuture.join();
+            } catch (Exception ex) {
+                log.error("[IMAGE UPLOAD] Failed to upload image for post. Proceeding without image.", ex);
+                // imageUrl remains null; post will be saved without an image
+            }
+        }
+
         Post entity = postMapper.toEntity(post);
         entity.setAuthor(user);
         entity.setCategory(category);
+        entity.setImageUrl(imageUrl);
 
         Post saved = postRepository.save(entity);
         eventPublisher.publishEvent(new PostCreatedEvent(this, saved));
@@ -48,39 +79,47 @@ public class PostService implements PostInterface {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "posts", key = "#id")
     public PostResponse getPostById(Long id) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("post not found"));
+        post.setViewCount(post.getViewCount() + 1);
         return postMapper.toResponse(post);
     }
 
-    @Override
-    public PostResponse getPostById(Long id, Long viewerUserId) {
-        Post post = postRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("post not found"));
 
-        if (viewerUserId != null) {
-            userRepository.findById(viewerUserId).ifPresent(user -> {
-                postInteractionService.recordView(user, post);
-            });
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable(
+            value = "posts-filtered",
+            keyGenerator = "postCacheKeyGenerator"
+    )
+    public Page<PostResponse> getAllPosts(PostFilter filter, Pageable pageable) {
+        Specification<Post> spec = PostSpecifications.fromFilter(filter);
+        Page<Post> posts = postRepository.findAll(spec, pageable);
+        return posts.map(postMapper::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable(
+            value = "posts-filtered",
+            keyGenerator = "postCacheKeyGenerator"
+    )
+    public Page<PostResponse> getPostByUserId(Long userId, PostFilter filter, Pageable pageable) {
+        if (filter == null) {
+            filter = new PostFilter();
         }
-
-        return postMapper.toResponse(post);
+        filter.setAuthorId(userId);
+        return getAllPosts(filter, pageable);
     }
 
     @Override
-    public Page<PostResponse> getAllPost(Pageable pageable) {
-        Page<Post> posts = postRepository.findAll(pageable);
-        return posts.map(postMapper::toResponse);
-    }
-
-    @Override
-    public Page<PostResponse> getPostByUserId(Long userId, Pageable pageable) {
-        Page<Post> posts = postRepository.findByAuthor_Id(userId, pageable);
-        return posts.map(postMapper::toResponse);
-    }
-
-    @Override
+    @Caching(
+            put    = { @CachePut(value = "posts", key = "#id") },
+            evict  = { @CacheEvict(value = "posts-filtered", allEntries = true) }
+    )
     public PostResponse updatePost(Long id, PostUpdateRequest post) {
         Post existing = postRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("post not found"));
@@ -97,13 +136,18 @@ public class PostService implements PostInterface {
             existing.setCategory(category);
         }
 
-        return postMapper.toResponse(postRepository.save(existing));
+        return postMapper.toResponse(existing);
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "posts",          key = "#id"),
+            @CacheEvict(value = "posts-filtered", allEntries = true)
+    })
     public void deletePost(Long id) {
-        Post post = postRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("post not found"));
-        postRepository.delete(post);
+        if (!postRepository.existsById(id)) {
+            throw new EntityNotFoundException("post not found");
+        }
+        postRepository.deleteById(id);
     }
 }

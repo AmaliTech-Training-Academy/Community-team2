@@ -2,6 +2,7 @@ package com.amalitech.communityboard.controller;
 
 import com.amalitech.communityboard.dto.ResponseDto;
 import com.amalitech.communityboard.dto.request.AuthRequest;
+import com.amalitech.communityboard.dto.request.ForgotPasswordRequest;
 import com.amalitech.communityboard.dto.request.UserRequest;
 import com.amalitech.communityboard.dto.request.UserUpdateRequest;
 import com.amalitech.communityboard.dto.response.AuthResponse;
@@ -28,7 +29,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
@@ -48,6 +57,7 @@ public class UserController {
         this.jwtService = jwtService;
         this.tokenBlacklistService = tokenBlacklistService;
     }
+
 
     @PostMapping
     @Operation(summary = "Create user", description = "Create a new user")
@@ -111,6 +121,7 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+
     @PostMapping("/login")
     @Operation(summary = "Login user", description = "Authenticate user with credentials")
     @ApiResponses(value = {
@@ -118,8 +129,9 @@ public class UserController {
                     content = @Content(schema = @Schema(implementation = AuthRequest.class))),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public ResponseDto<AuthResponse> login(@Valid @RequestBody AuthRequest loginRequest,HttpServletResponse response) {
-        AuthResponse authResponse = userService.loginUser(loginRequest,response);
+    public ResponseDto<AuthResponse> login(@Valid @RequestBody AuthRequest loginRequest, 
+                                            HttpServletResponse response) {
+        AuthResponse authResponse = userService.loginUser(loginRequest, response);
         return new ResponseDto<>(HttpStatus.OK, "User logged in", authResponse);
     }
     @GetMapping("/me")
@@ -207,5 +219,11 @@ public class UserController {
             return new ResponseDto<>(HttpStatus.INTERNAL_SERVER_ERROR, "Logout failed", e.getMessage());
         }
 
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
+        userService.forgotPassword(request.email());
+        return ResponseEntity.ok().build();
     }
 }

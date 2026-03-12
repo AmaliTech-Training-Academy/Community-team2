@@ -129,14 +129,12 @@ public class UserServiceTest {
 
     @Test
     void shouldDeleteUserWhenExists() {
-        User user = new User();
-        user.setId(1L);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.existsById(1L)).thenReturn(true);
 
         userService.deleteUser(1L);
 
-        verify(userRepository, times(1)).findById(1L);
-        verify(userRepository, times(1)).delete(user);
+        verify(userRepository, times(1)).existsById(1L);
+        verify(userRepository, times(1)).deleteById(1L);
     }
 
     @Test
@@ -165,7 +163,7 @@ public class UserServiceTest {
         verify(userRepository, times(1)).existsByEmail(userRequest.getEmail());
         verify(userRepository, times(1)).existsByUsername(userRequest.getUsername());
         verify(userMapper, times(1)).toEntity(userRequest);
-        verify(userRepository, times(2)).save(user); // called in service before mapping to response
+        verify(userRepository, times(1)).save(user); // called in service before mapping to response
     }
 
     @Test

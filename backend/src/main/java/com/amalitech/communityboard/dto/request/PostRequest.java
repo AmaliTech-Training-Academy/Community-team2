@@ -2,7 +2,10 @@ package com.amalitech.communityboard.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -15,5 +18,6 @@ public class PostRequest {
     private String content;
     @NotNull(message = "categoryId cannot be null")
     private Long categoryId;
+
 
 }

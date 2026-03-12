@@ -1,5 +1,5 @@
-import axiosInstance from './axiosInstance';
-import type { Post, PostsResponse, Comment, PostFilters } from '../types';
+import axiosInstance from "./axiosInstance";
+import type { Post, PostsResponse, Comment, PostFilters } from "../types";
 import {
   hydratePost,
   hydratePosts,
@@ -12,12 +12,21 @@ import {
   type BackendCommentResponse,
   type BackendPostCreateRequest,
   type BackendPostResponse,
-} from './communityApi';
+} from "./communityApi";
 
-type BackendPostCreateResponse = BackendPostResponse | { data: BackendPostResponse };
-type BackendCommentMutationResponse = BackendCommentResponse | { data: BackendCommentResponse };
-type BackendPostMutationResponse = BackendPostResponse | { data: BackendPostResponse };
-type BackendPostsResponse = BackendPostResponse[] | BackendPage<BackendPostResponse> | ResponseDto<BackendPage<BackendPostResponse>>;
+type BackendPostCreateResponse =
+  | BackendPostResponse
+  | { data: BackendPostResponse };
+type BackendCommentMutationResponse =
+  | BackendCommentResponse
+  | { data: BackendCommentResponse };
+type BackendPostMutationResponse =
+  | BackendPostResponse
+  | { data: BackendPostResponse };
+type BackendPostsResponse =
+  | BackendPostResponse[]
+  | BackendPage<BackendPostResponse>
+  | ResponseDto<BackendPage<BackendPostResponse>>;
 
 function unwrapPage<T>(
   payload: T[] | BackendPage<T> | ResponseDto<BackendPage<T>>,
@@ -28,10 +37,10 @@ function unwrapPage<T>(
 
   if (
     payload &&
-    typeof payload === 'object' &&
-    'data' in payload &&
+    typeof payload === "object" &&
+    "data" in payload &&
     payload.data &&
-    typeof payload.data === 'object'
+    typeof payload.data === "object"
   ) {
     return payload.data.content ?? [];
   }
@@ -39,17 +48,22 @@ function unwrapPage<T>(
   return (payload as BackendPage<T>).content ?? [];
 }
 
-async function resolveFilterCategoryId(filters?: PostFilters): Promise<number | undefined> {
-  if (typeof filters?.categoryId === 'number') {
+async function resolveFilterCategoryId(
+  filters?: PostFilters,
+): Promise<number | undefined> {
+  if (typeof filters?.categoryId === "number") {
     return filters.categoryId;
   }
 
-  if (!filters?.category || filters.category === 'All') {
+  if (!filters?.category || filters.category === "All") {
     return undefined;
   }
 
   const categories = await fetchCategories();
-  const match = categories.find((item) => item.name.trim().toLowerCase() === filters.category?.trim().toLowerCase());
+  const match = categories.find(
+    (item) =>
+      item.name.trim().toLowerCase() === filters.category?.trim().toLowerCase(),
+  );
 
   if (match) {
     return match.id;
@@ -58,18 +72,22 @@ async function resolveFilterCategoryId(filters?: PostFilters): Promise<number | 
   return resolveCategoryId(filters.category);
 }
 
-async function buildPostFilterParams(filters?: PostFilters): Promise<Record<string, string | number>> {
+async function buildPostFilterParams(
+  filters?: PostFilters,
+): Promise<Record<string, string | number>> {
   const categoryId = await resolveFilterCategoryId(filters);
   const params: Record<string, string | number> = {};
 
   if (filters?.title?.trim()) params.title = filters.title.trim();
   if (filters?.content?.trim()) params.content = filters.content.trim();
-  if (typeof categoryId === 'number') params.categoryId = categoryId;
-  if (typeof filters?.authorId === 'number') params.authorId = filters.authorId;
-  if (filters?.createdAfter?.trim()) params.createdAfter = filters.createdAfter.trim();
-  if (filters?.createdBefore?.trim()) params.createdBefore = filters.createdBefore.trim();
-  if (typeof filters?.minViews === 'number') params.minViews = filters.minViews;
-  if (typeof filters?.maxViews === 'number') params.maxViews = filters.maxViews;
+  if (typeof categoryId === "number") params.categoryId = categoryId;
+  if (typeof filters?.authorId === "number") params.authorId = filters.authorId;
+  if (filters?.createdAfter?.trim())
+    params.createdAfter = filters.createdAfter.trim();
+  if (filters?.createdBefore?.trim())
+    params.createdBefore = filters.createdBefore.trim();
+  if (typeof filters?.minViews === "number") params.minViews = filters.minViews;
+  if (typeof filters?.maxViews === "number") params.maxViews = filters.maxViews;
 
   return params;
 }
@@ -79,8 +97,8 @@ function unwrapCreatedPost(
 ): BackendPostResponse {
   if (
     payload &&
-    typeof payload === 'object' &&
-    'data' in payload &&
+    typeof payload === "object" &&
+    "data" in payload &&
     payload.data
   ) {
     return payload.data;
@@ -89,13 +107,11 @@ function unwrapCreatedPost(
   return payload as BackendPostResponse;
 }
 
-function unwrapPost(
-  payload: BackendPostMutationResponse,
-): BackendPostResponse {
+function unwrapPost(payload: BackendPostMutationResponse): BackendPostResponse {
   if (
     payload &&
-    typeof payload === 'object' &&
-    'data' in payload &&
+    typeof payload === "object" &&
+    "data" in payload &&
     payload.data
   ) {
     return payload.data;
@@ -109,8 +125,8 @@ function unwrapComment(
 ): BackendCommentResponse {
   if (
     payload &&
-    typeof payload === 'object' &&
-    'data' in payload &&
+    typeof payload === "object" &&
+    "data" in payload &&
     payload.data
   ) {
     return payload.data;
@@ -121,7 +137,7 @@ function unwrapComment(
 
 export const postsApi = {
   getAll: async (filters?: PostFilters): Promise<PostsResponse> => {
-    const response = await axiosInstance.get<BackendPostsResponse>('/posts', {
+    const response = await axiosInstance.get<BackendPostsResponse>("/posts", {
       params: await buildPostFilterParams(filters),
     });
     const posts = await hydratePosts(unwrapPage(response.data));
@@ -130,7 +146,9 @@ export const postsApi = {
   },
 
   getById: async (id: number): Promise<Post> => {
-    const response = await axiosInstance.get<BackendPostMutationResponse>(`/posts/${id}`);
+    const response = await axiosInstance.get<BackendPostMutationResponse>(
+      `/posts/${id}`,
+    );
     return hydratePost(unwrapPost(response.data));
   },
 
@@ -140,28 +158,53 @@ export const postsApi = {
     category: string;
     author: string;
     authorId: number;
+    imageFile?: File;
+    imageUrl?: string;
   }): Promise<Post> => {
-    const categoryId = await resolveCategoryId(payload.category as Post['category']);
+    const categoryId = await resolveCategoryId(
+      payload.category as Post["category"],
+    );
     const requestBody: BackendPostCreateRequest = {
       title: payload.title,
       content: payload.body,
       categoryId,
     };
+    const formData = new FormData();
 
-    const response = await axiosInstance.post<BackendPostCreateResponse>('/posts', requestBody);
+    formData.append(
+      "post",
+      new Blob([JSON.stringify(requestBody)], { type: "application/json" }),
+    );
 
-    return hydratePost(unwrapCreatedPost(response.data));
+    if (payload.imageFile) {
+      formData.append("image", payload.imageFile);
+    }
+
+    const response = await axiosInstance.post<BackendPostCreateResponse>(
+      "/posts",
+      formData,
+    );
+
+    const post = await hydratePost(unwrapCreatedPost(response.data));
+
+    return {
+      ...post,
+      imageUrl: post.imageUrl ?? payload.imageUrl,
+    };
   },
 
   update: async (id: number, payload: Partial<Post>): Promise<Post> => {
     const requestBody: Record<string, unknown> = {};
-    if (typeof payload.title === 'string') requestBody.title = payload.title;
-    if (typeof payload.body === 'string') requestBody.content = payload.body;
+    if (typeof payload.title === "string") requestBody.title = payload.title;
+    if (typeof payload.body === "string") requestBody.content = payload.body;
     if (payload.category) {
       requestBody.categoryId = await resolveCategoryId(payload.category);
     }
 
-    const response = await axiosInstance.put<BackendPostMutationResponse>(`/posts/${id}`, requestBody);
+    const response = await axiosInstance.put<BackendPostMutationResponse>(
+      `/posts/${id}`,
+      requestBody,
+    );
     return hydratePost(unwrapPost(response.data));
   },
 
@@ -178,7 +221,10 @@ export const postsApi = {
       content: payload.text,
       parentCommentId: null,
     };
-    const response = await axiosInstance.post<BackendCommentMutationResponse>('/comments', requestBody);
+    const response = await axiosInstance.post<BackendCommentMutationResponse>(
+      "/comments",
+      requestBody,
+    );
     const rawComment = unwrapComment(response.data);
 
     return mapCreatedOrUpdatedComment(rawComment, payload.author);
