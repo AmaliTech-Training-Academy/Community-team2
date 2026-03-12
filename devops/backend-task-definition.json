@@ -19,7 +19,7 @@
       "environment": [
         {
           "name": "SPRING_DATASOURCE_URL",
-          "value": "jdbc:postgresql://communityboard-db.cfuou2mwe5a1.eu-west-1.rds.amazonaws.com:5432/communityboard"
+          "value": "jdbc:postgresql://communityboard-db-public.cfuou2mwe5a1.eu-west-1.rds.amazonaws.com:5432/communityboard"
         },
         {
           "name": "SPRING_DATASOURCE_USERNAME",

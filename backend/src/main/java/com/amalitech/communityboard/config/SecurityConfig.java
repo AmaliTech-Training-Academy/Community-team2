@@ -53,14 +53,14 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST,
+                        .requestMatchers(HttpMethod.POST, 
                                 "/api/v1/users/login",
                                 "/api/v1/users",
                                 "/api/v1/users/refresh").permitAll()
                      .requestMatchers("/v3/api-docs/**",
                              "/swagger-ui.html",
                              "/swagger-ui/**").permitAll()
-                        .requestMatchers(HttpMethod.GET,"/api/v1/categories").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/categories").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptionHandling -> exceptionHandling
                         .authenticationEntryPoint(authenticationEntryPoint)

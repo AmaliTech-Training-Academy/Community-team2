@@ -1,7 +1,12 @@
 package com.amalitech.communityboard.models;
 
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -29,7 +34,7 @@ public class Category {
 
     @NotBlank(message = "name cannot be empty")
     @Column(unique = true)
-    @Size(min = 2,message = "name cannot be less than 2 letters")
+    @Size(min = 2, message = "name cannot be less than 2 letters")
     private String name;
 
     @Column(nullable = true)
