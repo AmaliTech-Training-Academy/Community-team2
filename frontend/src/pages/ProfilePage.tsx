@@ -108,6 +108,13 @@ export default function ProfilePage() {
       }
 
       toast("Profile preferences saved");
+    } catch (error) {
+      toast(
+        error instanceof Error
+          ? error.message
+          : "Unable to save profile preferences right now.",
+        "error",
+      );
     } finally {
       setSaving(false);
     }

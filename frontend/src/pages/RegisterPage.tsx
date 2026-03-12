@@ -251,7 +251,7 @@ export default function RegisterPage() {
                 data-testid="register-fullName-input"
                 className={inputBase(!!errors.username)}
                 type="text"
-                placeholder="e.g, kofi_osei"
+                placeholder="e.g., John Doe"
                 value={form.username}
                 onChange={(e) => setField("username", e.target.value)}
                 onKeyDown={handleKeyDown}
