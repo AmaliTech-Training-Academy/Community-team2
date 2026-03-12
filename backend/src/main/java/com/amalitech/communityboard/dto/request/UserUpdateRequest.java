@@ -21,8 +21,8 @@ public class UserUpdateRequest {
     private String email;
 
     @Pattern(
-            regexp = "^(?=.*[A-Za-z])(?=.*\\d).{8,}$",
-            message = "Password must be at least 8 characters long and contain both letters and numbers"
+            regexp = "^(?=.*[A-Za-z])(?=.*\\d).{6,}$",
+            message = "Password must be at least 6 characters long and contain both letters and numbers"
     )
     private String password;
 
