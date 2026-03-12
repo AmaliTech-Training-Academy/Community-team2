@@ -128,7 +128,9 @@ resource "aws_iam_role_policy" "secrets_access" {
       Resource = [
         var.db_credentials_secret_arn,
         var.jwt_secret_arn,
-        var.cloudinary_config_arn
+        var.cloudinary_config_arn,
+        var.email_config_arn,
+        var.frontend_urls_arn
       ]
     }]
   })
@@ -380,6 +382,22 @@ resource "aws_ecs_task_definition" "backend" {
       {
         name      = "CLOUD_SECRET"
         valueFrom = "${var.cloudinary_config_arn}:CLOUD_SECRET::"
+      },
+      {
+        name      = "EMAIL"
+        valueFrom = "${var.email_config_arn}:EMAIL::"
+      },
+      {
+        name      = "EMAIL_PASSWORD"
+        valueFrom = "${var.email_config_arn}:EMAIL_PASSWORD::"
+      },
+      {
+        name      = "FRONTEND_URL"
+        valueFrom = "${var.frontend_urls_arn}:FRONTEND_URL::"
+      },
+      {
+        name      = "FRONTEND_URL_RESET"
+        valueFrom = "${var.frontend_urls_arn}:FRONTEND_URL_RESET::"
       }
     ]
     logConfiguration = {

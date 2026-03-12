@@ -42,6 +42,14 @@ data "aws_secretsmanager_secret" "cloudinary_config" {
   name = "communityboard-cloudinary-config"
 }
 
+data "aws_secretsmanager_secret" "email_config" {
+  name = "communityboard-email-config"
+}
+
+data "aws_secretsmanager_secret" "frontend_urls" {
+  name = "communityboard-frontend-urls"
+}
+
 # ============================================================================
 # Container Registries (ECR)
 # ============================================================================
@@ -133,6 +141,8 @@ module "compute" {
   db_credentials_secret_arn = module.database.credentials_secret_arn
   jwt_secret_arn            = module.security.jwt_secret_arn
   cloudinary_config_arn     = data.aws_secretsmanager_secret.cloudinary_config.arn
+  email_config_arn          = data.aws_secretsmanager_secret.email_config.arn
+  frontend_urls_arn         = data.aws_secretsmanager_secret.frontend_urls.arn
   backend_image_url         = "${aws_ecr_repository.backend.repository_url}:latest"
   frontend_image_url        = "${aws_ecr_repository.frontend.repository_url}:latest"
   airflow_image_url         = "${aws_ecr_repository.airflow.repository_url}:latest"
