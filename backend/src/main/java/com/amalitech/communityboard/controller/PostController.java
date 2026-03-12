@@ -67,8 +67,9 @@ public class PostController {
                     content = @Content(schema = @Schema(implementation = PostResponse.class))),
             @ApiResponse(responseCode = "404", description = "Post not found")
     })
-    public ResponseDto<PostResponse> getPostById(@PathVariable Long id) {
-        PostResponse post = postService.getPostById(id);
+    public ResponseDto<PostResponse> getPostById(@PathVariable Long id,
+                                                 @AuthenticationPrincipal CustomUserDetails principal) {
+        PostResponse post = postService.getPostById(id, principal.getId());
         return new ResponseDto<>(HttpStatus.OK, "post retrieved", post);
     }
 
