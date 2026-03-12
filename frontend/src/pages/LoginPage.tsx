@@ -8,6 +8,7 @@ import Lock from "../assets/images/lock.svg?react";
 import EyeOn from "../assets/images/eye-on.svg?react";
 import EyeOff from "../assets/images/eye-off.svg?react";
 import EmailIcon from "../assets/images/mail.svg?react";
+import { toErrorMessage } from "../utils";
 
 const EMAIL_RE = /\S+@\S+\.\S+/;
 
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const fieldsRef = useRef({ email, password });
@@ -38,17 +40,21 @@ export default function LoginPage() {
     const errs = validate();
     if (Object.keys(errs).length) {
       setErrors(errs);
+      setSubmitError("");
       return;
     }
     setLoading(true);
     setErrors({});
+    setSubmitError("");
     try {
       const { email: e, password: p } = fieldsRef.current;
       await login(e, p);
       toast("Authenticated successfully");
       navigate("/");
     } catch (err: unknown) {
-      setErrors({ email: String(err) });
+      setSubmitError(
+        toErrorMessage(err, "Unable to sign in. Please try again."),
+      );
     } finally {
       setLoading(false);
     }
@@ -113,7 +119,13 @@ export default function LoginPage() {
                 type="email"
                 placeholder="your@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setSubmitError("");
+                  if (errors.email) {
+                    setErrors((current) => ({ ...current, email: "" }));
+                  }
+                }}
                 onKeyDown={handleKeyDown}
               />
             </div>
@@ -156,7 +168,13 @@ export default function LoginPage() {
                 type={showPass ? "text" : "password"}
                 placeholder="Enter password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setSubmitError("");
+                  if (errors.password) {
+                    setErrors((current) => ({ ...current, password: "" }));
+                  }
+                }}
                 onKeyDown={handleKeyDown}
               />
               <button
@@ -191,6 +209,15 @@ export default function LoginPage() {
           </div>
 
           <div>
+            {submitError && (
+              <Text
+                variant="body-sm"
+                data-testid="login-submit-error"
+                className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700"
+              >
+                {submitError}
+              </Text>
+            )}
             <button
               data-testid="login-submit-btn"
               onClick={handleSubmit}

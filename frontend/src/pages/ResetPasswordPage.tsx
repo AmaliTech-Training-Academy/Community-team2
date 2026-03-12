@@ -1,7 +1,9 @@
 import React, { useCallback, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "../components/atoms/Toast";
 import { Text } from "../components/atoms/Text";
+import { api } from "../api";
+import { decodeJwt, toErrorMessage } from "../utils";
 import Logo from "../assets/images/Logo.svg?react";
 import Lock from "../assets/images/lock.svg?react";
 import EyeOn from "../assets/images/eye-on.svg?react";
@@ -18,10 +20,12 @@ const INITIAL_FORM: FormState = {
 export default function ResetPasswordPage() {
   const toast = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Partial<FormState>>({});
+  const [submitError, setSubmitError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const formRef = useRef(form);
@@ -29,6 +33,8 @@ export default function ResetPasswordPage() {
 
   const setField = useCallback((key: FormKey, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
+    setSubmitError("");
+    setErrors((current) => ({ ...current, [key]: "" }));
   }, []);
 
   const validate = useCallback((): Partial<FormState> => {
@@ -55,17 +61,66 @@ export default function ResetPasswordPage() {
     const nextErrors = validate();
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
+      setSubmitError("");
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const tokenFromQuery = params.get("token")?.trim() ?? "";
+
+    if (!tokenFromQuery) {
+      setSubmitError(
+        "This password reset link is incomplete. Request a new one and try again.",
+      );
+      return;
+    }
+
+    const payload = decodeJwt(tokenFromQuery);
+    if (!payload) {
+      setSubmitError(
+        "This password reset link is invalid or malformed. Request a new one and try again.",
+      );
+      return;
+    }
+
+    const rawUserId = payload.id ?? payload.userId ?? payload.sub;
+    const resolvedUserId =
+      typeof rawUserId === "number"
+        ? rawUserId
+        : typeof rawUserId === "string"
+          ? Number(rawUserId)
+          : NaN;
+
+    if (!resolvedUserId || Number.isNaN(resolvedUserId)) {
+      setSubmitError(
+        "This password reset link is invalid or has expired. Request a new one and try again.",
+      );
       return;
     }
 
     setErrors({});
+    setSubmitError("");
     setLoading(true);
 
-    await new Promise((resolve) => window.setTimeout(resolve, 700));
-
-    toast("Password updated successfully");
-    navigate("/login");
-  }, [navigate, toast, validate]);
+    try {
+      await api.auth.updatePassword(
+        resolvedUserId,
+        formRef.current.password,
+        tokenFromQuery,
+      );
+      toast("Password updated successfully");
+      navigate("/login");
+    } catch (err) {
+      setSubmitError(
+        toErrorMessage(
+          err,
+          "Unable to update your password. Please try again.",
+        ),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [location.search, navigate, toast, validate]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -77,7 +132,7 @@ export default function ResetPasswordPage() {
   );
 
   const inputClassName = (hasError: boolean, hasToggle = false) =>
-    `w-full rounded-lg border py-2.5 pl-9 ${hasToggle ? "pr-9" : "pr-3"} text-body-lg text-blue-gray-light placeholder:text-[#5A6F7C] transition-colors focus:outline-none ${
+    `w-full rounded-lg border py-2.5 pl-9 ${hasToggle ? "pr-9" : "pr-3"} text-body-lg text-blue-gray-light placeholder:text-muted-icon transition-colors focus:outline-none ${
       hasError
         ? "border-red-400 bg-red-50"
         : "border-gray-200 bg-gray-100 focus:border-navy focus:bg-white"
@@ -113,7 +168,7 @@ export default function ResetPasswordPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  errors.password ? "text-red-600" : "text-[#5A6F7C]"
+                  errors.password ? "text-red-600" : "text-muted-icon"
                 }`}
               >
                 <Lock stroke="currentColor" />
@@ -161,7 +216,7 @@ export default function ResetPasswordPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  errors.confirmPassword ? "text-red-600" : "text-[#5A6F7C]"
+                  errors.confirmPassword ? "text-red-600" : "text-muted-icon"
                 }`}
               >
                 <Lock stroke="currentColor" />
@@ -197,6 +252,16 @@ export default function ResetPasswordPage() {
               </Text>
             )}
           </div>
+
+          {submitError && (
+            <Text
+              variant="body-sm"
+              data-testid="reset-password-submit-error"
+              className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700"
+            >
+              {submitError}
+            </Text>
+          )}
 
           <button
             data-testid="reset-password-submit-btn"

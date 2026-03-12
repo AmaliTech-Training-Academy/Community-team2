@@ -9,6 +9,7 @@ import Lock from "../assets/images/lock.svg?react";
 import EyeOn from "../assets/images/eye-on.svg?react";
 import EyeOff from "../assets/images/eye-off.svg?react";
 import UserIcon from "../assets/images/user.svg?react";
+import { toErrorMessage } from "../utils";
 
 const EMAIL_RE = /\S+@\S+\.\S+/;
 
@@ -31,6 +32,7 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState<Partial<FormState>>({});
+  const [submitError, setSubmitError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const formRef = useRef(form);
@@ -38,6 +40,8 @@ export default function RegisterPage() {
 
   const setField = useCallback((k: FormKey, v: string) => {
     setForm((f) => ({ ...f, [k]: v }));
+    setSubmitError("");
+    setErrors((current) => ({ ...current, [k]: "" }));
   }, []);
 
   const validate = useCallback((): Partial<FormState> => {
@@ -49,7 +53,8 @@ export default function RegisterPage() {
     if (!password) errs.password = "Password is required";
     else if (password.length < 6)
       errs.password = "Minimum of 6 characters including special characters";
-    if (password !== confirmPassword)
+    if (!confirmPassword) errs.confirmPassword = "Please confirm your password";
+    else if (password !== confirmPassword)
       errs.confirmPassword = "Passwords do not match";
     return errs;
   }, []);
@@ -58,17 +63,21 @@ export default function RegisterPage() {
     const errs = validate();
     if (Object.keys(errs).length) {
       setErrors(errs);
+      setSubmitError("");
       return;
     }
     setLoading(true);
     setErrors({});
+    setSubmitError("");
     try {
       const { fullName, email, password } = formRef.current;
       await register(fullName, email, password);
       toast("Account created successfully!");
       navigate("/");
     } catch (err: unknown) {
-      setErrors({ email: String(err) });
+      setSubmitError(
+        toErrorMessage(err, "Unable to create your account. Please try again."),
+      );
     } finally {
       setLoading(false);
     }
@@ -124,7 +133,7 @@ export default function RegisterPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  errors.fullName ? "text-red-600" : "text-[#5A6F7C]"
+                  errors.fullName ? "text-red-600" : "text-muted-icon"
                 }`}
               >
                 <UserIcon />
@@ -161,7 +170,7 @@ export default function RegisterPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  errors.email ? "text-red-600" : "text-[#5A6F7C]"
+                  errors.email ? "text-red-600" : "text-muted-icon"
                 }`}
               >
                 <EmailIcon stroke="currentColor" />
@@ -198,7 +207,7 @@ export default function RegisterPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  errors.password ? "text-red-600" : "text-[#5A6F7C]"
+                  errors.password ? "text-red-600" : "text-muted-icon"
                 }`}
               >
                 <Lock stroke="currentColor" />
@@ -246,7 +255,7 @@ export default function RegisterPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  errors.confirmPassword ? "text-red-600" : "text-[#5A6F7C]"
+                  errors.confirmPassword ? "text-red-600" : "text-muted-icon"
                 }`}
               >
                 <Lock stroke="currentColor" />
@@ -280,6 +289,16 @@ export default function RegisterPage() {
               </Text>
             )}
           </div>
+
+          {submitError && (
+            <Text
+              variant="body-sm"
+              data-testid="register-submit-error"
+              className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700"
+            >
+              {submitError}
+            </Text>
+          )}
 
           <button
             data-testid="register-submit-btn"

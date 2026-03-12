@@ -43,7 +43,12 @@ export default function ProfilePage() {
   const toggleEnabled = useSubscriptionStore((s) => s.toggleEnabled);
   const toast = useToast();
 
-  const subscription = user?.email ? getFor(user.email) : null;
+  const subscription = useSubscriptionStore(
+    useMemo(
+      () => (state) => (user?.email ? state.getFor(user.email) : null),
+      [user?.email],
+    ),
+  );
   const [notifyEmail, setNotifyEmail] = useState(user?.email ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -141,10 +146,10 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
         <section
           data-testid="profile-account-card"
-          className="rounded-2xl border border-borderstroke bg-white p-6 lg:w-[46%]"
+          className="rounded-2xl border border-borderstroke bg-white p-6 lg:w-[46%] lg:self-stretch"
         >
           <div className="mb-6 flex items-center gap-4">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-blue-gray-light text-white text-h-sm tracking-normal">
@@ -196,7 +201,7 @@ export default function ProfilePage() {
 
         <section
           data-testid="profile-subscriptions-card"
-          className="rounded-2xl border border-borderstroke bg-white p-6 lg:w-[54%]"
+          className="rounded-2xl border border-borderstroke bg-white p-6 lg:w-[54%] lg:self-stretch"
         >
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -226,7 +231,7 @@ export default function ProfilePage() {
               Notification email
             </label>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#5A6F7C]">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-icon">
                 <MailIcon aria-hidden="true" className="h-4 w-4" />
               </span>
               <input
@@ -235,7 +240,7 @@ export default function ProfilePage() {
                 type="email"
                 value={notifyEmail}
                 onChange={(event) => setNotifyEmail(event.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-gray-100 py-2.5 pl-9 pr-3 text-body-lg text-blue-gray-light placeholder:text-[#5A6F7C] transition-colors focus:border-navy focus:bg-white focus:outline-none"
+                className="w-full rounded-lg border border-gray-200 bg-gray-100 py-2.5 pl-9 pr-3 text-body-lg text-blue-gray-light placeholder:text-muted-icon transition-colors focus:border-navy focus:bg-white focus:outline-none"
                 placeholder="name@example.com"
               />
             </div>

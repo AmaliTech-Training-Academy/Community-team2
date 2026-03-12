@@ -1,18 +1,23 @@
 import React, { useCallback, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { api } from "../api";
 import { useToast } from "../components/atoms/Toast";
 import { Text } from "../components/atoms/Text";
 import Logo from "../assets/images/Logo.svg?react";
 import EmailIcon from "../assets/images/mail.svg?react";
+import { toErrorMessage } from "../utils";
 
 const EMAIL_RE = /\S+@\S+\.\S+/;
 
 export default function ForgotPasswordPage() {
   const toast = useToast();
   const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [submittedEmail, setSubmittedEmail] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const hasError = Boolean(emailError);
 
   const emailRef = useRef(email);
   emailRef.current = email;
@@ -20,23 +25,32 @@ export default function ForgotPasswordPage() {
   const handleSubmit = useCallback(async () => {
     const value = emailRef.current.trim();
     if (!value) {
-      setError("Email is required");
+      setEmailError("Email is required");
+      setSubmitError("");
       return;
     }
 
     if (!EMAIL_RE.test(value)) {
-      setError("Your email is incorrect");
+      setEmailError("Your email is incorrect");
+      setSubmitError("");
       return;
     }
 
     setLoading(true);
-    setError("");
+    setEmailError("");
+    setSubmitError("");
 
-    await new Promise((resolve) => window.setTimeout(resolve, 700));
-
-    setSubmittedEmail(value);
-    toast("Password reset link sent");
-    setLoading(false);
+    try {
+      await api.auth.forgotPassword(value);
+      setSubmittedEmail(value);
+      toast("Password reset link sent");
+    } catch (err: unknown) {
+      setSubmitError(
+        toErrorMessage(err, "Unable to send a reset link. Please try again."),
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [toast]);
 
   const handleKeyDown = useCallback(
@@ -80,14 +94,8 @@ export default function ForgotPasswordPage() {
 
           <div className="grid w-full gap-3">
             <Link
-              to="/reset-password"
-              className="flex w-full items-center justify-center py-2.5 text-center text-body-sm text-white bg-navy rounded-lg hover:bg-[#1a3347] transition-colors"
-            >
-              Continue to reset password
-            </Link>
-            <Link
               to="/login"
-              className="flex w-full items-center justify-center py-2.5 text-center text-body-sm text-blue-gray-dark border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex w-full items-center justify-center py-2.5 text-center text-body-sm text-white bg-navy rounded-lg hover:bg-[#1a3347] transition-colors"
             >
               Back to login
             </Link>
@@ -119,7 +127,9 @@ export default function ForgotPasswordPage() {
         <div>
           <div className="mb-6">
             <label
-              className="text-body-sm block text-blue-gray-light mb-1.5"
+              className={`text-body-sm block mb-1.5 ${
+                hasError ? "text-red-600" : "text-blue-gray-light"
+              }`}
               htmlFor="forgot-password-email"
             >
               Email
@@ -127,7 +137,7 @@ export default function ForgotPasswordPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  error ? "text-red-600" : "text-[#5A6F7C]"
+                  hasError ? "text-red-600" : "text-muted-icon"
                 }`}
               >
                 <EmailIcon stroke="currentColor" />
@@ -135,28 +145,44 @@ export default function ForgotPasswordPage() {
               <input
                 id="forgot-password-email"
                 data-testid="forgot-password-email-input"
-                className={`w-full pl-9 pr-3 py-2.5 rounded-lg bg-primary text-body-lg text-blue-gray-light placeholder:text-[#5A6F7C] focus:outline-none transition-colors border ${
-                  error
+                className={`w-full pl-9 pr-3 py-2.5 rounded-lg bg-primary text-body-lg text-blue-gray-light placeholder:text-muted-icon focus:outline-none transition-colors border ${
+                  hasError
                     ? "border-red-400 bg-red-50 text-red-600"
                     : "border-gray-200 bg-gray-100 focus:border-navy focus:bg-white"
                 }`}
                 type="email"
                 placeholder="your@example.com"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setSubmitError("");
+                  if (emailError) {
+                    setEmailError("");
+                  }
+                }}
                 onKeyDown={handleKeyDown}
               />
             </div>
-            {error && (
+            {emailError && (
               <Text
                 variant="body-sm"
                 data-testid="forgot-password-email-error"
                 className="mt-1 text-red-500"
               >
-                {error}
+                {emailError}
               </Text>
             )}
           </div>
+
+          {submitError && (
+            <Text
+              variant="body-sm"
+              data-testid="forgot-password-submit-error"
+              className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700"
+            >
+              {submitError}
+            </Text>
+          )}
 
           <button
             data-testid="forgot-password-submit-btn"
