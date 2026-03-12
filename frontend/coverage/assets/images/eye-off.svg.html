@@ -3,15 +3,15 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for hooks/useDebounce.ts</title>
+    <title>Code coverage report for assets/images/eye-off.svg</title>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="../prettify.css" />
-    <link rel="stylesheet" href="../base.css" />
-    <link rel="shortcut icon" type="image/x-icon" href="../favicon.png" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style type='text/css'>
         .coverage-summary .sorter {
-            background-image: url(../sort-arrow-sprite.png);
+            background-image: url(../../sort-arrow-sprite.png);
         }
     </style>
 </head>
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../index.html">All files</a> / <a href="index.html">hooks</a> useDebounce.ts</h1>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">assets/images</a> eye-off.svg</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>7/7</span>
+                <span class='fraction'>2/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>1/1</span>
+                <span class='fraction'>0/0</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>4/4</span>
+                <span class='fraction'>1/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>5/5</span>
+                <span class='fraction'>1/1</span>
             </div>
         
             
@@ -74,25 +74,25 @@
 <a name='L9'></a><a href='#L9'>9</a>
 <a name='L10'></a><a href='#L10'>10</a>
 <a name='L11'></a><a href='#L11'>11</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">82x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useState, useEffect } from 'react';
-&nbsp;
-export function useDebounce&lt;T&gt;(value: T, delay = 400): T {
-  const [debounced, setDebounced] = useState&lt;T&gt;(value);
-  useEffect(() =&gt; {
-    const t = setTimeout(() =&gt; setDebounced(value), delay);
-    return () =&gt; clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
-}
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">&lt;svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"&gt;
+&lt;g clip-path="url(#clip0_311_176)"&gt;
+&lt;path d="M7.15534 3.38391C8.70827 3.19885 10.2791 3.52712 11.6279 4.31861C12.9768 5.1101 14.0295 6.3213 14.6253 7.76725C14.6809 7.91692 14.6809 8.08157 14.6253 8.23125C14.3803 8.82524 14.0566 9.38358 13.6627 9.89125M9.38934 9.43859C9.01214 9.80291 8.50693 10.0045 7.98254 9.99994C7.45815 9.99539 6.95652 9.78505 6.5857 9.41423C6.21489 9.04342 6.00455 8.54179 5.99999 8.0174C5.99544 7.493 6.19703 6.9878 6.56134 6.6106M11.6527 11.6659C10.7683 12.1898 9.78165 12.5173 8.75959 12.6262C7.73752 12.7351 6.70398 12.6229 5.7291 12.2972C4.75422 11.9715 3.86081 11.4399 3.10949 10.7384C2.35816 10.037 1.76651 9.18218 1.37468 8.23194C1.31912 8.08226 1.31912 7.91762 1.37468 7.76794C1.96577 6.33451 3.00579 5.13144 4.33868 4.33927M1.33334 1.33325L14.6667 14.6666" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/&gt;
+&lt;/g&gt;
+&lt;defs&gt;
+&lt;clipPath id="clip0_311_176"&gt;
+&lt;rect width="16" height="16" fill="white"/&gt;
+&lt;/clipPath&gt;
+&lt;/defs&gt;
+&lt;/svg&gt;
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -102,14 +102,14 @@ export function useDebounce&lt;T&gt;(value: T, delay = 400): T {
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
                 at 2026-03-12T21:56:59.880Z
             </div>
-        <script src="../prettify.js"></script>
+        <script src="../../prettify.js"></script>
         <script>
             window.onload = function () {
                 prettyPrint();
             };
         </script>
-        <script src="../sorter.js"></script>
-        <script src="../block-navigation.js"></script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
     </body>
 </html>
     
