@@ -5,6 +5,7 @@ import com.amalitech.communityboard.dto.request.UserRequest;
 import com.amalitech.communityboard.dto.request.UserUpdateRequest;
 import com.amalitech.communityboard.dto.response.AuthResponse;
 import com.amalitech.communityboard.dto.response.UserResponse;
+import com.amalitech.communityboard.events.UserCreatedEvent;
 import com.amalitech.communityboard.exceptions.EntityNotFoundException;
 import com.amalitech.communityboard.exceptions.UserExists;
 import com.amalitech.communityboard.mapping.UserMapper;
@@ -24,6 +25,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -48,6 +50,7 @@ public class UserService implements UserInterface {
     private final JwtService jwtService;
     private  final PasswordEncoder passwordEncoder;
     private final EmailNotificationService emailNotificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${app.cookie.max-age}")
     private int cookieMaxAge;
@@ -66,6 +69,9 @@ public class UserService implements UserInterface {
         String password = passwordEncoder.encode(user.getPassword());
         user.setPassword(password);
         User saved = userRepository.save(user);
+
+        eventPublisher.publishEvent(new UserCreatedEvent(this, saved));
+
         return userMapper.toResponse(saved);
     }
 
@@ -229,8 +235,15 @@ public class UserService implements UserInterface {
 
         Map<String, String> tokens = jwtService.generateToken(user);
         String newAccessToken = tokens.get("access");
+
         NotificationDto notificationDto = NotificationDto.builder()
-                .subject("Password Reset Request").recipient(user.getEmail()).message(message).link(link + "/?token=" + newAccessToken).build();
+                .subject("Password Reset Request")
+                .recipient(user.getEmail())
+                .message(message)
+                .link(link + "/?token=" + newAccessToken)
+                .templateName("general-email-template")
+                .build();
+
         emailNotificationService.send(notificationDto);
     }
 }

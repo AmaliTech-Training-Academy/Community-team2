@@ -4,6 +4,7 @@ import com.amalitech.communityboard.dto.request.PostFilter;
 import com.amalitech.communityboard.dto.request.PostRequest;
 import com.amalitech.communityboard.dto.request.PostUpdateRequest;
 import com.amalitech.communityboard.dto.response.PostResponse;
+import com.amalitech.communityboard.events.PostCreatedEvent;
 import com.amalitech.communityboard.exceptions.EntityNotFoundException;
 import com.amalitech.communityboard.mapping.PostMapper;
 import com.amalitech.communityboard.models.Category;
@@ -20,6 +21,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -41,6 +43,7 @@ public class PostService implements PostInterface {
     private final CloudinaryService cloudinaryService;
 
 
+    private final ApplicationEventPublisher eventPublisher;
     @Override
     @CacheEvict(value = "posts-filtered", allEntries = true)
     public PostResponse createPost(PostRequest post, Long userId, MultipartFile image) {
@@ -67,7 +70,10 @@ public class PostService implements PostInterface {
         entity.setCategory(category);
         entity.setImageUrl(imageUrl);
 
-        return postMapper.toResponse(postRepository.save(entity));
+        Post saved = postRepository.save(entity);
+        eventPublisher.publishEvent(new PostCreatedEvent(this, saved));
+
+        return postMapper.toResponse(saved);
     }
 
     @Override
