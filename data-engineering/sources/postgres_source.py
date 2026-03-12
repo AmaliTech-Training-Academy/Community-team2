@@ -81,42 +81,10 @@ class PostgresSource(DataSource):
             operation_name=f"extract {self.schema_name}.{table_name}",
         )
 
-    def _read_posts_with_category_lookup(self) -> pd.DataFrame:
-        def _read_query() -> pd.DataFrame:
-            with self._connect() as conn:
-                query = sql.SQL(
-                    """
-                    SELECT
-                        posts.id,
-                        posts.user_id,
-                        posts.title,
-                        posts.content,
-                        categories.name AS category,
-                        posts.created_at
-                    FROM {}.{} AS posts
-                    JOIN {}.{} AS categories
-                      ON posts.category_id = categories.id
-                    """
-                ).format(
-                    sql.Identifier(self.schema_name),
-                    sql.Identifier(self.posts_table),
-                    sql.Identifier(self.schema_name),
-                    sql.Identifier(self.categories_table),
-                )
-                return pd.read_sql_query(query.as_string(conn), conn)
-
-        return execute_with_db_retry(
-            _read_query,
-            config=self.config,
-            operation_name=f"extract {self.schema_name}.{self.posts_table} with category lookup",
-        )
-
     def get_users(self) -> pd.DataFrame:
         return self._read_table(self.users_table)
 
     def get_posts(self) -> pd.DataFrame:
-        if self.categories_table is not None:
-            return self._read_posts_with_category_lookup()
         return self._read_table(self.posts_table)
 
     def get_comments(self) -> pd.DataFrame:

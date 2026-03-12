@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+﻿from dataclasses import dataclass
 from pathlib import Path
 import re
 
@@ -10,12 +10,8 @@ VALID_LOAD_MODES = {"append", "truncate", "incremental"}
 WAREHOUSE_TABLE_KEYS = (
     "dim_users",
     "dim_posts",
+    "fact_posts",
     "fact_comments",
-)
-WAREHOUSE_KPI_KEYS = (
-    "top_contributors",
-    "activity_trends",
-    "posts_per_category",
 )
 
 
@@ -24,13 +20,6 @@ class WarehouseDdlSettings:
     enabled: bool
     migration_table: str
     migration_directory: Path
-
-
-@dataclass(frozen=True)
-class WarehouseKpiSettings:
-    enabled: bool
-    refresh_after_load: bool
-    materialized_views: dict[str, str]
 
 
 @dataclass(frozen=True)
@@ -45,7 +34,6 @@ class WarehouseLoadSettings:
     target_tables: dict[str, str]
     incremental_keys: dict[str, tuple[str, ...]]
     ddl: WarehouseDdlSettings
-    kpis: WarehouseKpiSettings
 
 
 def get_warehouse_settings(config: dict) -> dict:
@@ -60,13 +48,6 @@ def get_warehouse_ddl_settings(warehouse_settings: dict) -> dict:
     if not isinstance(ddl_settings, dict):
         raise KeyError("Config is missing 'warehouse.ddl'")
     return ddl_settings
-
-
-def get_warehouse_kpi_settings(warehouse_settings: dict) -> dict:
-    kpi_settings = warehouse_settings.get("kpis")
-    if not isinstance(kpi_settings, dict):
-        raise KeyError("Config is missing 'warehouse.kpis'")
-    return kpi_settings
 
 
 def validate_identifier(identifier: str, setting_path: str) -> str:
@@ -121,22 +102,6 @@ def resolve_incremental_keys(warehouse_settings: dict) -> dict[str, tuple[str, .
     return resolved_keys
 
 
-def resolve_kpi_materialized_views(kpi_settings: dict) -> dict[str, str]:
-    configured_views = kpi_settings.get("materialized_views")
-    if not isinstance(configured_views, dict) or not configured_views:
-        raise KeyError("Config is missing 'warehouse.kpis.materialized_views'")
-
-    resolved_views: dict[str, str] = {}
-    for view_key in WAREHOUSE_KPI_KEYS:
-        view_name = configured_views.get(view_key)
-        resolved_views[view_key] = validate_identifier(
-            view_name,
-            f"warehouse.kpis.materialized_views.{view_key}",
-        )
-
-    return resolved_views
-
-
 def resolve_ddl_directory(ddl_settings: dict) -> Path:
     directory = ddl_settings.get("directory")
     if not isinstance(directory, str) or not directory.strip():
@@ -151,28 +116,6 @@ def resolve_ddl_directory(ddl_settings: dict) -> Path:
         raise FileNotFoundError(f"Warehouse DDL directory not found: {path}")
 
     return path
-
-
-def build_warehouse_kpi_settings(warehouse_settings: dict) -> WarehouseKpiSettings:
-    kpi_settings = get_warehouse_kpi_settings(warehouse_settings)
-
-    enabled = kpi_settings.get("enabled", False)
-    if not isinstance(enabled, bool):
-        raise ValueError("Config value 'warehouse.kpis.enabled' must be a boolean")
-
-    refresh_after_load = kpi_settings.get("refresh_after_load", True)
-    if not isinstance(refresh_after_load, bool):
-        raise ValueError(
-            "Config value 'warehouse.kpis.refresh_after_load' must be a boolean"
-        )
-
-    materialized_views = resolve_kpi_materialized_views(kpi_settings)
-
-    return WarehouseKpiSettings(
-        enabled=enabled,
-        refresh_after_load=refresh_after_load,
-        materialized_views=materialized_views,
-    )
 
 
 def build_warehouse_load_settings(config: dict) -> WarehouseLoadSettings:
@@ -225,7 +168,6 @@ def build_warehouse_load_settings(config: dict) -> WarehouseLoadSettings:
         "warehouse.ddl.migration_table",
     )
     migration_directory = resolve_ddl_directory(ddl_settings)
-    kpis = build_warehouse_kpi_settings(warehouse_settings)
 
     return WarehouseLoadSettings(
         enabled=enabled,
@@ -242,5 +184,4 @@ def build_warehouse_load_settings(config: dict) -> WarehouseLoadSettings:
             migration_table=migration_table,
             migration_directory=migration_directory,
         ),
-        kpis=kpis,
     )

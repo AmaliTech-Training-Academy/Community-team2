@@ -1,209 +1,216 @@
-﻿data_source: ${PIPELINE_DATA_SOURCE}
+﻿defaults:
+  backend_source:
+    db_role: backend
+    schema: public
+    tables:
+      users: users
+      posts: posts
+      comments: comments
 
-backend_source:
-  db_role: backend
-  schema: public
-  tables:
-    users: users
-    posts: posts
-    comments: comments
-    categories: categories
-
-stagging_source:
-  db_role: replica
-  schema: replica_raw
-  tables:
-    users: users
-    posts: posts
-    comments: comments
-  ddl:
-    enabled: ${STAGGING_DDL_ENABLED:false}
-    migration_table: replica_schema_migrations
-    directory: sql/replica
-
-replica_sync:
-  enabled: ${REPLICA_SYNC_ENABLED:false}
-  load_mode: incremental
-  truncate_cascade: true
-  chunk_size: 5000
-  create_schema_if_missing: true
-  incremental_keys:
-    users:
-      - id
-    posts:
-      - id
-    comments:
-      - id
-
-warehouse:
-  enabled: ${WAREHOUSE_ENABLED:false}
-  db_role: analytics
-  schema: analytics
-  load_mode: incremental
-  truncate_cascade: true
-  chunk_size: 5000
-  create_schema_if_missing: true
-  incremental_keys:
-    dim_users:
-      - source_user_id
-    dim_posts:
-      - source_post_id
-    fact_comments:
-      - source_comment_id
-  ddl:
-    enabled: ${WAREHOUSE_DDL_ENABLED:false}
-    migration_table: warehouse_schema_migrations
-    directory: sql/warehouse
-  tables:
-    dim_users: dim_users_table
-    dim_posts: dim_posts_table
-    fact_comments: fact_comments_table
-  kpis:
-    enabled: true
-    refresh_after_load: true
-    materialized_views:
-      top_contributors: kpi_top_contributors_mv
-      activity_trends: kpi_activity_trends_mv
-      posts_per_category: kpi_posts_per_category_mv
-
-airflow:
-  dag:
-    id: community_etl_pipeline
-    description: Sync backend data to replica and load the analytics warehouse.
-    start_date: '2026-03-12T00:00:00+00:00'
-    schedule: '@hourly'
-    catchup: false
-    max_active_runs: 1
-    dagrun_timeout_minutes: 60
-    render_template_as_native_obj: true
-    tags:
-      - data-engineering
-      - etl
-      - community
-  default_args:
-    owner: data-engineering
-    depends_on_past: false
-    retries: 3
-    retry_delay_minutes: 5
-    retry_exponential_backoff: true
-    max_retry_delay_minutes: 30
-  tasks:
-    replica_sync:
-      task_id: sync_backend_to_replica
-      execution_timeout_minutes: 20
-    etl_load:
-      task_id: load_analytics_warehouse
-      execution_timeout_minutes: 40
-  monitoring:
-    enabled: true
-    log_task_events: true
-    log_result_summary: true
-  notifications:
-    email:
-      enabled: ${AIRFLOW_EMAIL_NOTIFICATIONS_ENABLED:false}
-      to: ${AIRFLOW_EMAIL_TO:}
-      on_failure: true
-      on_retry: true
-      on_success: false
-      subject_prefix: "[community-etl]"
-    webhook:
+  stagging_source:
+    db_role: replica
+    schema: public
+    tables:
+      users: users
+      posts: posts
+      comments: comments
+    ddl:
       enabled: false
-      url: ${AIRFLOW_ALERT_WEBHOOK_URL:}
-      on_failure: true
-      on_retry: false
-      on_success: false
+      migration_table: replica_schema_migrations
+      directory: sql/replica
 
-csv_paths:
-  users: sample-data/users.csv
-  posts: sample-data/posts.csv
-  comments: sample-data/comments.csv
+  replica_sync:
+    enabled: false
+    load_mode: incremental
+    truncate_cascade: true
+    chunk_size: 1000
+    create_schema_if_missing: true
+    incremental_keys:
+      users:
+      - id
+      posts:
+      - id
+      comments:
+      - id
 
-sample_data:
-  users: 20
-  posts: 60
-  comments: 220
-  active_users_ratio: 0.3
+  warehouse:
+    enabled: false
+    db_role: analytics
+    schema: public
+    load_mode: incremental
+    truncate_cascade: true
+    chunk_size: 1000
+    create_schema_if_missing: true
+    incremental_keys:
+      dim_users:
+      - source_user_id
+      dim_posts:
+      - source_post_id
+      fact_posts:
+      - source_post_id
+      fact_comments:
+      - source_comment_id
+    ddl:
+      enabled: false
+      migration_table: schema_migrations
+      directory: sql/warehouse
+    tables:
+      dim_users: dim_users
+      dim_posts: dim_posts
+      fact_posts: fact_posts
+      fact_comments: fact_comments
 
-categories:
+  csv_paths:
+    users: sample-data/users.csv
+    posts: sample-data/posts.csv
+    comments: sample-data/comments.csv
+
+  sample_data:
+    users: 20
+    posts: 60
+    comments: 220
+    active_users_ratio: 0.3
+
+  categories:
   - NEWS
   - EVENT
   - DISCUSSION
   - ALERT
 
-required_columns:
-  posts:
+  required_columns:
+    posts:
     - id
     - user_id
     - title
     - content
     - category
     - created_at
-  comments:
+
+    comments:
     - id
     - post_id
     - user_id
     - content
     - created_at
-  users:
+
+    users:
     - id
-    - full_name
-    - role
+    - username
     - email
     - created_at
 
-deduplicate_on:
-  posts: id
-  comments: id
-  users: id
+  deduplicate_on:
+    posts: id
+    comments: id
+    users: id
 
-timestamp_columns:
-  posts: created_at
-  comments: created_at
-  users: created_at
+  timestamp_columns:
+    posts: created_at
+    comments: created_at
+    users: created_at
 
-foreign_keys:
-  comments:
-    post_id: posts
-    user_id: users
+  foreign_keys:
+    comments:
+      post_id: posts
+      user_id: users
 
-logging:
-  level: INFO
+  pipeline:
+    schedule: '@hourly'
 
-database:
-  role_keys:
-    backend: backend_postgres_db
-    replica: backend_replica_postgres_db
-    analytics: analytics_postgres_db
-  required_fields:
+  logging:
+    level: INFO
+
+  database:
+    required_fields:
     - host
     - port
     - database
     - user
     - password
-  connect_timeout_seconds: 10
-  statement_timeout_ms: 300000
-  retry:
-    max_attempts: 3
-    initial_delay_seconds: 1
-    backoff_multiplier: 2
+    connect_timeout_seconds: 10
+    statement_timeout_ms: 300000
+    retry:
+      max_attempts: 3
+      initial_delay_seconds: 1
+      backoff_multiplier: 2
 
-backend_postgres_db:
-  host: ${BACKEND_DB_HOST:localhost}
-  port: ${BACKEND_DB_PORT:5432}
-  database: ${BACKEND_DB_NAME:communityboard}
-  user: ${BACKEND_DB_USER}
-  password: ${BACKEND_DB_PASSWORD}
+environments:
+  dev:
+    environment: dev
+    data_source: csv
+    database:
+      role_keys:
+        backend: dev_db
+        replica: dev_db
+        analytics: dev_db
+    stagging_source:
+      schema: public
+      ddl:
+        enabled: false
+    warehouse:
+      enabled: false
+      schema: public
+      chunk_size: 1000
+      tables:
+        dim_users: dim_users
+        dim_posts: dim_posts
+        fact_posts: fact_posts
+        fact_comments: fact_comments
+    dev_db:
+      host: ${DB_HOST:localhost}
+      port: ${DB_PORT:5432}
+      database: ${DB_NAME:communityboard}
+      user: ${DB_USER:postgres}
+      password: ${DB_PASSWORD:postgres}
+    required_columns:
+      users:
+      - id
+      - username
+      - role
+      - email
+      - created_at
 
-backend_replica_postgres_db:
-  host: ${REPLICA_DB_HOST:localhost}
-  port: ${REPLICA_DB_PORT:5432}
-  database: ${REPLICA_DB_NAME:communityboard}
-  user: ${REPLICA_DB_USER}
-  password: ${REPLICA_DB_PASSWORD}
-
-analytics_postgres_db:
-  host: ${ANALYTICS_DB_HOST:localhost}
-  port: ${ANALYTICS_DB_PORT:5432}
-  database: ${ANALYTICS_DB_NAME:communityboard}
-  user: ${ANALYTICS_DB_USER}
-  password: ${ANALYTICS_DB_PASSWORD}
+  prod:
+    environment: prod
+    data_source: postgres
+    database:
+      role_keys:
+        backend: backend_postgres_db
+        replica: backend_replica_postgres_db
+        analytics: analytics_postgres_db
+    stagging_source:
+      schema: replica_raw
+      ddl:
+        enabled: true
+    replica_sync:
+      enabled: true
+      chunk_size: 5000
+    warehouse:
+      enabled: true
+      schema: analytics
+      chunk_size: 5000
+      ddl:
+        enabled: true
+      tables:
+        dim_users: dim_users_table
+        dim_posts: dim_posts_table
+        fact_posts: fact_posts_table
+        fact_comments: fact_comments_table
+    backend_postgres_db:
+      host: ${DB_HOST}
+      port: ${DB_PORT}
+      database: ${DB_NAME}
+      user: ${DB_USER}
+      password: ${DB_PASSWORD}
+    backend_replica_postgres_db:
+      host: ${DB_HOST}
+      port: ${DB_PORT}
+      database: ${DB_NAME}
+      user: ${DB_USER}
+      password: ${DB_PASSWORD}
+    analytics_postgres_db:
+      host: ${DB_HOST}
+      port: ${DB_PORT}
+      database: ${DB_NAME}
+      user: ${DB_USER}
+      password: ${DB_PASSWORD}

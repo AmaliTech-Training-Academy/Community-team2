@@ -1,3 +1,4 @@
+﻿import copy
 import os
 import re
 from pathlib import Path
@@ -8,24 +9,11 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(PROJECT_ROOT / ".env")
 
-ENV_PATTERN = re.compile(r"\$\{(\w+)(?::([^}]*))?\}")
+ENV_PATTERN = re.compile(r"\$\{(\w+)(?::([^}]+))?\}")
 SUPPORTED_DATA_SOURCES = {"csv", "postgres"}
 
-
-def _coerce_placeholder_value(value: str, default: str | None):
-    if default is None:
-        return value
-
-    normalized_default = default.strip().lower()
-    normalized_value = value.strip().lower()
-
-    if normalized_default in {"true", "false"}:
-        return normalized_value == "true"
-
-    if re.fullmatch(r"-?\d+", default.strip()):
-        return int(value.strip())
-
-    return value
+# Singleton cache keyed by environment and data source override.
+_CONFIG_CACHE: dict[tuple[str, str | None], dict] = {}
 
 
 def _resolve_env_variables(value):
@@ -60,6 +48,19 @@ def _resolve_env_variables(value):
     return value
 
 
+def _deep_merge(base, override):
+    if not isinstance(base, dict) or not isinstance(override, dict):
+        return copy.deepcopy(override)
+
+    merged = copy.deepcopy(base)
+    for key, value in override.items():
+        if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = copy.deepcopy(value)
+    return merged
+
+
 def _load_yaml_file(path: Path) -> dict:
     try:
         with open(path, "r", encoding="utf-8") as file:
@@ -75,18 +76,52 @@ def _load_yaml_file(path: Path) -> dict:
     return config
 
 
-def _validate_data_source(config: dict) -> dict:
-    data_source = config.get("data_source")
-    if not isinstance(data_source, str) or data_source not in SUPPORTED_DATA_SOURCES:
+def _build_environment_config(raw_config: dict, env: str) -> dict:
+    defaults = raw_config.get("defaults")
+    environments = raw_config.get("environments")
+
+    if isinstance(defaults, dict) and isinstance(environments, dict):
+        environment_config = environments.get(env)
+        if not isinstance(environment_config, dict):
+            available = ", ".join(sorted(environments)) or "none"
+            raise KeyError(
+                f"Environment '{env}' not found in config.yml. Available environments: {available}"
+            )
+
+        resolved_config = _deep_merge(defaults, environment_config)
+        resolved_config.setdefault("environment", env)
+        return resolved_config
+
+    return raw_config
+
+
+def _apply_data_source_override(config: dict) -> dict:
+    data_source_override = os.getenv("PIPELINE_DATA_SOURCE")
+    if not data_source_override:
+        return config
+
+    normalized_data_source = data_source_override.strip().lower()
+    if normalized_data_source not in SUPPORTED_DATA_SOURCES:
         raise ValueError(
-            "Config value 'data_source' must be one of "
+            "Environment variable 'PIPELINE_DATA_SOURCE' must be one of "
             f"{sorted(SUPPORTED_DATA_SOURCES)}"
         )
-    return config
+
+    resolved_config = copy.deepcopy(config)
+    resolved_config["data_source"] = normalized_data_source
+    return resolved_config
 
 
-def load_config() -> dict:
-    """Load the single pipeline configuration file and resolve env-backed values."""
+def load_config():
+    """
+    Load pipeline configuration once per environment and data source override.
+    """
+
+    env = str(os.getenv("PIPELINE_ENV", "dev")).lower()
+    data_source_override = os.getenv("PIPELINE_DATA_SOURCE")
+    cache_key = (env, data_source_override)
+    if cache_key in _CONFIG_CACHE:
+        return _CONFIG_CACHE[cache_key]
 
     candidates = [
         PROJECT_ROOT / "configs" / "config.yml",
@@ -98,8 +133,15 @@ def load_config() -> dict:
     path = next((candidate for candidate in candidates if candidate.exists()), None)
     if path is None:
         searched = ", ".join(str(candidate) for candidate in candidates)
-        raise FileNotFoundError(f"Configuration file not found. Searched: {searched}")
+        raise FileNotFoundError(
+            f"Configuration file not found for PIPELINE_ENV='{env}'. "
+            f"Searched: {searched}"
+        )
 
-    config = _load_yaml_file(path)
+    raw_config = _load_yaml_file(path)
+    config = _build_environment_config(raw_config, env)
     config = _resolve_env_variables(config)
-    return _validate_data_source(config)
+    config = _apply_data_source_override(config)
+
+    _CONFIG_CACHE[cache_key] = config
+    return _CONFIG_CACHE[cache_key]

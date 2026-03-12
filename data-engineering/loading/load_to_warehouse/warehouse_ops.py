@@ -1,4 +1,4 @@
-import hashlib
+﻿import hashlib
 import re
 from pathlib import Path
 
@@ -31,24 +31,18 @@ def render_migration_sql(
     *,
     settings: WarehouseLoadSettings,
 ) -> str:
-    """Render migration SQL by replacing tokens with actual values from settings."""
-    migration_sql = migration_sql.lstrip("﻿")
+    """Render migration SQL by replacing tokens with actual values from settings.
+    Supported tokens are defined in the 'tokens' dictionary and can be used in migration SQL as {{ token_name }}.
+    """
     tokens = {
         "warehouse_schema": quote_identifier(settings.schema_name),
         "warehouse_dim_users_table": quote_identifier(settings.target_tables["dim_users"]),
         "warehouse_dim_posts_table": quote_identifier(settings.target_tables["dim_posts"]),
+        "warehouse_fact_posts_table": quote_identifier(settings.target_tables["fact_posts"]),
         "warehouse_fact_comments_table": quote_identifier(settings.target_tables["fact_comments"]),
         "warehouse_users_table": quote_identifier(settings.target_tables["dim_users"]),
+        "warehouse_posts_table": quote_identifier(settings.target_tables["fact_posts"]),
         "warehouse_comments_table": quote_identifier(settings.target_tables["fact_comments"]),
-        "warehouse_kpi_top_contributors_view": quote_identifier(
-            settings.kpis.materialized_views["top_contributors"]
-        ),
-        "warehouse_kpi_activity_trends_view": quote_identifier(
-            settings.kpis.materialized_views["activity_trends"]
-        ),
-        "warehouse_kpi_posts_per_category_view": quote_identifier(
-            settings.kpis.materialized_views["posts_per_category"]
-        ),
     }
 
     def replace(match: re.Match[str]) -> str:
@@ -147,8 +141,8 @@ def apply_warehouse_ddl(connection, *, settings: WarehouseLoadSettings) -> list[
     return applied_migrations
 
 
-def relation_exists(cursor, schema_name: str, relation_name: str) -> bool:
-    cursor.execute("SELECT to_regclass(%s)", (f"{schema_name}.{relation_name}",))
+def table_exists(cursor, schema_name: str, table_name: str) -> bool:
+    cursor.execute("SELECT to_regclass(%s)", (f"{schema_name}.{table_name}",))
     return cursor.fetchone()[0] is not None
 
 
@@ -156,54 +150,13 @@ def ensure_target_tables_exist(cursor, *, settings: WarehouseLoadSettings) -> No
     missing_tables = [
         table_name
         for table_name in settings.target_tables.values()
-        if not relation_exists(cursor, settings.schema_name, table_name)
+        if not table_exists(cursor, settings.schema_name, table_name)
     ]
     if missing_tables:
         raise RuntimeError(
             "Warehouse target tables are missing after DDL application: "
             + ", ".join(missing_tables)
         )
-
-
-def ensure_kpi_materialized_views_exist(cursor, *, settings: WarehouseLoadSettings) -> None:
-    if not settings.kpis.enabled:
-        return
-
-    missing_views = [
-        view_name
-        for view_name in settings.kpis.materialized_views.values()
-        if not relation_exists(cursor, settings.schema_name, view_name)
-    ]
-    if missing_views:
-        raise RuntimeError(
-            "Warehouse KPI materialized views are missing after DDL application: "
-            + ", ".join(missing_views)
-        )
-
-
-def refresh_kpi_materialized_views(cursor, *, settings: WarehouseLoadSettings) -> list[str]:
-    if not settings.kpis.enabled:
-        logger.info("Warehouse KPI materialized views are disabled in config")
-        return []
-    if not settings.kpis.refresh_after_load:
-        logger.info("Warehouse KPI materialized view refresh is disabled in config")
-        return []
-
-    ensure_kpi_materialized_views_exist(cursor, settings=settings)
-
-    refreshed_views: list[str] = []
-    for view_key, view_name in settings.kpis.materialized_views.items():
-        logger.info(
-            "Refreshing KPI materialized view %s",
-            qualified_table_name(settings.schema_name, view_name),
-        )
-        cursor.execute(
-            sql.SQL("REFRESH MATERIALIZED VIEW {}.{}")
-            .format(sql.Identifier(settings.schema_name), sql.Identifier(view_name))
-        )
-        refreshed_views.append(view_key)
-
-    return refreshed_views
 
 
 def truncate_target_tables(cursor, *, settings: WarehouseLoadSettings) -> None:

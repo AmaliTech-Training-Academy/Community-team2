@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+﻿from collections.abc import Mapping
 
 import pandas as pd
 
@@ -27,17 +27,11 @@ def validate_source_datasets(datasets: Mapping[str, pd.DataFrame]) -> None:
 def build_dim_users_frame(users_df: pd.DataFrame) -> pd.DataFrame:
     dim_users_df = users_df.copy()
     if "role" not in dim_users_df.columns:
-        dim_users_df["role"] = "unknown"
-    else:
-        normalized_role = dim_users_df["role"].astype("string").str.strip().str.lower()
-        dim_users_df["role"] = normalized_role.mask(
-            normalized_role.isna() | normalized_role.eq(""),
-            "unknown",
-        )
+        dim_users_df["role"] = None
 
     dim_users_df = dim_users_df.loc[
         :,
-        ["id", "full_name", "email", "role", "created_at"],
+        ["id", "username", "email", "role", "created_at"],
     ].rename(columns={"id": "source_user_id"})
 
     return dim_users_df.sort_values("source_user_id").reset_index(drop=True)
@@ -92,6 +86,34 @@ def build_dim_posts_frame(
     ].rename(columns={"id": "source_post_id"})
 
     return dim_posts_df.sort_values("source_post_id").reset_index(drop=True)
+
+
+def build_fact_posts_frame(
+    posts_df: pd.DataFrame,
+    user_key_map: Mapping[int, int],
+    post_key_map: Mapping[int, int],
+) -> pd.DataFrame:
+    fact_posts_df = posts_df.copy()
+    fact_posts_df["post_key"] = map_surrogate_keys(
+        fact_posts_df["id"],
+        post_key_map,
+        source_label="post.id",
+        surrogate_label="post_key",
+    )
+    fact_posts_df["author_user_key"] = map_surrogate_keys(
+        fact_posts_df["user_id"],
+        user_key_map,
+        source_label="post.user_id",
+        surrogate_label="author_user_key",
+    )
+    fact_posts_df["post_count"] = 1
+
+    fact_posts_df = fact_posts_df.loc[
+        :,
+        ["id", "post_key", "author_user_key", "created_at", "post_count"],
+    ].rename(columns={"id": "source_post_id"})
+
+    return fact_posts_df.sort_values("source_post_id").reset_index(drop=True)
 
 
 def build_fact_comments_frame(

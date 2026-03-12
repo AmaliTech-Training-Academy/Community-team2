@@ -1,4 +1,4 @@
-from typing import Mapping
+﻿from typing import Mapping
 
 import pandas as pd
 
@@ -6,6 +6,7 @@ from loading.load_to_warehouse.star_schema import (
     build_dim_posts_frame,
     build_dim_users_frame,
     build_fact_comments_frame,
+    build_fact_posts_frame,
     validate_source_datasets,
 )
 from loading.load_to_warehouse.warehouse_config import (
@@ -18,7 +19,6 @@ from loading.load_to_warehouse.warehouse_ops import (
     ensure_target_tables_exist,
     fetch_key_map,
     load_dataset,
-    refresh_kpi_materialized_views,
     truncate_target_tables,
 )
 from utils.database import execute_with_db_retry, get_connection
@@ -44,7 +44,7 @@ def load_to_warehouse(datasets: Mapping[str, pd.DataFrame], config: dict) -> dic
     validate_source_datasets(datasets)
     settings = build_warehouse_load_settings(config)
 
-    def _load_warehouse() -> tuple[dict[str, int], list[str], list[str]]:
+    def _load_warehouse() -> tuple[dict[str, int], list[str]]:
         load_summary: dict[str, int] = {}
         with get_connection(config, db_role=settings.db_role) as connection:
             applied_migrations = apply_warehouse_ddl(connection, settings=settings)
@@ -64,7 +64,7 @@ def load_to_warehouse(datasets: Mapping[str, pd.DataFrame], config: dict) -> dic
                         ", ".join(settings.target_tables.values()),
                     )
 
-                # Load dimensions first so comment facts can resolve warehouse surrogate keys.
+                # Load dimensions first so facts can resolve warehouse surrogate keys.
                 dim_users_df = build_dim_users_frame(datasets["users"])
                 load_summary["dim_users"] = load_dataset(
                     cursor,
@@ -99,6 +99,18 @@ def load_to_warehouse(datasets: Mapping[str, pd.DataFrame], config: dict) -> dic
                     source_ids=dim_posts_df["source_post_id"].tolist(),
                 )
 
+                fact_posts_df = build_fact_posts_frame(
+                    datasets["posts"],
+                    user_key_map,
+                    post_key_map,
+                )
+                load_summary["fact_posts"] = load_dataset(
+                    cursor,
+                    settings=settings,
+                    table_key="fact_posts",
+                    dataset_df=fact_posts_df,
+                )
+
                 fact_comments_df = build_fact_comments_frame(
                     datasets["comments"],
                     user_key_map,
@@ -111,26 +123,16 @@ def load_to_warehouse(datasets: Mapping[str, pd.DataFrame], config: dict) -> dic
                     dataset_df=fact_comments_df,
                 )
 
-                refreshed_kpi_views = refresh_kpi_materialized_views(
-                    cursor,
-                    settings=settings,
-                )
+        return load_summary, applied_migrations
 
-        return load_summary, applied_migrations, refreshed_kpi_views
-
-    load_summary, applied_migrations, refreshed_kpi_views = execute_with_db_retry(
+    load_summary, applied_migrations = execute_with_db_retry(
         _load_warehouse,
         config=config,
         operation_name="warehouse load",
     )
     logger.info(
-        "Warehouse loading completed successfully: %s%s%s",
+        "Warehouse loading completed successfully: %s%s",
         load_summary,
         f" | applied migrations: {', '.join(applied_migrations)}" if applied_migrations else "",
-        (
-            f" | refreshed KPI materialized views: {', '.join(refreshed_kpi_views)}"
-            if refreshed_kpi_views
-            else ""
-        ),
     )
     return load_summary
