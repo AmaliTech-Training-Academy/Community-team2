@@ -2,6 +2,7 @@ package com.amalitech.communityboard.controller;
 
 import com.amalitech.communityboard.dto.ResponseDto;
 import com.amalitech.communityboard.dto.request.AuthRequest;
+import com.amalitech.communityboard.dto.request.ForgotPasswordRequest;
 import com.amalitech.communityboard.dto.request.UserRequest;
 import com.amalitech.communityboard.dto.request.UserUpdateRequest;
 import com.amalitech.communityboard.dto.response.AuthResponse;
@@ -48,6 +49,7 @@ public class UserController {
         this.jwtService = jwtService;
         this.tokenBlacklistService = tokenBlacklistService;
     }
+
 
     @PostMapping
     @Operation(summary = "Create user", description = "Create a new user")
@@ -110,6 +112,7 @@ public class UserController {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
+
 
     @PostMapping("/login")
     @Operation(summary = "Login user", description = "Authenticate user with credentials")
@@ -207,5 +210,11 @@ public class UserController {
             return new ResponseDto<>(HttpStatus.INTERNAL_SERVER_ERROR, "Logout failed", e.getMessage());
         }
 
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
+        userService.forgotPassword(request.email());
+        return ResponseEntity.ok().build();
     }
 }

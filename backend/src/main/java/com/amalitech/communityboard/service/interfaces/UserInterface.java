@@ -25,4 +25,5 @@ public interface UserInterface {
     AuthResponse refreshToken(String refresh,HttpServletResponse response);
 
     UserResponse getCurrentUser(String email);
+    void forgotPassword(String email);
 }

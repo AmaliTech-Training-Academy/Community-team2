@@ -9,6 +9,8 @@ import com.amalitech.communityboard.exceptions.EntityNotFoundException;
 import com.amalitech.communityboard.exceptions.UserExists;
 import com.amalitech.communityboard.mapping.UserMapper;
 import com.amalitech.communityboard.models.User;
+import com.amalitech.communityboard.notification.EmailNotificationService;
+import com.amalitech.communityboard.notification.NotificationDto;
 import com.amalitech.communityboard.repository.UserRepository;
 import com.amalitech.communityboard.security.CustomUserDetails;
 import com.amalitech.communityboard.security.JwtService;
@@ -39,9 +41,13 @@ public class UserService implements UserInterface {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private  final PasswordEncoder passwordEncoder;
+    private final EmailNotificationService emailNotificationService;
 
     @Value("${app.cookie.max-age}")
     private int cookieMaxAge;
+
+    @Value("${app.frontend.rest-password}")
+    private String link;
 
     @Override
     public UserResponse createUser(UserRequest userrequest) {
@@ -182,5 +188,17 @@ public class UserService implements UserInterface {
     public UserResponse getCurrentUser(String email) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User not found"));
         return userMapper.toResponse(user);
+    }
+
+    @Override
+    public void forgotPassword(String email) {
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        String message = String.format("Hi %s,\n" +
+                "\n" +
+                "We received a request to reset the password for your Ping account.\n" +
+                "If you didn't request a password reset, you can safely ignore this email. Your password won't be changed.",user.getUsername());
+        NotificationDto notificationDto = NotificationDto.builder()
+                .subject("Password Reset Request").recipient(user.getEmail()).message(message).link(link).build();
+        emailNotificationService.send(notificationDto);
     }
 }
