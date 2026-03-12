@@ -34,8 +34,23 @@ resource "aws_iam_role_policy" "ecs_secrets_access" {
       ]
       Resource = [
         var.db_credentials_secret_arn,
-        aws_secretsmanager_secret.jwt_secret.arn
+        aws_secretsmanager_secret.jwt_secret.arn,
+        aws_secretsmanager_secret.cloudinary_config.arn
       ]
     }]
+  })
+}
+
+resource "aws_secretsmanager_secret" "cloudinary_config" {
+  name                    = "${var.project_name}-cloudinary-config"
+  recovery_window_in_days = 7
+}
+
+resource "aws_secretsmanager_secret_version" "cloudinary_config" {
+  secret_id = aws_secretsmanager_secret.cloudinary_config.id
+  secret_string = jsonencode({
+    cloud_name = var.cloudinary_cloud_name
+    api_key    = var.cloudinary_api_key
+    api_secret = var.cloudinary_api_secret
   })
 }

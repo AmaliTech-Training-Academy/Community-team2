@@ -127,7 +127,8 @@ resource "aws_iam_role_policy" "secrets_access" {
       ]
       Resource = [
         var.db_credentials_secret_arn,
-        var.jwt_secret_arn
+        var.jwt_secret_arn,
+        var.cloudinary_config_arn
       ]
     }]
   })
@@ -253,7 +254,8 @@ resource "aws_lb_target_group" "backend" {
     healthy_threshold   = 2
     unhealthy_threshold = 3
     timeout             = 5
-    interval            = 10
+    interval            = 30
+    matcher             = "200,401"
   }
 }
 
@@ -366,6 +368,18 @@ resource "aws_ecs_task_definition" "backend" {
       {
         name      = "JWT_SECRET"
         valueFrom = var.jwt_secret_arn
+      },
+      {
+        name      = "CLOUD_NAME"
+        valueFrom = "${var.cloudinary_config_arn}:CLOUD_NAME::"
+      },
+      {
+        name      = "CLOUD_API"
+        valueFrom = "${var.cloudinary_config_arn}:CLOUD_API::"
+      },
+      {
+        name      = "CLOUD_SECRET"
+        valueFrom = "${var.cloudinary_config_arn}:CLOUD_SECRET::"
       }
     ]
     logConfiguration = {

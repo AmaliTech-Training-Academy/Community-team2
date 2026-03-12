@@ -34,6 +34,15 @@ data "aws_availability_zones" "available" {
 }
 
 # ============================================================================
+# Cloudinary Configuration
+# ============================================================================
+# Reference existing Cloudinary secret
+
+data "aws_secretsmanager_secret" "cloudinary_config" {
+  name = "communityboard-cloudinary-config"
+}
+
+# ============================================================================
 # Container Registries (ECR)
 # ============================================================================
 # Docker image repositories for application containers
@@ -82,7 +91,7 @@ module "database" {
 
   project_name       = var.project_name
   environment        = var.environment
-  subnet_ids         = module.networking.public_subnet_ids  # Public subnets for development access
+  subnet_ids         = module.networking.public_subnet_ids  # Public subnets
   security_group_id  = module.networking.rds_security_group_id
   db_username        = var.db_username
   db_password        = var.db_password
@@ -100,6 +109,9 @@ module "security" {
   jwt_secret                    = var.jwt_secret
   ecs_task_execution_role_name  = module.compute.ecs_task_execution_role_name
   db_credentials_secret_arn     = module.database.credentials_secret_arn
+  cloudinary_cloud_name         = var.cloudinary_cloud_name
+  cloudinary_api_key            = var.cloudinary_api_key
+  cloudinary_api_secret         = var.cloudinary_api_secret
 }
 
 # ============================================================================
@@ -120,6 +132,7 @@ module "compute" {
   db_endpoint               = module.database.endpoint              # Single RDS for all databases
   db_credentials_secret_arn = module.database.credentials_secret_arn
   jwt_secret_arn            = module.security.jwt_secret_arn
+  cloudinary_config_arn     = data.aws_secretsmanager_secret.cloudinary_config.arn
   backend_image_url         = "${aws_ecr_repository.backend.repository_url}:latest"
   frontend_image_url        = "${aws_ecr_repository.frontend.repository_url}:latest"
   airflow_image_url         = "${aws_ecr_repository.airflow.repository_url}:latest"

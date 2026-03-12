@@ -54,3 +54,24 @@ variable "environment" {
   type        = string
   default     = "development"
 }
+
+# Cloudinary cloud name
+variable "cloudinary_cloud_name" {
+  description = "Cloudinary cloud name"
+  type        = string
+  sensitive   = true
+}
+
+# Cloudinary API key
+variable "cloudinary_api_key" {
+  description = "Cloudinary API key"
+  type        = string
+  sensitive   = true
+}
+
+# Cloudinary API secret
+variable "cloudinary_api_secret" {
+  description = "Cloudinary API secret"
+  type        = string
+  sensitive   = true
+}

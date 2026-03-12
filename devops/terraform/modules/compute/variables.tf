@@ -59,3 +59,7 @@ variable "frontend_image_url" {
 variable "airflow_image_url" {
   type = string
 }
+
+variable "cloudinary_config_arn" {
+  type = string
+}

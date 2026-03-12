@@ -21,7 +21,7 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
 }
 
 resource "aws_db_subnet_group" "main" {
-  name       = "${var.project_name}-db-subnet"
+  name       = "${var.project_name}-db-public-subnet"
   subnet_ids = var.subnet_ids
 
   lifecycle {
@@ -30,7 +30,7 @@ resource "aws_db_subnet_group" "main" {
 }
 
 resource "aws_db_instance" "postgres" {
-  identifier              = "${var.project_name}-db"
+  identifier              = "${var.project_name}-db-public"
   engine                  = "postgres"
   engine_version          = "15"
   instance_class          = var.instance_class

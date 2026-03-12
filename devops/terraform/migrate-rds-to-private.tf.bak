@@ -1,0 +1,102 @@
+# ============================================================================
+# RDS Migration to Private Subnet
+# ============================================================================
+# This file creates a new private RDS instance from a snapshot of the public one
+# Steps:
+# 1. Create snapshot of existing public RDS
+# 2. Create new DB subnet group with private subnets
+# 3. Restore snapshot to new private RDS instance
+# 4. Update security groups for backend-only access
+# ============================================================================
+
+# Step 1: Create snapshot of current RDS instance
+resource "aws_db_snapshot" "migration_snapshot" {
+  db_instance_identifier = module.database.db_instance_id
+  db_snapshot_identifier = "${var.project_name}-migration-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
+  
+  tags = {
+    Name        = "${var.project_name}-migration-snapshot"
+    Environment = var.environment
+    Purpose     = "Migration to private subnet"
+  }
+}
+
+# Step 2: Create new DB subnet group with ONLY private subnets
+resource "aws_db_subnet_group" "private" {
+  name       = "${var.project_name}-db-private-subnet"
+  subnet_ids = module.networking.private_subnet_ids
+  
+  tags = {
+    Name = "${var.project_name}-private-db-subnet-group"
+  }
+}
+
+# Step 3: Restore snapshot to new RDS instance in private subnets
+resource "aws_db_instance" "postgres_private" {
+  identifier              = "${var.project_name}-db-private"
+  snapshot_identifier     = aws_db_snapshot.migration_snapshot.id
+  instance_class          = "db.t3.micro"
+  db_subnet_group_name    = aws_db_subnet_group.private.name
+  vpc_security_group_ids  = [module.networking.rds_security_group_id]
+  
+  # Security settings
+  publicly_accessible     = false
+  storage_encrypted       = true
+  
+  # Backup settings
+  backup_retention_period = 7
+  backup_window          = "03:00-04:00"
+  maintenance_window     = "mon:04:00-mon:05:00"
+  
+  # Monitoring
+  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
+  
+  skip_final_snapshot     = false
+  final_snapshot_identifier = "${var.project_name}-db-private-final-snapshot"
+  
+  tags = {
+    Name        = "${var.project_name}-private-database"
+    Environment = var.environment
+    Type        = "Private"
+  }
+  
+  lifecycle {
+    ignore_changes = [snapshot_identifier]
+  }
+}
+
+# Step 4: Update Secrets Manager with new private DB endpoint
+resource "aws_secretsmanager_secret_version" "db_credentials_private" {
+  secret_id = module.database.credentials_secret_arn
+  secret_string = jsonencode({
+    username     = var.db_username
+    password     = var.db_password
+    engine       = "postgres"
+    host         = aws_db_instance.postgres_private.address
+    port         = 5432
+    dbname       = "communityboard"
+    replicadb    = "replicadb"
+    analyticsdb  = "analyticsdb"
+    jdbc_url     = "jdbc:postgresql://${aws_db_instance.postgres_private.address}:5432/communityboard"
+    replica_url  = "jdbc:postgresql://${aws_db_instance.postgres_private.address}:5432/replicadb"
+    analytics_url = "jdbc:postgresql://${aws_db_instance.postgres_private.address}:5432/analyticsdb"
+  })
+  
+  depends_on = [aws_db_instance.postgres_private]
+}
+
+# Output the new private DB endpoint
+output "private_db_endpoint" {
+  value       = aws_db_instance.postgres_private.endpoint
+  description = "New private RDS instance endpoint"
+}
+
+output "private_db_address" {
+  value       = aws_db_instance.postgres_private.address
+  description = "New private RDS instance address"
+}
+
+output "migration_snapshot_id" {
+  value       = aws_db_snapshot.migration_snapshot.id
+  description = "Snapshot ID used for migration"
+}
