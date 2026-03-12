@@ -1,20 +1,10 @@
-import { create } from 'zustand';
-import type { Post, PostFilters } from '../../types';
-import { api } from '../../api/index';
-import { getMockNotificationMessages } from '../subscriptions/notificationService';
+import { create } from "zustand";
+import type { Post, PostFilters } from "../../types";
+import { api } from "../../api/index";
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
-
-// Toast is accessed imperatively so we don't couple the store to React context.
-// The store emits notification messages via this registry — PostModal picks
-// them up after createPost resolves.
-type NotificationListener = (messages: string[]) => void;
-let notificationListener: NotificationListener | null = null;
-
-export function registerNotificationListener(fn: NotificationListener) {
-  notificationListener = fn;
-  return () => { notificationListener = null; };
-}
+type CreatePostInput = Omit<Post, "id" | "createdAt" | "comments"> & {
+  imageFile?: File;
+};
 
 interface PostsState {
   posts: Post[];
@@ -22,29 +12,25 @@ interface PostsState {
   filters: PostFilters;
   listLoading: boolean;
   detailLoading: boolean;
-  fetchPosts:  () => Promise<void>;
-  fetchPost:   (id: number) => Promise<void>;
-  createPost:  (payload: Omit<Post, 'id' | 'createdAt' | 'comments'>) => Promise<Post>;
-  updatePost:  (id: number, payload: Partial<Post>) => Promise<void>;
-  deletePost:  (id: number) => Promise<void>;
-  setFilters:  (f: Partial<PostFilters>) => void;
+  fetchPosts: () => Promise<void>;
+  fetchPost: (id: number) => Promise<void>;
+  createPost: (payload: CreatePostInput) => Promise<Post>;
+  updatePost: (id: number, payload: Partial<Post>) => Promise<void>;
+  deletePost: (id: number) => Promise<void>;
+  setFilters: (f: Partial<PostFilters>) => void;
 }
 
 export const usePostsStore = create<PostsState>((set, get) => ({
   posts: [],
   currentPost: null,
-  filters: { category: 'All', search: '' },
+  filters: { category: "All", title: "" },
   listLoading: false,
   detailLoading: false,
 
   fetchPosts: async () => {
     set({ listLoading: true });
     try {
-      const { category, search } = get().filters;
-      const params: Record<string, string> = {};
-      if (category && category !== 'All') params.category = category;
-      if (search) params.search = search;
-      const data = await api.posts.getAll(params);
+      const data = await api.posts.getAll(get().filters);
       set({ posts: data.posts });
     } finally {
       set({ listLoading: false });
@@ -63,35 +49,23 @@ export const usePostsStore = create<PostsState>((set, get) => ({
 
   createPost: async (payload) => {
     const post = await api.posts.create(payload);
-    set(s => ({ posts: [post, ...s.posts] }));
-
-    // In mock mode, simulate email notifications as in-app toasts
-    if (USE_MOCK && notificationListener) {
-      // Derive the current user's email from the stored auth state
-      const raw = localStorage.getItem('ping_auth');
-      const currentUserEmail: string =
-        raw ? (JSON.parse(raw)?.state?.user?.email ?? '') : '';
-      const messages = getMockNotificationMessages(post, currentUserEmail);
-      if (messages.length > 0) {
-        notificationListener(messages);
-      }
-    }
+    set((s) => ({ posts: [post, ...s.posts] }));
 
     return post;
   },
 
   updatePost: async (id, payload) => {
     const updated = await api.posts.update(id, payload);
-    set(s => ({
-      posts: s.posts.map(p => p.id === id ? updated : p),
+    set((s) => ({
+      posts: s.posts.map((p) => (p.id === id ? updated : p)),
       currentPost: s.currentPost?.id === id ? updated : s.currentPost,
     }));
   },
 
   deletePost: async (id) => {
     await api.posts.delete(id);
-    set(s => ({ posts: s.posts.filter(p => p.id !== id) }));
+    set((s) => ({ posts: s.posts.filter((p) => p.id !== id) }));
   },
 
-  setFilters: (f) => set(s => ({ filters: { ...s.filters, ...f } })),
+  setFilters: (f) => set((s) => ({ filters: { ...s.filters, ...f } })),
 }));

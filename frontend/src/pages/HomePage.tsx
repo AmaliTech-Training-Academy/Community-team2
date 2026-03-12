@@ -1,18 +1,16 @@
 import { useEffect, useState, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  usePostsStore,
-  registerNotificationListener,
-} from "../features/posts/postsStore";
+import { usePostsStore } from "../features/posts/postsStore";
 import { PostCard } from "../components/molecules/PostCard";
 import { SearchBar } from "../components/molecules/SearchBar";
 import { CategoryFilter } from "../components/molecules/CategoryFilter";
 import { PostModal } from "../components/organisms/PostModal";
 import { Spinner } from "../components/atoms/Spinner";
 import { useDebounce } from "../hooks/useDebounce";
-import { useToast } from "../components/atoms/Toast";
 import type { Post } from "../types";
-import Comments from '../assets/images/comments.svg?react';
+import { useCategoriesStore } from "../features/categories/categoriesStore";
+import Comments from "../assets/images/comments.svg?react";
+import PlusIcon from "../assets/images/plus.svg?react";
 
 const POSTS_PER_PAGE = 5;
 
@@ -69,7 +67,7 @@ function Pagination({
           onClick={() => onPage(p)}
           className={`${btnBase} ${
             p === page
-              ? "bg-blue-gray-dark text-white border-blue-gray-dark"
+              ? "bg-blue-gray-light text-white border-blue-gray-dark"
               : "bg-white text-blue-gray-dark border-borderstroke hover:border-gray-400"
           }`}
         >
@@ -90,13 +88,14 @@ function Pagination({
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const toast = useToast();
 
   const posts = usePostsStore((s) => s.posts);
   const listLoading = usePostsStore((s) => s.listLoading);
   const filters = usePostsStore((s) => s.filters);
   const fetchPosts = usePostsStore((s) => s.fetchPosts);
   const setFilters = usePostsStore((s) => s.setFilters);
+  const categories = useCategoriesStore((s) => s.categories);
+  const fetchCategories = useCategoriesStore((s) => s.fetch);
 
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
@@ -104,16 +103,7 @@ export default function HomePage() {
   const debSearch = useDebounce(search, 400);
 
   useEffect(() => {
-    const unregister = registerNotificationListener((messages) => {
-      messages.forEach((msg, i) => {
-        setTimeout(() => toast(msg, "success"), i * 600);
-      });
-    });
-    return unregister;
-  }, [toast]);
-
-  useEffect(() => {
-    setFilters({ search: debSearch });
+    setFilters({ title: debSearch });
     setPage(1);
   }, [debSearch, setFilters]);
 
@@ -124,6 +114,10 @@ export default function HomePage() {
   useEffect(() => {
     fetchPosts();
   }, [filters, fetchPosts]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const handleNavigate = useCallback(
     (id: number) => {
@@ -151,14 +145,16 @@ export default function HomePage() {
         <button
           data-testid="create-post-btn"
           onClick={() => setShowModal(true)}
-          className="w-full md:w-auto bg-blue-gray-dark text-white text-body-sm font-semibold h-10 px-4 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+          className="w-full md:w-auto bg-blue-gray-light text-white text-body-sm font-semibold h-10 px-4 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
         >
-          + Create post
+          <PlusIcon aria-hidden="true" className="h-5 w-5" />
+          <span>Create post</span>
         </button>
       </div>
 
       <CategoryFilter
         active={filters.category || "All"}
+        categories={categories}
         onSelect={useCallback(
           (c: string) => setFilters({ category: c as any }),
           [setFilters],
@@ -169,8 +165,10 @@ export default function HomePage() {
         <Spinner />
       ) : posts.length === 0 ? (
         <div data-testid="posts-empty-state" className="text-center py-16">
-          <div className="text-5xl mb-3 flex justify-center"><Comments /></div>
-          
+          <div className="text-5xl mb-3 flex justify-center">
+            <Comments />
+          </div>
+
           <div className="text-sm text-gray-400">
             No posts have been made yet
           </div>

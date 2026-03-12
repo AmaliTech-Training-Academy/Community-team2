@@ -1,21 +1,27 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { User } from '../../types';
-import { api } from '../../api/index';
-import { isTokenValid } from '../../utils';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { User } from "../../types";
+import { api } from "../../api/index";
+import { isTokenValid } from "../../utils";
 
 interface AuthState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
-  login:    (email: string, password: string) => Promise<void>;
-  register: (fullName: string, email: string, password: string) => Promise<void>;
-  logout:   () => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (
+    username: string,
+    email: string,
+    password: string,
+  ) => Promise<void>;
+  logout: () => void;
   rehydrateAndValidate: () => void;
 }
 
-const CLEARED: Pick<AuthState, 'user' | 'token' | 'isAuthenticated'> = {
-  user: null, token: null, isAuthenticated: false,
+const CLEARED: Pick<AuthState, "user" | "token" | "isAuthenticated"> = {
+  user: null,
+  token: null,
+  isAuthenticated: false,
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -28,8 +34,12 @@ export const useAuthStore = create<AuthState>()(
         set({ user, token, isAuthenticated: true });
       },
 
-      register: async (fullName, email, password) => {
-        const { token, user } = await api.auth.register(fullName, email, password);
+      register: async (username, email, password) => {
+        const { token, user } = await api.auth.register(
+          username,
+          email,
+          password,
+        );
         set({ user, token, isAuthenticated: true });
       },
 
@@ -41,10 +51,12 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'ping_auth',
+      name: "ping_auth",
       partialize: (state) => ({
-        user: state.user, token: state.token, isAuthenticated: state.isAuthenticated,
+        user: state.user,
+        token: state.token,
+        isAuthenticated: state.isAuthenticated,
       }),
-    }
-  )
+    },
+  ),
 );

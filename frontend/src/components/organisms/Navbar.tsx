@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../features/auth/authStore";
 import { initials } from "../../utils";
 import Logo from "../../assets/images/Logo.svg?react";
@@ -11,14 +11,17 @@ import CloseIcon from "../../assets/images/close.svg?react";
 function UserAvatar({
   name,
   size = "sm",
+  testId,
 }: {
   name: string;
   size?: "sm" | "md";
+  testId?: string;
 }) {
   const cls = size === "md" ? "h-10 w-10 text-sm" : "h-8 w-8 text-xs";
   return (
     <div
-      className={`${cls} flex shrink-0 items-center justify-center rounded-full bg-gray-300 font-medium text-blue-gray-dark`}
+      data-testid={testId}
+      className={`${cls} flex shrink-0 items-center justify-center rounded-full bg-badge-gray font-medium text-blue-gray-dark`}
     >
       {initials(name)}
     </div>
@@ -29,6 +32,7 @@ export function Navbar() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -47,16 +51,24 @@ export function Navbar() {
     navigate("/login");
   }, [logout, navigate]);
 
+  const handleProfileNavigate = useCallback(() => {
+    setDrawerOpen(false);
+    navigate("/profile");
+  }, [navigate]);
+
+  const analyticsIsActive = location.pathname === "/dashboard";
+  const profileIsActive = location.pathname === "/profile";
+
   return (
     <>
       <nav
         data-testid="navbar"
         className="sticky top-0 z-40 border-b border-borderstroke bg-background"
       >
-        <div className="mx-auto flex w-full max-w-300 items-start px-6 py-2.5">
+        <div className="mx-auto flex w-full max-w-360 items-start px-6 py-2.5 md:px-30">
           <div className="flex h-10.25 w-full items-center justify-between gap-5">
             <Link data-testid="navbar-logo" to="/" className="shrink-0">
-              <Logo className="h-9.5 w-25" />
+              <Logo className="h-[37.95px] w-25" />
             </Link>
 
             {/* ── Desktop right section (md+) ───────────────────── */}
@@ -66,7 +78,11 @@ export function Navbar() {
                 <button
                   data-testid="navbar-analytics-link"
                   onClick={() => navigate("/dashboard")}
-                  className="flex h-10.25 items-center justify-center gap-2 rounded-lg px-5 text-sm font-medium text-[#061C2A] transition-opacity hover:opacity-70"
+                  className={`flex h-10.25 items-center justify-center gap-2 rounded-lg px-5 text-sm font-medium transition-opacity hover:opacity-70 ${
+                    analyticsIsActive
+                      ? "bg-blue-gray-light text-background"
+                      : "text-[#061C2A]"
+                  }`}
                 >
                   <AnalyticsIcon aria-hidden="true" className="h-5 w-5" />
                   Analytics
@@ -74,29 +90,42 @@ export function Navbar() {
               )}
 
               {/* User info */}
-              <div className="flex items-center gap-2.5">
-                <UserAvatar name={user?.name || ""} />
+              <button
+                data-testid="navbar-profile-trigger"
+                type="button"
+                onClick={handleProfileNavigate}
+                className={`flex items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors ${
+                  profileIsActive
+                    ? "bg-blue-gray-light text-white"
+                    : "hover:bg-gray-100"
+                }`}
+              >
+                <UserAvatar name={user?.name || ""} testId="navbar-avatar" />
                 <div className="flex flex-col items-start gap-1 leading-none">
                   <span
                     data-testid="navbar-username"
-                    className="text-sm font-semibold leading-none text-blue-gray-dark"
+                    className={`text-sm font-semibold leading-none ${
+                      profileIsActive ? "text-white" : "text-blue-gray-dark"
+                    }`}
                   >
                     {user?.name}
                   </span>
                   <span
                     data-testid="navbar-email"
-                    className="text-xs font-normal leading-none text-blue-gray"
+                    className={`text-xs font-normal leading-none ${
+                      profileIsActive ? "text-white/80" : "text-blue-gray"
+                    }`}
                   >
                     {user?.email}
                   </span>
                 </div>
-              </div>
+              </button>
 
               {/* Logout */}
               <button
                 data-testid="navbar-logout-btn"
                 onClick={handleLogout}
-                className="flex h-10.25 items-center justify-center gap-2 rounded-lg px-5 text-sm font-medium text-red-600 transition-opacity hover:opacity-70"
+                className="flex h-10.25 items-center justify-center gap-2 rounded-lg px-5 text-sm font-medium text-alert transition-opacity hover:opacity-70"
               >
                 <LogoutIcon aria-hidden="true" className="h-5 w-5" />
                 Log out
@@ -147,6 +176,20 @@ export function Navbar() {
 
           {/* Menu items */}
           <div className="flex flex-col px-5">
+            <button
+              data-testid="navbar-mobile-profile-btn"
+              onClick={handleProfileNavigate}
+              className={`flex items-center gap-3 rounded-xl px-3 py-4 text-body-lg text-left transition-colors hover:opacity-70 ${
+                profileIsActive
+                  ? "bg-blue-gray-light text-white font-semibold"
+                  : "text-blue-gray-dark"
+              }`}
+            >
+              <UserAvatar name={user?.name || ""} />
+              Profile
+            </button>
+            <div className="border-t border-borderstroke" />
+
             {user?.role === "ADMIN" && (
               <>
                 <button
@@ -167,7 +210,7 @@ export function Navbar() {
             <button
               data-testid="navbar-mobile-logout-btn"
               onClick={handleLogout}
-              className="flex items-center gap-3 py-4 text-body-lg text-red-500 text-left hover:opacity-70 transition-opacity"
+              className="flex items-center gap-3 py-4 text-body-lg text-alert text-left hover:opacity-70 transition-opacity"
             >
               <LogoutIcon aria-hidden="true" className="h-5 w-5" />
               Log out

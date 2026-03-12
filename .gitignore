@@ -1,9 +1,9 @@
 ## ── Build outputs ─────────────────────────────────────────────────────────
 target/
-build/
-dist/
-
-## ── Java / IDE ─────────────────────────────────────────────────────────────
+node_modules/
+.env
+.env.local
+.env.*.local
 *.class
 *.jar
 *.war
@@ -28,17 +28,17 @@ secrets/
 ## ── Python ─────────────────────────────────────────────────────────────────
 __pycache__/
 *.pyc
-*.pyo
+.DS_Store
 
-## ── Logs ───────────────────────────────────────────────────────────────────
-*.log
-logs/
+# Secrets and credentials
+*.pem
+*.key
+*credentials*
+*secrets*
 
-## ── QA / Allure Reports ────────────────────────────────────────────────────
-allure-results/
-allure-report/
-**/allure-results/
-**/allure-report/
-
-## ── Maven wrapper cache ────────────────────────────────────────────────────
-.m2/
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+!terraform.tfvars.example

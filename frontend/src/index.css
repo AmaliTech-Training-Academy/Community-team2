@@ -23,8 +23,31 @@
   --color-blue-gray-light: #08283B;
   --color-blue-gray-dark: #041620;
   --color-borderstroke:#E6EAEB;
+  --color-badge-darkblue:#B2BCC2;
   
 --color-primary:#ECECEB;
+--color-badge-gray:#C3C3C2;
+--color-alert:#C81E1E;
+
+--color-badge-purple:#EDEBFE;
+--color-badge-purpleborder: #AC94FA;
+--color-purpletext:#5521B5;
+--color-badge-red:#FDE8E8;
+--color-badge-redborder: #F98080;
+--color-redtext:#9B1C1C;
+--color-badge-green:#DEF7EC;
+--color-badge-greenborder:#31C48D;
+--color-greentext:#03543F;
+--color-badge-yellow:#FFEBB0;
+--color-badge-yellowborder:#FECB33;
+--color-yellowtext:#8C6900;
+
+  --color-frame-bg: #DFE1E5;
+  --color-toolbar-border: #ADADAD;
+  --color-url-field-bg: #F0F3F4;
+  --color-muted-icon: #5A6F7C;
+  --color-muted-text: #5F6367;
+
 
 
   --color-gray-50:  #F9FAFB;

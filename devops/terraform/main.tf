@@ -82,7 +82,7 @@ module "database" {
 
   project_name       = var.project_name
   environment        = var.environment
-  subnet_ids         = module.networking.private_subnet_ids  # Private subnets for security
+  subnet_ids         = module.networking.public_subnet_ids  # Public subnets for development access
   security_group_id  = module.networking.rds_security_group_id
   db_username        = var.db_username
   db_password        = var.db_password
@@ -137,7 +137,7 @@ module "monitoring" {
   alert_email            = var.alert_email
   ecs_cluster_name       = module.compute.ecs_cluster_name
   backend_service_name   = module.compute.backend_service_name
-  db_instance_id         = module.database.database_name
+  db_instance_id         = module.database.db_instance_id
 }
 
 # ============================================================================

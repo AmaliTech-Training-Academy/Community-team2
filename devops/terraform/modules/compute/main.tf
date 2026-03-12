@@ -7,6 +7,32 @@ resource "aws_ecs_cluster" "main" {
   }
 }
 
+# Service Discovery Namespace for container-to-container communication
+resource "aws_service_discovery_private_dns_namespace" "main" {
+  name        = "${var.project_name}.local"
+  description = "Private DNS namespace for ECS service discovery"
+  vpc         = var.vpc_id
+}
+
+resource "aws_service_discovery_service" "backend" {
+  name = "backend"
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.main.id
+
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
+
+    routing_policy = "MULTIVALUE"
+  }
+
+  health_check_custom_config {
+    failure_threshold = 1
+  }
+}
+
 resource "aws_cloudwatch_log_group" "backend" {
   name              = "/ecs/${var.project_name}-backend"
   retention_in_days = 7
@@ -223,11 +249,11 @@ resource "aws_lb_target_group" "backend" {
   target_type = "ip"
 
   health_check {
-    path                = "/api-docs"
+    path                = "/v3/api-docs"
     healthy_threshold   = 2
     unhealthy_threshold = 3
     timeout             = 5
-    interval            = 30
+    interval            = 10
   }
 }
 
@@ -243,7 +269,7 @@ resource "aws_lb_target_group" "frontend" {
     healthy_threshold   = 2
     unhealthy_threshold = 3
     timeout             = 5
-    interval            = 30
+    interval            = 10
   }
 }
 
@@ -269,7 +295,7 @@ resource "aws_lb_listener_rule" "backend" {
 
   condition {
     path_pattern {
-      values = ["/api/*", "/swagger-ui/*", "/api-docs"]
+      values = ["/api/*", "/swagger-ui/*", "/v3/api-docs*"]
     }
   }
 }
@@ -387,7 +413,7 @@ resource "aws_ecs_service" "backend" {
   launch_type            = "FARGATE"
   enable_execute_command = true
 
-  health_check_grace_period_seconds = 60
+  health_check_grace_period_seconds = 120
 
   deployment_circuit_breaker {
     enable   = true
@@ -404,6 +430,10 @@ resource "aws_ecs_service" "backend" {
     target_group_arn = aws_lb_target_group.backend.arn
     container_name   = "backend"
     container_port   = 8080
+  }
+
+  service_registries {
+    registry_arn = aws_service_discovery_service.backend.arn
   }
 
   lifecycle {
