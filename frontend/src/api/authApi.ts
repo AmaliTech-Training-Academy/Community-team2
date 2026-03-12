@@ -113,6 +113,28 @@ export const authApi = {
     return normaliseBackendAuthResponse(res.data);
   },
 
+  updatePassword: async (
+    userId: number,
+    password: string,
+    bearerToken?: string,
+  ): Promise<void> => {
+    await axiosInstance.put(
+      `/users/${userId}`,
+      { password },
+      bearerToken
+        ? {
+            headers: {
+              Authorization: `Bearer ${bearerToken}`,
+            },
+          }
+        : undefined,
+    );
+  },
+
+  forgotPassword: async (email: string): Promise<void> => {
+    await axiosInstance.post("/users/forgot-password", { email });
+  },
+
   register: async (fullName: string, email: string, password: string) => {
     await axiosInstance.post("/users", {
       username: fullName,
