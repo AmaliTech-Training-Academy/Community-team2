@@ -29,8 +29,12 @@ public class PostFilter {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof PostFilter)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof PostFilter)) {
+            return false;
+        }
         PostFilter that = (PostFilter) o;
         return Objects.equals(authorId, that.authorId) &&
                 Objects.equals(categoryId, that.categoryId) &&
