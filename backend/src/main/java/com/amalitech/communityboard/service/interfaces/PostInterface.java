@@ -15,4 +15,5 @@ public interface PostInterface {
     Page<PostResponse> getPostByUserId(Long userId, PostFilter filter, Pageable pageable);
     PostResponse updatePost(Long id, PostUpdateRequest post);
     void deletePost(Long id);
+
 }
