@@ -1,3 +1,4 @@
+## ── Build outputs ─────────────────────────────────────────────────────────
 target/
 node_modules/
 .env
@@ -5,11 +6,26 @@ node_modules/
 .env.*.local
 *.class
 *.jar
-*.log
+*.war
+*.ear
 .idea/
+*.iml
+*.iws
+*.ipr
 .vscode/
-dist/
-build/
+.vs/
+*.DS_Store
+
+## ── Node / Frontend ────────────────────────────────────────────────────────
+node_modules/
+
+## ── Environment & Secrets ──────────────────────────────────────────────────
+.env
+.env.*
+*.secret
+secrets/
+
+## ── Python ─────────────────────────────────────────────────────────────────
 __pycache__/
 *.pyc
 .DS_Store
