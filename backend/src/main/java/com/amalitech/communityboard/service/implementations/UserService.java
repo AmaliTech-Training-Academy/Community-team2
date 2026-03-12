@@ -198,8 +198,10 @@ public class UserService implements UserInterface {
                 "We received a request to reset the password for your Ping account.\n" +
                 "If you didn't request a password reset, you can safely ignore this email. Your password won't be changed.",user.getUsername());
 
+        Map<String,String> tokens = jwtService.generateToken(user);
+        String newAccessToken = tokens.get("access");
         NotificationDto notificationDto = NotificationDto.builder()
-                .subject("Password Reset Request").recipient(user.getEmail()).message(message).link(link+"/"+user.getId()).build();
+                .subject("Password Reset Request").recipient(user.getEmail()).message(message).link(link+"/?token="+newAccessToken).build();
         emailNotificationService.send(notificationDto);
     }
 }
