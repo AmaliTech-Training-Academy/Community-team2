@@ -136,8 +136,14 @@ export const authApi = {
   },
 
   register: async (fullName: string, email: string, password: string) => {
+    // Send multiple name fields to accommodate backend variants (username/name/fullName).
+    // This is a defensive change to improve compatibility while we verify the backend's
+    // expected payload shape. If backend expects a different field, remove the extra
+    // keys once confirmed.
     await axiosInstance.post("/users", {
       username: fullName,
+      name: fullName,
+      fullName,
       email,
       password,
       role: "MEMBER",
