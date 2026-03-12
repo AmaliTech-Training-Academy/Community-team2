@@ -40,6 +40,17 @@ function createAxiosError({
 }
 
 describe("classifyAxiosError", () => {
+  it("maps login network failures to a user-friendly login service message", () => {
+    const error = createAxiosError({
+      code: "ERR_NETWORK",
+      url: "/users/login",
+    });
+
+    expect(classifyAxiosError(error)).toBe(
+      "Unable to connect to the login service. Please ensure you're online or try again shortly.",
+    );
+  });
+
   it("maps generic login validation errors to invalid credentials", () => {
     const error = createAxiosError({
       status: 400,
