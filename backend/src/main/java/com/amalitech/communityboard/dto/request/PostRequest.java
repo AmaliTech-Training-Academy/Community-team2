@@ -19,4 +19,5 @@ public class PostRequest {
     @NotNull(message = "categoryId cannot be null")
     private Long categoryId;
 
+
 }

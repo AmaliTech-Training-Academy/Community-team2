@@ -1,22 +1,37 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { api } from "../api";
 import { useAuthStore } from "../features/auth/authStore";
 import { useToast } from "../components/atoms/Toast";
 import { Text } from "../components/atoms/Text";
+import { useDebounce } from "../hooks/useDebounce";
 import Logo from "../assets/images/Logo.svg?react";
 import EmailIcon from "../assets/images/mail.svg?react";
 import Lock from "../assets/images/lock.svg?react";
 import EyeOn from "../assets/images/eye-on.svg?react";
 import EyeOff from "../assets/images/eye-off.svg?react";
 import UserIcon from "../assets/images/user.svg?react";
+import SuccessIcon from "../assets/images/success.svg?react";
+import {
+  toErrorMessage,
+  USERNAME_HELP_TEXT,
+  USERNAME_TAKEN_MESSAGE,
+  validateUsername,
+} from "../utils";
 
 const EMAIL_RE = /\S+@\S+\.\S+/;
 
-type FormKey = "fullName" | "email" | "password" | "confirmPassword";
+type FormKey = "username" | "email" | "password" | "confirmPassword";
 type FormState = Record<FormKey, string>;
+type UsernameStatus =
+  | "idle"
+  | "checking"
+  | "available"
+  | "taken"
+  | "unavailable";
 
 const INITIAL_FORM: FormState = {
-  fullName: "",
+  username: "",
   email: "",
   password: "",
   confirmPassword: "",
@@ -31,48 +46,150 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState<Partial<FormState>>({});
+  const [submitError, setSubmitError] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
   const [loading, setLoading] = useState(false);
 
   const formRef = useRef(form);
   formRef.current = form;
+  const debouncedUsername = useDebounce(form.username.trim(), 400);
 
   const setField = useCallback((k: FormKey, v: string) => {
     setForm((f) => ({ ...f, [k]: v }));
+    setSubmitError("");
+    setErrors((current) => ({
+      ...current,
+      [k]: k === "username" ? (validateUsername(v) ?? "") : "",
+    }));
+    if (k === "username") {
+      setUsernameStatus("idle");
+    }
   }, []);
 
+  useEffect(() => {
+    if (!debouncedUsername) {
+      setUsernameStatus("idle");
+      return;
+    }
+
+    const validationMessage = validateUsername(debouncedUsername);
+    if (validationMessage) {
+      setUsernameStatus("idle");
+      return;
+    }
+
+    let isActive = true;
+    setUsernameStatus("checking");
+
+    void api.auth
+      .checkUsernameAvailability(debouncedUsername)
+      .then((isAvailable) => {
+        if (!isActive) {
+          return;
+        }
+
+        if (isAvailable === null) {
+          setUsernameStatus("unavailable");
+          return;
+        }
+
+        if (isAvailable) {
+          setUsernameStatus("available");
+          setErrors((current) => ({
+            ...current,
+            username:
+              current.username === USERNAME_TAKEN_MESSAGE
+                ? ""
+                : current.username,
+          }));
+          return;
+        }
+
+        setUsernameStatus("taken");
+        setErrors((current) => ({
+          ...current,
+          username: USERNAME_TAKEN_MESSAGE,
+        }));
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [debouncedUsername]);
+
   const validate = useCallback((): Partial<FormState> => {
-    const { fullName, email, password, confirmPassword } = formRef.current;
+    const { username, email, password, confirmPassword } = formRef.current;
     const errs: Partial<FormState> = {};
-    if (!fullName.trim()) errs.fullName = "Full name is required";
+    const usernameError = validateUsername(username);
+    if (usernameError) errs.username = usernameError;
+    if (usernameStatus === "taken") errs.username = USERNAME_TAKEN_MESSAGE;
     if (!email) errs.email = "Email is required";
     else if (!EMAIL_RE.test(email)) errs.email = "Invalid email address";
     if (!password) errs.password = "Password is required";
     else if (password.length < 6)
       errs.password = "Minimum of 6 characters including special characters";
-    if (password !== confirmPassword)
+    if (!confirmPassword) errs.confirmPassword = "Please confirm your password";
+    else if (password !== confirmPassword)
       errs.confirmPassword = "Passwords do not match";
     return errs;
+  }, [usernameStatus]);
+
+  const ensureUsernameAvailability = useCallback(async (username: string) => {
+    const validationMessage = validateUsername(username);
+    if (validationMessage) {
+      return false;
+    }
+
+    setUsernameStatus("checking");
+    const isAvailable = await api.auth.checkUsernameAvailability(username);
+
+    if (isAvailable === false) {
+      setUsernameStatus("taken");
+      setErrors((current) => ({
+        ...current,
+        username: USERNAME_TAKEN_MESSAGE,
+      }));
+      return false;
+    }
+
+    if (isAvailable === true) {
+      setUsernameStatus("available");
+    } else {
+      setUsernameStatus("unavailable");
+    }
+
+    return true;
   }, []);
 
   const handleSubmit = useCallback(async () => {
     const errs = validate();
     if (Object.keys(errs).length) {
       setErrors(errs);
+      setSubmitError("");
       return;
     }
+
     setLoading(true);
     setErrors({});
+    setSubmitError("");
     try {
-      const { fullName, email, password } = formRef.current;
-      await register(fullName, email, password);
+      const { username, email, password } = formRef.current;
+      const canProceed = await ensureUsernameAvailability(username.trim());
+      if (!canProceed) {
+        return;
+      }
+
+      await register(username.trim(), email, password);
       toast("Account created successfully!");
       navigate("/");
     } catch (err: unknown) {
-      setErrors({ email: String(err) });
+      setSubmitError(
+        toErrorMessage(err, "Unable to create your account. Please try again."),
+      );
     } finally {
       setLoading(false);
     }
-  }, [validate, register, toast, navigate]);
+  }, [validate, ensureUsernameAvailability, register, toast, navigate]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -113,47 +230,71 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* ── Form ─────────────────────────────────────────────────── */}
         <div>
-          {/* Full Name */}
           <div className="mb-4">
             <label
               className="text-body-sm block text-blue-gray-light mb-1.5"
-              htmlFor="register-fullName"
+              htmlFor="register-username"
             >
-              Full Name
+              Username
             </label>
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  errors.fullName ? "text-red-600" : "text-[#5A6F7C]"
+                  errors.username ? "text-red-600" : "text-muted-icon"
                 }`}
               >
                 <UserIcon />
               </span>
               <input
-                id="register-fullName"
+                id="register-username"
                 data-testid="register-fullName-input"
-                className={inputBase(!!errors.fullName)}
+                className={inputBase(!!errors.username)}
                 type="text"
-                placeholder="e.g, John Doe"
-                value={form.fullName}
-                onChange={(e) => setField("fullName", e.target.value)}
+                placeholder="e.g, kofi_osei"
+                value={form.username}
+                onChange={(e) => setField("username", e.target.value)}
                 onKeyDown={handleKeyDown}
               />
+              {!errors.username && usernameStatus === "available" && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#046C4E]">
+                  <SuccessIcon aria-hidden="true" className="h-5 w-5" />
+                </span>
+              )}
             </div>
-            {errors.fullName && (
+            <Text variant="body-sm" className="mt-1 text-blue-gray">
+              {USERNAME_HELP_TEXT}
+            </Text>
+            {errors.username && (
               <Text
                 variant="body-sm"
                 data-testid="register-fullName-error"
                 className="text-red-500 mt-1"
               >
-                 {errors.fullName}
+                {errors.username}
+              </Text>
+            )}
+            {!errors.username && usernameStatus === "checking" && (
+              <Text variant="body-sm" className="mt-1 text-blue-gray">
+                Checking username availability...
+              </Text>
+            )}
+            {!errors.username && usernameStatus === "available" && (
+              <Text
+                variant="body-sm"
+                className="mt-1 flex items-center gap-2 text-[#046C4E]"
+              >
+                <SuccessIcon aria-hidden="true" className="h-4 w-4" />
+                Username is available.
+              </Text>
+            )}
+            {!errors.username && usernameStatus === "unavailable" && (
+              <Text variant="body-sm" className="mt-1 text-amber-700">
+                We&apos;ll verify username availability when you submit.
               </Text>
             )}
           </div>
 
-          {/* Email */}
           <div className="mb-4">
             <label
               className="text-body-sm block text-blue-gray-light mb-1.5"
@@ -164,7 +305,7 @@ export default function RegisterPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  errors.email ? "text-red-600" : "text-[#5A6F7C]"
+                  errors.email ? "text-red-600" : "text-muted-icon"
                 }`}
               >
                 <EmailIcon stroke="currentColor" />
@@ -186,12 +327,11 @@ export default function RegisterPage() {
                 data-testid="register-email-error"
                 className="text-red-500 mt-1"
               >
-                 {errors.email}
+                {errors.email}
               </Text>
             )}
           </div>
 
-          {/* Password */}
           <div className="mb-4">
             <label
               className="text-body-sm block text-blue-gray-light mb-1.5"
@@ -202,7 +342,7 @@ export default function RegisterPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  errors.password ? "text-red-600" : "text-[#5A6F7C]"
+                  errors.password ? "text-red-600" : "text-muted-icon"
                 }`}
               >
                 <Lock stroke="currentColor" />
@@ -240,7 +380,6 @@ export default function RegisterPage() {
             )}
           </div>
 
-          {/* Confirm Password */}
           <div className="mb-6">
             <label
               className="text-body-sm block text-blue-gray-light mb-1.5"
@@ -251,7 +390,7 @@ export default function RegisterPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  errors.confirmPassword ? "text-red-600" : "text-[#5A6F7C]"
+                  errors.confirmPassword ? "text-red-600" : "text-muted-icon"
                 }`}
               >
                 <Lock stroke="currentColor" />
@@ -286,17 +425,25 @@ export default function RegisterPage() {
             )}
           </div>
 
-          {/* Submit */}
+          {submitError && (
+            <Text
+              variant="body-sm"
+              data-testid="register-submit-error"
+              className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700"
+            >
+              {submitError}
+            </Text>
+          )}
+
           <button
             data-testid="register-submit-btn"
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || usernameStatus === "checking"}
             className="w-full py-2.5 text-body-lg font-semibold text-white bg-navy  rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? "Creating account…" : "Register"}
           </button>
 
-          {/* Footer */}
           <p className="flex justify-center items-center gap-1.5 text-center mt-7">
             <Text variant="body-sm" as="span" className="text-blue-gray">
               Already have an account?

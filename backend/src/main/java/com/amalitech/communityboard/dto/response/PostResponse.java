@@ -20,4 +20,7 @@ public class PostResponse {
     private LocalDateTime createdAt;
     private Long userId;
     private Long categoryId;
+    private String imageUrl;
+    private int viewCount = 0;
+
 }

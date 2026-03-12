@@ -42,7 +42,7 @@ public class Comment {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "parent_comment_id")
     private Comment parent ;
 

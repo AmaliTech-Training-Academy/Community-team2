@@ -11,14 +11,40 @@ describe("TEST_IDS", () => {
     expect(TEST_IDS.NAVBAR.AVATAR).toBe("navbar-avatar");
     expect(TEST_IDS.NAVBAR.USER_MENU_TRIGGER).toBe("navbar-mobile-menu-btn");
     expect(TEST_IDS.NAVBAR.MOBILE_DRAWER).toBe("navbar-mobile-drawer");
+    expect(TEST_IDS.NAVBAR.PROFILE_TRIGGER).toBe("navbar-profile-trigger");
+    expect(TEST_IDS.NAVBAR.MOBILE_PROFILE_BTN).toBe(
+      "navbar-mobile-profile-btn",
+    );
+  });
+
+  it("exposes profile preference ids", () => {
+    expect(TEST_IDS.PROFILE.PAGE).toBe("profile-page");
+    expect(TEST_IDS.PROFILE.ENABLE_TOGGLE).toBe("profile-enable-toggle");
+    expect(TEST_IDS.PROFILE.CATEGORY_BTN("Events")).toBe(
+      "profile-category-btn-events",
+    );
   });
 
   it("exposes register password toggle ids", () => {
+    expect(TEST_IDS.REGISTER.USERNAME_INPUT).toBe("register-fullName-input");
+    expect(TEST_IDS.REGISTER.USERNAME_ERROR).toBe("register-fullName-error");
     expect(TEST_IDS.REGISTER.TOGGLE_PASSWORD).toBe(
       "register-toggle-password-btn",
     );
     expect(TEST_IDS.REGISTER.TOGGLE_CONFIRM_PASSWORD).toBe(
       "register-toggle-confirm-password-btn",
+    );
+  });
+
+  it("exposes forgot and reset password ids", () => {
+    expect(TEST_IDS.FORGOT_PASSWORD.SUBMIT_BTN).toBe(
+      "forgot-password-submit-btn",
+    );
+    expect(TEST_IDS.RESET_PASSWORD.TOGGLE_PASSWORD).toBe(
+      "reset-toggle-password-btn",
+    );
+    expect(TEST_IDS.RESET_PASSWORD.TOGGLE_CONFIRM_PASSWORD).toBe(
+      "reset-toggle-confirm-password-btn",
     );
   });
 

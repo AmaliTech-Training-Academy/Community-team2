@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.*;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -47,6 +48,9 @@ public class UserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private UserService userService;
@@ -129,14 +133,12 @@ public class UserServiceTest {
 
     @Test
     void shouldDeleteUserWhenExists() {
-        User user = new User();
-        user.setId(1L);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.existsById(1L)).thenReturn(true);
 
         userService.deleteUser(1L);
 
-        verify(userRepository, times(1)).findById(1L);
-        verify(userRepository, times(1)).delete(user);
+        verify(userRepository, times(1)).existsById(1L);
+        verify(userRepository, times(1)).deleteById(1L);
     }
 
     @Test
@@ -147,13 +149,14 @@ public class UserServiceTest {
                 "Testpassword",
                 UserRole.MEMBER
         );
-        User user = new User(
-                "username",
-                "email@gmail.com",
-                "Testpassword",
-                UserRole.MEMBER,
-                AccountProvider.LOCAL
-        );
+
+        User user =  User.builder()
+                        .username("username")
+                        .email("email@gmail.com")
+                        .password("Testpassowrd")
+                .role(UserRole.MEMBER)
+                .provider(AccountProvider.LOCAL)
+                        .build();
 
         when(userRepository.existsByEmail(userRequest.getEmail())).thenReturn(false);
         when(userRepository.existsByUsername(userRequest.getUsername())).thenReturn(false);
@@ -165,7 +168,7 @@ public class UserServiceTest {
         verify(userRepository, times(1)).existsByEmail(userRequest.getEmail());
         verify(userRepository, times(1)).existsByUsername(userRequest.getUsername());
         verify(userMapper, times(1)).toEntity(userRequest);
-        verify(userRepository, times(2)).save(user); // called in service before mapping to response
+        verify(userRepository, times(1)).save(user); // called in service before mapping to response
     }
 
     @Test

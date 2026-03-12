@@ -3,8 +3,10 @@ import type { AuthResponse, User, UserRole } from "../types";
 import { decodeJwt } from "../utils";
 import {
   mapUser,
+  type BackendPage,
   type BackendAuthResponse,
   type BackendUserResponse,
+  type ResponseDto,
 } from "./communityApi";
 
 interface WrappedBackendAuthResponse {
@@ -113,9 +115,62 @@ export const authApi = {
     return normaliseBackendAuthResponse(res.data);
   },
 
-  register: async (fullName: string, email: string, password: string) => {
+  updatePassword: async (
+    userId: number,
+    password: string,
+    bearerToken?: string,
+  ): Promise<void> => {
+    await axiosInstance.put(
+      `/users/${userId}`,
+      { password },
+      bearerToken
+        ? {
+            headers: {
+              Authorization: `Bearer ${bearerToken}`,
+            },
+          }
+        : undefined,
+    );
+  },
+
+  forgotPassword: async (email: string): Promise<void> => {
+    await axiosInstance.post("/users/forgot-password", { email });
+  },
+
+  checkUsernameAvailability: async (
+    username: string,
+  ): Promise<boolean | null> => {
+    const normalizedUsername = username.trim().toLowerCase();
+
+    if (!normalizedUsername) {
+      return null;
+    }
+
+    try {
+      const response = await axiosInstance.get<
+        BackendUserResponse[] | ResponseDto<BackendPage<BackendUserResponse>>
+      >("/users", {
+        params: { page: 0, size: 500 },
+      });
+
+      const payload = response.data;
+      const users = Array.isArray(payload)
+        ? payload
+        : (payload?.data?.content ?? []);
+
+      return !users.some(
+        (user) => user.username.trim().toLowerCase() === normalizedUsername,
+      );
+    } catch {
+      return null;
+    }
+  },
+
+  register: async (username: string, email: string, password: string) => {
     await axiosInstance.post("/users", {
-      username: fullName,
+      username,
+      name: username,
+      fullName: username,
       email,
       password,
       role: "MEMBER",

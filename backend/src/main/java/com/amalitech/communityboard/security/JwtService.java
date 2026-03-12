@@ -100,7 +100,6 @@ public class JwtService {
 
                 Claims claims = getClaimsFromToken(token);
                 Long userId = ((Number) claims.get("userId")).longValue();
-                System.out.println("User ID from token: " + userId);
                 boolean valid = claims.getExpiration().after(now);
 
                 return TokenValidationResult.builder()
