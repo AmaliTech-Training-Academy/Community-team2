@@ -1,4 +1,10 @@
-import React, { createContext, useCallback, useContext, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Toast as ToastType } from "../../types";
 import SuccessIcon from "../../assets/images/success.svg?react";
 import CloseIcon from "../../assets/images/close.svg?react";
@@ -32,7 +38,7 @@ const TOAST_STYLES: Record<
   },
 };
 
-export function ToastProvider({ children }: { children: React.ReactNode }) {
+export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastType[]>([]);
   const add = useCallback(
     (message: string, type: ToastType["type"] = "success") => {
@@ -81,7 +87,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 className={`ml-auto w-8 h-8 rounded-lg flex items-center justify-center ${s.close}`}
                 aria-label="Close"
               >
-                <CloseIcon aria-hidden="true"  className="h-4 w-4 text-[#046C4E]" />
+                <CloseIcon
+                  aria-hidden="true"
+                  className="h-4 w-4 text-[#046C4E]"
+                />
               </button>
             </div>
           );

@@ -34,7 +34,7 @@ const PostList = memo(function PostList({
   );
 });
 
-function Pagination({
+const Pagination = memo(function Pagination({
   page,
   totalPages,
   onPage,
@@ -52,10 +52,14 @@ function Pagination({
     "min-w-[26px] h-6 px-2 rounded-md text-[11px] leading-none font-medium transition-colors border";
 
   return (
-    <div className="flex items-center justify-end gap-1.5 mt-6">
+    <nav
+      aria-label="Pagination"
+      className="flex items-center justify-end gap-1.5 mt-6"
+    >
       <button
         onClick={() => onPage(page - 1)}
         disabled={page === 1}
+        aria-label="Go to previous page"
         className={`${btnBase} border-borderstroke text-blue-gray-dark disabled:opacity-40`}
       >
         Previous
@@ -65,6 +69,8 @@ function Pagination({
         <button
           key={p}
           onClick={() => onPage(p)}
+          aria-label={`Go to page ${p}`}
+          aria-current={p === page ? "page" : undefined}
           className={`${btnBase} ${
             p === page
               ? "bg-blue-gray-light text-white border-blue-gray-dark"
@@ -78,13 +84,14 @@ function Pagination({
       <button
         onClick={() => onPage(page + 1)}
         disabled={page === totalPages}
+        aria-label="Go to next page"
         className={`${btnBase} border-borderstroke text-blue-gray-dark disabled:opacity-40`}
       >
         Next
       </button>
-    </div>
+    </nav>
   );
-}
+});
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -132,6 +139,10 @@ export default function HomePage() {
 
   const handleModalClose = useCallback(() => setShowModal(false), []);
   const handleModalSaved = useCallback(() => setShowModal(false), []);
+  const handleCategorySelect = useCallback(
+    (c: string) => setFilters({ category: c as any }),
+    [setFilters],
+  );
 
   const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
   const pagedPosts = posts.slice(
@@ -159,10 +170,7 @@ export default function HomePage() {
       <CategoryFilter
         active={filters.category || "All"}
         categories={categories}
-        onSelect={useCallback(
-          (c: string) => setFilters({ category: c as any }),
-          [setFilters],
-        )}
+        onSelect={handleCategorySelect}
       />
 
       {listLoading ? (

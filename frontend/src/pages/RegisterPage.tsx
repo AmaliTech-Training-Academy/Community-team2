@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, type KeyboardEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../features/auth/authStore";
 import { useToast } from "../components/atoms/Toast";
@@ -103,7 +103,7 @@ export default function RegisterPage() {
   }, [validate, register, toast, navigate]);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    (e: KeyboardEvent) => {
       if (e.key === "Enter") handleSubmit();
     },
     [handleSubmit],

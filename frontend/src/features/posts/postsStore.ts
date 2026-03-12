@@ -31,7 +31,10 @@ interface PostsState {
   fetchPosts: () => Promise<void>;
   fetchPost: (id: number) => Promise<void>;
   createPost: (payload: CreatePostInput) => Promise<Post>;
-  updatePost: (id: number, payload: Partial<Post>) => Promise<void>;
+  updatePost: (
+    id: number,
+    payload: Partial<Post> & { imageFile?: File },
+  ) => Promise<void>;
   deletePost: (id: number) => Promise<void>;
   setFilters: (f: Partial<PostFilters>) => void;
 }

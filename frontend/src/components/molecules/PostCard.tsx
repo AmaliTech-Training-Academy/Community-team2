@@ -20,6 +20,15 @@ export const PostCard = memo(function PostCard({
       data-testid={`post-card-${post.id}`}
       data-post-id={post.id}
       data-category={post.category}
+      role="button"
+      tabIndex={0}
+      aria-label={`View post: ${post.title}`}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       className="bg-white border border-borderstroke rounded-lg cursor-pointer hover:shadow-sm transition-shadow overflow-hidden"
       onClick={onClick}
     >

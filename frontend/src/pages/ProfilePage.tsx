@@ -44,8 +44,8 @@ export default function ProfilePage() {
   const toast = useToast();
 
   const subscription = useSubscriptionStore(
-    useMemo(
-      () => (state) => (user?.email ? state.getFor(user.email) : null),
+    useCallback(
+      (state) => (user?.email ? state.getFor(user.email) : null),
       [user?.email],
     ),
   );

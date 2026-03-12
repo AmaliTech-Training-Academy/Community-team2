@@ -193,7 +193,10 @@ export const postsApi = {
     };
   },
 
-  update: async (id: number, payload: Partial<Post>): Promise<Post> => {
+  update: async (
+    id: number,
+    payload: Partial<Post> & { imageFile?: File },
+  ): Promise<Post> => {
     const requestBody: Record<string, unknown> = {};
     if (typeof payload.title === "string") requestBody.title = payload.title;
     if (typeof payload.body === "string") requestBody.content = payload.body;
@@ -201,11 +204,30 @@ export const postsApi = {
       requestBody.categoryId = await resolveCategoryId(payload.category);
     }
 
-    const response = await axiosInstance.put<BackendPostMutationResponse>(
-      `/posts/${id}`,
-      requestBody,
-    );
-    return hydratePost(unwrapPost(response.data));
+    let response;
+    if (payload.imageFile) {
+      const formData = new FormData();
+      formData.append(
+        "post",
+        new Blob([JSON.stringify(requestBody)], { type: "application/json" }),
+      );
+      formData.append("image", payload.imageFile);
+      response = await axiosInstance.put<BackendPostMutationResponse>(
+        `/posts/${id}`,
+        formData,
+      );
+    } else {
+      response = await axiosInstance.put<BackendPostMutationResponse>(
+        `/posts/${id}`,
+        requestBody,
+      );
+    }
+
+    const post = await hydratePost(unwrapPost(response.data));
+    return {
+      ...post,
+      imageUrl: post.imageUrl ?? payload.imageUrl,
+    };
   },
 
   delete: async (id: number) => {

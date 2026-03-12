@@ -1,15 +1,14 @@
-import React from "react";
-
+import type { HTMLAttributes, ReactNode, ElementType } from "react";
 
 export type TextVariant =
-  | "h-xl"    
-  | "h-lg"    
-  | "h-md"    
-  | "h-sm"     
-  | "body-lg"  
-  | "body-md" 
-  | "body-sm"  
-  | "label";   
+  | "h-xl"
+  | "h-lg"
+  | "h-md"
+  | "h-sm"
+  | "body-lg"
+  | "body-md"
+  | "body-sm"
+  | "label";
 
 type TextElement =
   | "h1"
@@ -25,26 +24,22 @@ type TextElement =
   | "strong"
   | "em";
 
-
 const DEFAULT_ELEMENT: Record<TextVariant, TextElement> = {
-  "h-xl":    "h1",
-  "h-lg":    "h2",
-  "h-md":    "h3",
-  "h-sm":    "h4",
+  "h-xl": "h1",
+  "h-lg": "h2",
+  "h-md": "h3",
+  "h-sm": "h4",
   "body-lg": "p",
   "body-md": "p",
   "body-sm": "p",
-  "label":   "label",
+  label: "label",
 };
 
-
-
-interface TextProps extends React.HTMLAttributes<HTMLElement> {
-
+interface TextProps extends HTMLAttributes<HTMLElement> {
   variant: TextVariant;
- 
+
   as?: TextElement;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function Text({
@@ -54,7 +49,7 @@ export function Text({
   children,
   ...rest
 }: TextProps) {
-  const Tag = (as ?? DEFAULT_ELEMENT[variant]) as React.ElementType;
+  const Tag = (as ?? DEFAULT_ELEMENT[variant]) as ElementType;
 
   return (
     <Tag

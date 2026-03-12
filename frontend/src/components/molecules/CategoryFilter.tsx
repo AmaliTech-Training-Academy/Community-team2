@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { Category } from "../../types";
 
 interface CategoryFilterProps {
@@ -6,7 +7,51 @@ interface CategoryFilterProps {
   onSelect: (c: string) => void;
 }
 
-export function CategoryFilter({
+const BTN_BASE =
+  "px-2.5 py-1 rounded-md text-body-sm font-medium border transition-all duration-150";
+const BTN_ACTIVE = `${BTN_BASE} bg-badge-darkblue text-blue-gray border-blue-gray-dark`;
+const BTN_INACTIVE = `${BTN_BASE} bg-white text-blue-gray-dark border-blue-gray-dark hover:border-gray-400`;
+
+function FilterButton({
+  label,
+  testId,
+  isActive,
+  onSelect,
+}: {
+  label: string;
+  testId: string;
+  isActive: boolean;
+  onSelect: () => void;
+}) {
+  if (isActive) {
+    return (
+      <button
+        key={label}
+        data-testid={testId}
+        data-active="true"
+        aria-pressed="true"
+        onClick={onSelect}
+        className={BTN_ACTIVE}
+      >
+        {label}
+      </button>
+    );
+  }
+  return (
+    <button
+      key={label}
+      data-testid={testId}
+      data-active="false"
+      aria-pressed="false"
+      onClick={onSelect}
+      className={BTN_INACTIVE}
+    >
+      {label}
+    </button>
+  );
+}
+
+export const CategoryFilter = memo(function CategoryFilter({
   active,
   categories,
   onSelect,
@@ -20,20 +65,14 @@ export function CategoryFilter({
         Categories:
       </span>
       {["All", ...categories].map((c) => (
-        <button
+        <FilterButton
           key={c}
-          data-testid={`category-filter-btn-${c.toLowerCase().replace(/[^a-z]/g, "-")}`}
-          data-active={active === c}
-          onClick={() => onSelect(c)}
-          className={`px-2.5 py-1 rounded-md text-body-sm font-medium border transition-all duration-150 ${
-            active === c
-              ? "bg-badge-darkblue text-blue-gray border-blue-gray-dark"
-              : "bg-white text-blue-gray-dark border-blue-gray-dark hover:border-gray-400"
-          }`}
-        >
-          {c}
-        </button>
+          label={c}
+          testId={`category-filter-btn-${c.toLowerCase().replace(/[^a-z]/g, "-")}`}
+          isActive={active === c}
+          onSelect={() => onSelect(c)}
+        />
       ))}
     </div>
   );
-}
+});

@@ -1,4 +1,4 @@
-import React from "react";
+import type { RefObject, DragEvent } from "react";
 import type { UploadedImage } from "../../hooks/useImageUpload";
 import ImageIndicatorIcon from "../../assets/images/image-indicator.svg?react";
 
@@ -6,10 +6,10 @@ interface ImageUploadProps {
   image: UploadedImage | null;
   error: string | null;
   isDragging: boolean;
-  inputRef: React.RefObject<HTMLInputElement>;
+  inputRef: RefObject<HTMLInputElement>;
   onOpenPicker: () => void;
-  onDrop: (e: React.DragEvent) => void;
-  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: DragEvent) => void;
+  onDragOver: (e: DragEvent) => void;
   onDragLeave: () => void;
   onFileChange: (file: File) => void;
   onClear: () => void;
