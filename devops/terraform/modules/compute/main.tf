@@ -388,8 +388,8 @@ resource "aws_ecs_task_definition" "backend" {
         valueFrom = "${var.email_config_arn}:EMAIL::"
       },
       {
-        name      = "EMAIL_PASSWORD"
-        valueFrom = "${var.email_config_arn}:EMAIL_PASSWORD::"
+        name      = "EMPASS"
+        valueFrom = "${var.email_config_arn}:EMPASS::"
       },
       {
         name      = "FRONTEND_URL"
