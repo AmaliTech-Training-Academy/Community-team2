@@ -27,7 +27,6 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@SoftDelete
 public class Post {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

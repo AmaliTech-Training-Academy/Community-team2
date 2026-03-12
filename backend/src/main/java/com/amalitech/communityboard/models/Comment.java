@@ -21,7 +21,6 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
-@SoftDelete
 @Table(name = "comments")
 public class Comment {
     @Id
