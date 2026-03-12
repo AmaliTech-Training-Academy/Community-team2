@@ -45,12 +45,18 @@ export interface BackendPostResponse {
   createdAt: string;
   userId: number;
   categoryId: number;
+  imageUrl?: string;
+  imagePath?: string;
 }
 
 export interface BackendPostCreateRequest {
   title: string;
   content: string;
   categoryId: number;
+}
+
+function resolvePostImageUrl(raw: BackendPostResponse): string | undefined {
+  return raw.imageUrl || raw.imagePath;
 }
 
 export interface BackendCommentResponse {
@@ -255,7 +261,10 @@ export async function fetchCommentsRaw(params?: {
   return items;
 }
 
-async function loadPostDependencies(postIds?: number[], postAuthorIds: number[] = []) {
+async function loadPostDependencies(
+  postIds?: number[],
+  postAuthorIds: number[] = [],
+) {
   const [categoriesResult, commentsResult] = await Promise.allSettled([
     fetchCategories(),
     postIds && postIds.length === 1
@@ -325,7 +334,10 @@ export async function hydratePosts(
 }
 
 export async function hydratePost(rawPost: BackendPostResponse): Promise<Post> {
-  const dependencies = await loadPostDependencies([rawPost.id], [rawPost.userId]);
+  const dependencies = await loadPostDependencies(
+    [rawPost.id],
+    [rawPost.userId],
+  );
   return mapPost(rawPost, dependencies);
 }
 
@@ -351,6 +363,7 @@ function mapPost(
     authorId: raw.userId,
     createdAt: raw.createdAt,
     comments: dependencies.commentsByPostId.get(raw.id) ?? [],
+    imageUrl: resolvePostImageUrl(raw),
   };
 }
 
@@ -425,6 +438,17 @@ export async function buildAnalytics(): Promise<Analytics> {
   });
 
   const usersById = buildStoredUserLookup();
+  const contributorUserIds = [...new Set(posts.map((post) => post.userId))];
+  const contributorUsers = await Promise.allSettled(
+    contributorUserIds.map((userId) => fetchUserById(userId)),
+  );
+
+  contributorUsers.forEach((result) => {
+    if (result.status === "fulfilled") {
+      usersById.set(result.value.id, result.value);
+    }
+  });
+
   const topContributors = [...contributorCounts.entries()]
     .sort((left, right) => right[1] - left[1])
     .slice(0, 10)

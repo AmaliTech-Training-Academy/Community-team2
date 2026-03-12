@@ -2,6 +2,10 @@ import { create } from "zustand";
 import type { Post, PostFilters } from "../../types";
 import { api } from "../../api/index";
 
+type CreatePostInput = Omit<Post, "id" | "createdAt" | "comments"> & {
+  imageFile?: File;
+};
+
 interface PostsState {
   posts: Post[];
   currentPost: Post | null;
@@ -10,9 +14,7 @@ interface PostsState {
   detailLoading: boolean;
   fetchPosts: () => Promise<void>;
   fetchPost: (id: number) => Promise<void>;
-  createPost: (
-    payload: Omit<Post, "id" | "createdAt" | "comments">,
-  ) => Promise<Post>;
+  createPost: (payload: CreatePostInput) => Promise<Post>;
   updatePost: (id: number, payload: Partial<Post>) => Promise<void>;
   deletePost: (id: number) => Promise<void>;
   setFilters: (f: Partial<PostFilters>) => void;

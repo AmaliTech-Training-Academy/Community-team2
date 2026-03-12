@@ -63,6 +63,9 @@ export default function LoginPage() {
 
   const toggleShowPass = useCallback(() => setShowPass((s) => !s), []);
 
+  const emailHasError = Boolean(errors.email);
+  const passwordHasError = Boolean(errors.password);
+
   return (
     <div
       data-testid="login-page"
@@ -84,7 +87,9 @@ export default function LoginPage() {
         <div>
           <div className="mb-4">
             <label
-              className=" text-body-sm block text-blue-gray-light mb-1.5"
+              className={`text-body-sm block mb-1.5 ${
+                emailHasError ? "text-red-600" : "text-blue-gray-light"
+              }`}
               htmlFor="login-email"
             >
               Email
@@ -92,7 +97,7 @@ export default function LoginPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  errors.email ? "text-red-600" : "text-[#5A6F7C]"
+                  emailHasError ? "text-red-600" : "text-[#5A6F7C]"
                 }`}
               >
                 <EmailIcon stroke="currentColor" />
@@ -125,7 +130,9 @@ export default function LoginPage() {
 
           <div className="mb-6">
             <label
-              className="text-body-sm block text-blue-gray-light mb-1.5"
+              className={`text-body-sm block mb-1.5 ${
+                passwordHasError ? "text-red-600" : "text-blue-gray-light"
+              }`}
               htmlFor="login-password"
             >
               Password
@@ -133,7 +140,7 @@ export default function LoginPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  errors.password ? "text-red-600" : "text-[#5A6F7C]"
+                  passwordHasError ? "text-red-600" : "text-[#5A6F7C]"
                 }`}
               >
                 <Lock stroke="currentColor" />
@@ -155,7 +162,9 @@ export default function LoginPage() {
               <button
                 data-testid="login-toggle-password-btn"
                 type="button"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+                className={`absolute right-2.5 top-1/2 -translate-y-1/2 transition-colors ${
+                  passwordHasError ? "text-red-600" : "text-[#5A6F7C]"
+                }`}
                 onClick={toggleShowPass}
               >
                 {showPass ? <EyeOff /> : <EyeOn />}
@@ -170,6 +179,15 @@ export default function LoginPage() {
                 {errors.password}
               </Text>
             )}
+
+            <div className="mt-3 flex justify-end">
+              <Link
+                to="/forgot-password"
+                className="text-body-sm font-medium text-orange underline decoration-orange/40 underline-offset-4 transition-colors hover:text-[#8c3200]"
+              >
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           <div>

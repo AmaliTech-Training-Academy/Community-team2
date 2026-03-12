@@ -27,6 +27,7 @@ export const TEST_IDS = {
     LOGO: "navbar-logo",
     ANALYTICS_LINK: "navbar-analytics-link",
     USER_MENU_TRIGGER: "navbar-mobile-menu-btn",
+    PROFILE_TRIGGER: "navbar-profile-trigger",
     AVATAR: "navbar-avatar",
     USERNAME: "navbar-username",
     EMAIL: "navbar-email",
@@ -34,8 +35,20 @@ export const TEST_IDS = {
     MOBILE_MENU_BTN: "navbar-mobile-menu-btn",
     MOBILE_DRAWER: "navbar-mobile-drawer",
     MOBILE_CLOSE_BTN: "navbar-mobile-close-btn",
+    MOBILE_PROFILE_BTN: "navbar-mobile-profile-btn",
     MOBILE_ANALYTICS_BTN: "navbar-mobile-analytics-btn",
     MOBILE_LOGOUT_BTN: "navbar-mobile-logout-btn",
+  },
+
+  PROFILE: {
+    PAGE: "profile-page",
+    ACCOUNT_CARD: "profile-account-card",
+    SUBSCRIPTIONS_CARD: "profile-subscriptions-card",
+    NOTIFY_EMAIL_INPUT: "profile-notify-email-input",
+    ENABLE_TOGGLE: "profile-enable-toggle",
+    SAVE_BTN: "profile-save-btn",
+    CATEGORY_BTN: (cat: string) =>
+      `profile-category-btn-${cat.toLowerCase().replace(/[^a-z]/g, "-")}`,
   },
 
   // ── LOGIN PAGE ──────────────────────────────────────────────────────────────
@@ -49,6 +62,15 @@ export const TEST_IDS = {
     PASSWORD_ERROR: "login-password-error",
     SUBMIT_BTN: "login-submit-btn",
     GOTO_REGISTER_LINK: "login-goto-register-link",
+  },
+
+  FORGOT_PASSWORD: {
+    PAGE: "forgot-password-page",
+    CARD: "forgot-password-card",
+    EMAIL_INPUT: "forgot-password-email-input",
+    EMAIL_ERROR: "forgot-password-email-error",
+    SUBMIT_BTN: "forgot-password-submit-btn",
+    GOTO_LOGIN_LINK: "forgot-password-goto-login-link",
   },
 
   // ── REGISTER PAGE ───────────────────────────────────────────────────────────
@@ -67,6 +89,19 @@ export const TEST_IDS = {
     TOGGLE_CONFIRM_PASSWORD: "register-toggle-confirm-password-btn",
     SUBMIT_BTN: "register-submit-btn",
     GOTO_LOGIN_LINK: "register-goto-login-link",
+  },
+
+  RESET_PASSWORD: {
+    PAGE: "reset-password-page",
+    CARD: "reset-password-card",
+    PASSWORD_INPUT: "reset-password-input",
+    CONFIRM_PASSWORD_INPUT: "reset-confirm-password-input",
+    PASSWORD_ERROR: "reset-password-error",
+    CONFIRM_PASSWORD_ERROR: "reset-confirm-password-error",
+    TOGGLE_PASSWORD: "reset-toggle-password-btn",
+    TOGGLE_CONFIRM_PASSWORD: "reset-toggle-confirm-password-btn",
+    SUBMIT_BTN: "reset-password-submit-btn",
+    GOTO_LOGIN_LINK: "reset-password-goto-login-link",
   },
 
   // ── HOME PAGE ───────────────────────────────────────────────────────────────

@@ -18,6 +18,10 @@ const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use((config) => {
+  if (config.data instanceof FormData && config.headers) {
+    delete config.headers["Content-Type"];
+  }
+
   try {
     const raw = localStorage.getItem("ping_auth");
     if (raw) {

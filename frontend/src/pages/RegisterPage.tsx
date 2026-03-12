@@ -113,9 +113,7 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* ── Form ─────────────────────────────────────────────────── */}
         <div>
-          {/* Full Name */}
           <div className="mb-4">
             <label
               className="text-body-sm block text-blue-gray-light mb-1.5"
@@ -148,12 +146,11 @@ export default function RegisterPage() {
                 data-testid="register-fullName-error"
                 className="text-red-500 mt-1"
               >
-                 {errors.fullName}
+                {errors.fullName}
               </Text>
             )}
           </div>
 
-          {/* Email */}
           <div className="mb-4">
             <label
               className="text-body-sm block text-blue-gray-light mb-1.5"
@@ -186,12 +183,11 @@ export default function RegisterPage() {
                 data-testid="register-email-error"
                 className="text-red-500 mt-1"
               >
-                 {errors.email}
+                {errors.email}
               </Text>
             )}
           </div>
 
-          {/* Password */}
           <div className="mb-4">
             <label
               className="text-body-sm block text-blue-gray-light mb-1.5"
@@ -240,7 +236,6 @@ export default function RegisterPage() {
             )}
           </div>
 
-          {/* Confirm Password */}
           <div className="mb-6">
             <label
               className="text-body-sm block text-blue-gray-light mb-1.5"
@@ -286,7 +281,6 @@ export default function RegisterPage() {
             )}
           </div>
 
-          {/* Submit */}
           <button
             data-testid="register-submit-btn"
             onClick={handleSubmit}
@@ -296,7 +290,6 @@ export default function RegisterPage() {
             {loading ? "Creating account…" : "Register"}
           </button>
 
-          {/* Footer */}
           <p className="flex justify-center items-center gap-1.5 text-center mt-7">
             <Text variant="body-sm" as="span" className="text-blue-gray">
               Already have an account?
