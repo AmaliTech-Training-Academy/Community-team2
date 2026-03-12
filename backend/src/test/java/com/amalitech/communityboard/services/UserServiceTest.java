@@ -145,13 +145,14 @@ public class UserServiceTest {
                 "Testpassword",
                 UserRole.MEMBER
         );
-        User user = new User(
-                "username",
-                "email@gmail.com",
-                "Testpassword",
-                UserRole.MEMBER,
-                AccountProvider.LOCAL
-        );
+
+        User user =  User.builder()
+                        .username("username")
+                        .email("email@gmail.com")
+                        .password("Testpassowrd")
+                .role(UserRole.MEMBER)
+                .provider(AccountProvider.LOCAL)
+                        .build();
 
         when(userRepository.existsByEmail(userRequest.getEmail())).thenReturn(false);
         when(userRepository.existsByUsername(userRequest.getUsername())).thenReturn(false);
