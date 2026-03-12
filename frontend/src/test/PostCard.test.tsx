@@ -68,9 +68,10 @@ describe("PostCard", () => {
     render(<PostCard post={mockPost} onClick={vi.fn()} />);
 
     expect(screen.queryByTestId("post-card-image")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("post-card-has-image")).not.toBeInTheDocument();
   });
 
-  it("renders the image when imageUrl is present", () => {
+  it("shows only the image indicator when imageUrl is present", () => {
     render(
       <PostCard
         post={{ ...mockPost, imageUrl: "https://example.com/image.jpg" }}
@@ -78,7 +79,8 @@ describe("PostCard", () => {
       />,
     );
 
-    expect(screen.getByTestId("post-card-image")).toBeInTheDocument();
+    expect(screen.queryByTestId("post-card-image")).not.toBeInTheDocument();
+    expect(screen.getByTestId("post-card-has-image")).toBeInTheDocument();
   });
 
   it("calls onClick when the card is clicked", async () => {

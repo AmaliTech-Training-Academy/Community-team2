@@ -103,20 +103,24 @@ export default function HomePage() {
   const debSearch = useDebounce(search, 400);
 
   useEffect(() => {
+    if ((filters.title ?? "") === debSearch) {
+      return;
+    }
+
     setFilters({ title: debSearch });
     setPage(1);
-  }, [debSearch, setFilters]);
+  }, [debSearch, filters.title, setFilters]);
 
   useEffect(() => {
     setPage(1);
   }, [filters.category]);
 
   useEffect(() => {
-    fetchPosts();
+    void fetchPosts();
   }, [filters, fetchPosts]);
 
   useEffect(() => {
-    fetchCategories();
+    void fetchCategories();
   }, [fetchCategories]);
 
   const handleNavigate = useCallback(

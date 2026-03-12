@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { fetchCategoryNames } from "../../api/communityApi";
 import type { Category } from "../../types";
 
+let categoriesRequest: Promise<void> | null = null;
+
 interface CategoriesState {
   categories: Category[];
   loading: boolean;
@@ -12,14 +14,21 @@ export const useCategoriesStore = create<CategoriesState>((set, get) => ({
   categories: [],
   loading: false,
   fetch: async () => {
-    if (get().loading) return;
+    if (get().categories.length > 0) return;
+    if (categoriesRequest) return categoriesRequest;
 
     set({ loading: true });
-    try {
-      const categories = await fetchCategoryNames();
-      set({ categories });
-    } finally {
-      set({ loading: false });
-    }
+
+    categoriesRequest = (async () => {
+      try {
+        const categories = await fetchCategoryNames();
+        set((state) => (state.categories.length > 0 ? state : { categories }));
+      } finally {
+        categoriesRequest = null;
+        set({ loading: false });
+      }
+    })();
+
+    return categoriesRequest;
   },
 }));

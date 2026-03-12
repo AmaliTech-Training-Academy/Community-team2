@@ -25,7 +25,7 @@ describe("LoginPage", () => {
 
   it("shows backend login failures as a form submission error", async () => {
     mocks.login.mockRejectedValue(
-      "Invalid email or password. Please try again.",
+      "We couldn't sign you in. Check your email and password, then try again.",
     );
 
     const user = userEvent.setup();
@@ -47,7 +47,7 @@ describe("LoginPage", () => {
     await user.click(screen.getByTestId("login-submit-btn"));
 
     expect(await screen.findByTestId("login-submit-error")).toHaveTextContent(
-      "Invalid email or password. Please try again.",
+      "We couldn't sign you in. Check your email and password, then try again.",
     );
     expect(screen.queryByTestId("login-email-error")).not.toBeInTheDocument();
     expect(

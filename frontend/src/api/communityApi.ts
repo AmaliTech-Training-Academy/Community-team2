@@ -1,4 +1,5 @@
 import axiosInstance from "./axiosInstance";
+import { getAuthUser } from "../features/auth/authSession";
 import type {
   Analytics,
   Category,
@@ -82,6 +83,62 @@ export interface BackendCategoryResponse {
 }
 
 const DEFAULT_PAGE_PARAMS = { page: 0, size: 100 };
+const RESOURCE_CACHE_TTL_MS = 60_000;
+const resourceCache = new Map<string, { value: unknown; expiresAt: number }>();
+const inFlightRequests = new Map<string, Promise<unknown>>();
+
+function readCachedResource<T>(key: string): T | undefined {
+  const cached = resourceCache.get(key);
+
+  if (!cached) {
+    return undefined;
+  }
+
+  if (cached.expiresAt <= Date.now()) {
+    resourceCache.delete(key);
+    return undefined;
+  }
+
+  return cached.value as T;
+}
+
+function writeCachedResource<T>(
+  key: string,
+  value: T,
+  ttlMs = RESOURCE_CACHE_TTL_MS,
+): T {
+  resourceCache.set(key, {
+    value,
+    expiresAt: Date.now() + ttlMs,
+  });
+  return value;
+}
+
+async function getCachedResource<T>(
+  key: string,
+  loader: () => Promise<T>,
+  ttlMs = RESOURCE_CACHE_TTL_MS,
+): Promise<T> {
+  const cached = readCachedResource<T>(key);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const inFlight = inFlightRequests.get(key);
+  if (inFlight) {
+    return inFlight as Promise<T>;
+  }
+
+  const request = loader()
+    .then((value) => writeCachedResource(key, value, ttlMs))
+    .finally(() => {
+      inFlightRequests.delete(key);
+    });
+
+  inFlightRequests.set(key, request);
+
+  return request;
+}
 
 function unwrapDto<T>(payload: T | ResponseDto<T>): T {
   if (
@@ -182,57 +239,51 @@ function buildLookup<T extends { id: number }>(items: T[]): Map<number, T> {
   return new Map(items.map((item) => [item.id, item]));
 }
 
-function getStoredAuthUser(): User | null {
-  try {
-    const raw = localStorage.getItem("ping_auth");
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw) as { state?: { user?: User | null } };
-    return parsed.state?.user ?? null;
-  } catch {
-    return null;
-  }
-}
-
 function buildStoredUserLookup(): Map<number, User> {
-  const currentUser = getStoredAuthUser();
+  const currentUser = getAuthUser();
   return currentUser
     ? new Map([[currentUser.id, currentUser]])
     : new Map<number, User>();
 }
 
 export async function fetchUserById(userId: number): Promise<User> {
-  const response = await axiosInstance.get<
-    BackendUserResponse | ResponseDto<BackendUserResponse>
-  >(`/users/${userId}`);
-  return mapUser(unwrapDto(response.data));
+  return getCachedResource(`user:${userId}`, async () => {
+    const response = await axiosInstance.get<
+      BackendUserResponse | ResponseDto<BackendUserResponse>
+    >(`/users/${userId}`);
+    return mapUser(unwrapDto(response.data));
+  });
 }
 
 export async function fetchUsers(): Promise<User[]> {
-  const response = await axiosInstance.get<
-    BackendUserResponse[] | ResponseDto<BackendPage<BackendUserResponse>>
-  >("/users", { params: DEFAULT_PAGE_PARAMS });
-  const { items } = unwrapPage(
-    response.data as
-      | BackendUserResponse[]
-      | BackendPage<BackendUserResponse>
-      | ResponseDto<BackendPage<BackendUserResponse>>,
-  );
-  return items.map(mapUser);
+  return getCachedResource("users:all", async () => {
+    const response = await axiosInstance.get<
+      BackendUserResponse[] | ResponseDto<BackendPage<BackendUserResponse>>
+    >("/users", { params: DEFAULT_PAGE_PARAMS });
+    const { items } = unwrapPage(
+      response.data as
+        | BackendUserResponse[]
+        | BackendPage<BackendUserResponse>
+        | ResponseDto<BackendPage<BackendUserResponse>>,
+    );
+    return items.map(mapUser);
+  });
 }
 
 export async function fetchCategories(): Promise<BackendCategoryResponse[]> {
-  const response = await axiosInstance.get<
-    | BackendCategoryResponse[]
-    | ResponseDto<BackendPage<BackendCategoryResponse>>
-  >("/categories", { params: DEFAULT_PAGE_PARAMS });
-  const { items } = unwrapPage(
-    response.data as
+  return getCachedResource("categories:all", async () => {
+    const response = await axiosInstance.get<
       | BackendCategoryResponse[]
-      | BackendPage<BackendCategoryResponse>
-      | ResponseDto<BackendPage<BackendCategoryResponse>>,
-  );
-  return items;
+      | ResponseDto<BackendPage<BackendCategoryResponse>>
+    >("/categories", { params: DEFAULT_PAGE_PARAMS });
+    const { items } = unwrapPage(
+      response.data as
+        | BackendCategoryResponse[]
+        | BackendPage<BackendCategoryResponse>
+        | ResponseDto<BackendPage<BackendCategoryResponse>>,
+    );
+    return items;
+  });
 }
 
 export async function fetchPostsRaw(): Promise<BackendPostResponse[]> {

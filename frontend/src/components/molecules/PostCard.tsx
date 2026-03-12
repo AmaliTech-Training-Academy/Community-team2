@@ -23,18 +23,6 @@ export const PostCard = memo(function PostCard({
       className="bg-white border border-borderstroke rounded-lg cursor-pointer hover:shadow-sm transition-shadow overflow-hidden"
       onClick={onClick}
     >
-      {post.imageUrl && (
-        <div className="w-full h-40 overflow-hidden">
-          <img
-            data-testid="post-card-image"
-            src={post.imageUrl}
-            alt={post.title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        </div>
-      )}
-
       <div className="px-6 py-5 flex flex-col gap-2">
         <div className="flex items-start justify-between gap-3">
           <h3
