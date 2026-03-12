@@ -32,7 +32,9 @@ function RequireAdmin({ children }: { children: ReactNode }) {
 
 export function AppRouter() {
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
       <Suspense fallback={<Spinner />}>
         <Routes>
           <Route element={<AuthLayout />}>
