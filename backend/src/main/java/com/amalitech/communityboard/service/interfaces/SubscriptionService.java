@@ -15,5 +15,7 @@ public interface SubscriptionService {
     List<Subscription> getUserSubscriptions(User user);
 
     List<Subscription> getCategorySubscriptions(Category category);
+
+    List<User> getUsersWithActiveDailyRecap();
 }
 

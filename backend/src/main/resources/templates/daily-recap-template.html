@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>CommunityBoard Daily Recap</title>
+</head>
+<body style="margin:0; padding:0; background-color:#0f172a; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background:radial-gradient(circle at top, #1d4ed8 0, #020617 55%); padding:40px 0;">
+    <tr>
+        <td align="center">
+
+            <!-- Main Card -->
+            <table width="640" cellpadding="0" cellspacing="0"
+                   style="background:#020617; border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(15,23,42,0.75); border:1px solid rgba(148,163,184,0.25);">
+
+                <!-- Hero Banner -->
+                <tr>
+                    <td style="padding:28px 32px 18px 32px; border-bottom:1px solid rgba(148,163,184,0.25);">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td align="left" style="color:#e5e7eb; font-size:18px; font-weight:600;">
+                                    <span style="display:inline-flex; align-items:center; gap:8px;">
+                                        <span style="font-size:24px;">🏘️</span>
+                                        <span>CommunityBoard</span>
+                                    </span>
+                                </td>
+                                <td align="right" style="color:#9ca3af; font-size:12px;">
+                                    <span th:text="${summaryDate}">2026-03-11</span>
+                                    &nbsp;·&nbsp;
+                                    <span th:text="${weekday}">Thursday</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Greeting & Intro -->
+                <tr>
+                    <td style="padding:28px 32px 10px 32px; color:#e5e7eb;">
+                        <h1 style="margin:0 0 8px 0; font-size:22px; font-weight:650; letter-spacing:0.01em;">
+                            Hi <span th:text="${userName}">Neighbor</span>, here’s your daily recap
+                        </h1>
+                        <p style="margin:0; font-size:14px; line-height:1.7; color:#9ca3af;">
+                            You’re getting this email because you subscribed to updates from these categories on
+                            <strong style="color:#e5e7eb;">CommunityBoard</strong>.
+                            Here’s what happened <span th:text="${summaryDate}">yesterday</span>.
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- Categories Grid -->
+                <tr>
+                    <td style="padding:12px 24px 8px 24px;">
+                        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate; border-spacing:8px;">
+                            <tr th:if="${#lists.isEmpty(categories)}">
+                                <td style="background:linear-gradient(135deg,#0f172a,#020617); border-radius:12px; padding:20px 18px; border:1px dashed rgba(148,163,184,0.35); color:#9ca3af; font-size:14px;">
+                                    <strong style="display:block; margin-bottom:4px; color:#e5e7eb;">No new posts yesterday</strong>
+                                    You’re all caught up. We’ll let you know when something new happens in your subscribed categories.
+                                </td>
+                            </tr>
+                            <tr th:each="item : ${categories}">
+                                <td style="background:radial-gradient(circle at top left,#1e293b 0,#020617 55%); border-radius:12px; padding:18px 18px 16px 18px; border:1px solid rgba(148,163,184,0.30);">
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td style="vertical-align:top;">
+                                                <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#60a5fa; margin-bottom:6px;">
+                                                    <span th:text="${item.categoryName}">Category</span>
+                                                </div>
+                                                <div style="font-size:14px; color:#e5e7eb;">
+                                                    <span style="font-size:20px; font-weight:650;" th:text="${item.newPostCount}">3</span>
+                                                    <span style="color:#9ca3af;">new post</span><span th:if="${item.newPostCount} != 1" style="color:#9ca3af;">s</span>
+                                                    <span style="color:#4b5563;">&nbsp;·&nbsp;</span>
+                                                    <span style="color:#a5b4fc;" th:text="${item.badgeLabel}">Highlights</span>
+                                                </div>
+                                            </td>
+                                            <td align="right" style="vertical-align:top; min-width:80px;">
+                                                <div style="display:inline-block; padding:6px 10px; border-radius:999px; background:rgba(15,23,42,0.9); border:1px solid rgba(55,65,81,0.9); color:#9ca3af; font-size:12px;">
+                                                    <span style="font-size:15px; margin-right:4px;" th:text="${item.emoji}">📬</span>
+                                                    <span th:text="${item.moodLabel}">Active</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr th:if="${item.previewLine} != null">
+                                            <td colspan="2" style="padding-top:10px; font-size:12px; color:#9ca3af;">
+                                                <span style="display:inline-block; padding:4px 8px; border-radius:999px; background:rgba(15,23,42,0.85); border:1px solid rgba(55,65,81,0.9); margin-right:6px; font-size:11px; color:#e5e7eb;">Top post</span>
+                                                <span th:text="${item.previewLine}">Sample top post title or snippet…</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Call to Action -->
+                <tr>
+                    <td style="padding:8px 32px 26px 32px;">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td align="left" style="font-size:13px; color:#9ca3af;">
+                                    <p style="margin:0 0 12px 0;">
+                                        Dive into today’s conversations, share updates, or start something new.
+                                    </p>
+                                    <a th:href="${dashboardUrl}"
+                                       style="background:linear-gradient(135deg,#3b82f6,#6366f1); color:#f9fafb; padding:10px 20px; text-decoration:none; border-radius:999px; font-size:13px; font-weight:600; display:inline-block; box-shadow:0 12px 25px rgba(37,99,235,0.55);">
+                                        Open CommunityBoard
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                    <td style="background:#020617; padding:18px 32px 22px 32px; border-top:1px solid rgba(75,85,99,0.8);">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td style="font-size:11px; color:#6b7280;">
+                                    You’re receiving this because daily recaps are enabled for your subscriptions.
+                                    <br />
+                                    <span th:text="${managePreferencesText}">Manage your notification preferences in Settings.</span>
+                                </td>
+                                <td align="right" style="font-size:11px; color:#4b5563; white-space:nowrap;">
+                                    © <span th:text="${year}">2026</span> CommunityBoard
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+            </table>
+
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>
+

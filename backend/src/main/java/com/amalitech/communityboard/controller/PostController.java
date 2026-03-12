@@ -23,16 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
@@ -84,9 +75,8 @@ public class PostController {
                     content = @Content(schema = @Schema(implementation = PostResponse.class))),
             @ApiResponse(responseCode = "404", description = "Post not found")
     })
-    public ResponseDto<PostResponse> getPostById(@PathVariable Long id,
-                                                 @AuthenticationPrincipal CustomUserDetails principal) {
-        PostResponse post = postService.getPostById(id, principal.getId());
+    public ResponseDto<PostResponse> getPostById(@PathVariable Long id) {
+        PostResponse post = postService.getPostById(id);
         return new ResponseDto<>(HttpStatus.OK, "post retrieved", post);
     }
 

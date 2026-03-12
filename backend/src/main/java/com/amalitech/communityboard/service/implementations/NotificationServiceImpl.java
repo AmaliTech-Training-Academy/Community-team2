@@ -4,8 +4,9 @@ import com.amalitech.communityboard.models.Category;
 import com.amalitech.communityboard.models.Post;
 import com.amalitech.communityboard.models.Subscription;
 import com.amalitech.communityboard.models.User;
+import com.amalitech.communityboard.notification.EmailNotificationService;
+import com.amalitech.communityboard.notification.NotificationDto;
 import com.amalitech.communityboard.repository.PostRepository;
-import com.amalitech.communityboard.repository.UserRepository;
 import com.amalitech.communityboard.service.interfaces.NotificationService;
 import com.amalitech.communityboard.service.interfaces.SubscriptionService;
 import lombok.RequiredArgsConstructor;
@@ -29,11 +30,15 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final SubscriptionService subscriptionService;
     private final PostRepository postRepository;
-    private final UserRepository userRepository;
+
     private final JavaMailSender mailSender;
+    private final EmailNotificationService emailNotificationService;
 
     @Value("${spring.mail.username:}")
     private String fromAddress;
+
+    @Value("${app.frontend}")
+    private String dashboardUrl;
 
     @Override
     public void notifySubscribersOfNewPost(Post post) {
@@ -84,18 +89,10 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         Map<Category, Long> countsByCategory = posts.stream()
-                .collect(Collectors.groupingBy(Post::getCategory, Collectors.counting()));
+            .collect(Collectors.groupingBy(Post::getCategory, Collectors.counting()));
 
-        // Map of category name to emoji + label
-        record DigestLabel(String emoji, String label) {}
-        Map<String, DigestLabel> labelMap = Map.of(
-                "News", new DigestLabel("📰", "News"),
-                "Events", new DigestLabel("🗓️", "Event"),
-                "Discussions", new DigestLabel("💬", "Discussions"),
-                "Alerts", new DigestLabel("⚠️", "Alert")
-        );
-
-        List<User> allUsers = userRepository.findAll();
+        // Fetch only users who have at least one active daily recap subscription
+        List<User> allUsers = subscriptionService.getUsersWithActiveDailyRecap();
 
         for (User user : allUsers) {
             if (user.getEmail() == null || user.getEmail().isBlank()) {
@@ -103,8 +100,8 @@ public class NotificationServiceImpl implements NotificationService {
             }
 
             List<Subscription> subscriptions = subscriptionService.getUserSubscriptions(user).stream()
-                    .filter(sub -> sub.isDailyRecapEnabled() && !sub.isMuted())
-                    .toList();
+                .filter(sub -> sub.isDailyRecapEnabled() && !sub.isMuted())
+                .toList();
 
             if (subscriptions.isEmpty()) {
                 continue;
@@ -123,41 +120,36 @@ public class NotificationServiceImpl implements NotificationService {
                 continue;
             }
 
-            StringBuilder summaryLine = new StringBuilder();
-            summaryLine.append("Yesterday's Summary:\n");
+            // change to real URL or config later
 
-            userCounts.forEach((category, count) -> {
-                DigestLabel label = labelMap.getOrDefault(
-                        category.getName(),
-                        new DigestLabel("•", category.getName())
-                );
-                summaryLine.append(label.emoji())
-                        .append(" ")
-                        .append(count)
-                        .append(" ")
-                        .append(label.label())
-                        .append("  ");
-            });
+            StringBuilder customMessage = new StringBuilder();
+            customMessage.append("Your daily recap is ready for ")
+                .append(date)
+                .append(".\n");
 
-            StringBuilder body = new StringBuilder();
-            body.append("🏘️ CommunityBoard Daily Digest\n");
-            body.append(date.getDayOfWeek()).append(", ").append(date).append(" · Your Neighborhood\n\n");
-            body.append(summaryLine).append("\n\n");
-            body.append("Log in to see all posts in detail.\n");
+            userCounts.forEach((category, count) -> customMessage
+                .append(" • ")
+                .append(count)
+                .append(" new post")
+                .append(count == 1 ? "" : "s")
+                .append(" in ")
+                .append(category.getName())
+                .append("\n"));
 
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(user.getEmail());
-            if (fromAddress != null && !fromAddress.isBlank()) {
-                message.setFrom(fromAddress);
-            }
-            message.setSubject("Your CommunityBoard Daily Digest");
-            message.setText(body.toString());
+            String subject = "Your CommunityBoard Daily Recap";
+
+            NotificationDto dto = NotificationDto.builder()
+                    .recipient(user.getEmail())
+                    .subject(subject)
+                    .link(dashboardUrl)
+                    .context(customMessage.toString()).build();
 
             try {
-                mailSender.send(message);
-                log.info("Daily recap: sent digest to {}", user.getEmail());
+                System.out.println("sending emails");
+                emailNotificationService.send(dto);
+                log.info("Daily recap (templated): sent digest to {}", user.getEmail());
             } catch (Exception e) {
-                log.error("Failed to send daily recap email to {}: {}", user.getEmail(), e.getMessage());
+                log.error("Failed to send daily recap email (templated) to {}: {}", user.getEmail(), e.getMessage());
             }
         }
     }

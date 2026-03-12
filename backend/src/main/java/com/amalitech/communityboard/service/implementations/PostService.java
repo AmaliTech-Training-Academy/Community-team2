@@ -13,16 +13,15 @@ import com.amalitech.communityboard.models.User;
 import com.amalitech.communityboard.repository.CategoryRepository;
 import com.amalitech.communityboard.repository.PostRepository;
 import com.amalitech.communityboard.repository.UserRepository;
-import com.amalitech.communityboard.service.interfaces.PostInteractionService;
 import com.amalitech.communityboard.service.interfaces.PostInterface;
 import com.amalitech.communityboard.specification.PostSpecifications;
 import lombok.AllArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -45,7 +44,6 @@ public class PostService implements PostInterface {
 
 
     private final ApplicationEventPublisher eventPublisher;
-    private final PostInteractionService postInteractionService;
     @Override
     @CacheEvict(value = "posts-filtered", allEntries = true)
     public PostResponse createPost(PostRequest post, Long userId, MultipartFile image) {

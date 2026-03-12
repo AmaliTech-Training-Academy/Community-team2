@@ -12,11 +12,16 @@ import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.time.Year;
+import java.util.Map;
+
 
 @RequiredArgsConstructor
 @Slf4j
 @Component
 public class EmailNotificationService implements Notification {
+
+    private static final String DEFAULT_TEMPLATE = "general-email-template";
 
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
@@ -31,8 +36,23 @@ public class EmailNotificationService implements Notification {
             Context context = new Context();
             context.setVariable("customMessage", message.message());
             context.setVariable("actionLink", message.link());
+            context.setVariable("subject", message.subject());
+            context.setVariable("year", Year.now().getValue());
 
-            String htmlContent = templateEngine.process("rest-email-template", context);
+            // Merge any additional context variables if provided
+            if (message.context() instanceof Map<?, ?> map) {
+                map.forEach((k, v) -> {
+                    if (k != null) {
+                        context.setVariable(String.valueOf(k), v);
+                    }
+                });
+            }
+
+            String templateName = (message.templateName() != null && !message.templateName().isBlank())
+                    ? message.templateName()
+                    : DEFAULT_TEMPLATE;
+
+            String htmlContent = templateEngine.process(templateName, context);
 
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);

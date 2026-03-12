@@ -52,5 +52,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     public List<Subscription> getCategorySubscriptions(Category category) {
         return subscriptionRepository.findByCategory(category);
     }
-}
 
+    public List<User> getUsersWithActiveDailyRecap() {
+        return subscriptionRepository.findDistinctUsersWithActiveDailyRecap();
+    }
+}

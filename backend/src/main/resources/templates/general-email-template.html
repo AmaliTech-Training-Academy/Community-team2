@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title th:text="${subject}">CommunityBoard Notification</title>
+</head>
+<body style="margin:0; padding:0; background-color:#0f172a; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background:radial-gradient(circle at top, #1d4ed8 0, #020617 55%); padding:40px 0;">
+    <tr>
+        <td align="center">
+            <table width="640" cellpadding="0" cellspacing="0"
+                   style="background:#020617; border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(15,23,42,0.75); border:1px solid rgba(148,163,184,0.25);">
+                <tr>
+                    <td style="padding:24px 32px 16px 32px; border-bottom:1px solid rgba(148,163,184,0.25); color:#e5e7eb; font-size:18px; font-weight:600;">
+                        <span style="display:inline-flex; align-items:center; gap:8px;">
+                            <span style="font-size:24px;">🏘️</span>
+                            <span>CommunityBoard</span>
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:24px 32px 24px 32px; color:#e5e7eb; font-size:14px; line-height:1.7;">
+                        <p th:utext="${customMessage}">
+                            This is a generic notification from CommunityBoard.
+                        </p>
+                        <p th:if="${actionLink != null}">
+                            <a th:href="${actionLink}"
+                               style="background:linear-gradient(135deg,#3b82f6,#6366f1); color:#f9fafb; padding:10px 20px; text-decoration:none; border-radius:999px; font-size:13px; font-weight:600; display:inline-block; box-shadow:0 12px 25px rgba(37,99,235,0.55);">
+                                Open link
+                            </a>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="background:#020617; padding:16px 32px 20px 32px; border-top:1px solid rgba(75,85,99,0.8); font-size:11px; color:#6b7280;">
+                        © <span th:text="${year}">2026</span> CommunityBoard
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>
+

@@ -15,7 +15,7 @@ public class DailyRecapScheduler {
 
     private final NotificationService notificationService;
 
-    @Scheduled(cron = "0 41 8 * * *")
+    @Scheduled(cron = "0 0 7 * * *")
     public void sendDailyRecap() {
         System.out.println("about to start daily recap");
         LocalDate targetDate = LocalDate.now().minusDays(1);
