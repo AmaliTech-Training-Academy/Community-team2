@@ -43,6 +43,7 @@ public class PostService implements PostInterface {
     public PostResponse getPostById(Long id) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("post not found"));
+        post.setViewCount(post.getViewCount() + 1);
         return postMapper.toResponse(post);
     }
 
