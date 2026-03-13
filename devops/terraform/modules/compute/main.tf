@@ -335,6 +335,25 @@ resource "aws_lb_listener_rule" "airflow" {
   }
 }
 
+resource "aws_lb_listener_rule" "airflow_redirect" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 89
+
+  action {
+    type = "redirect"
+    redirect {
+      path        = "/airflow/"
+      status_code = "HTTP_301"
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/airflow"]
+    }
+  }
+}
+
 resource "aws_ecs_task_definition" "backend" {
   family                   = "${var.project_name}-backend"
   network_mode             = "awsvpc"
