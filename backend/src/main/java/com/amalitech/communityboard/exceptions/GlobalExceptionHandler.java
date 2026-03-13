@@ -142,7 +142,7 @@ public class GlobalExceptionHandler {
         details.put("timestamp", LocalDateTime.now());
         details.put("message", ex.getMessage());
         details.put("path", request != null ? request.getDescription(false) : "");
-        return build(HttpStatus.UNAUTHORIZED, "Invalid credentials", details);
+        return build(HttpStatus.UNAUTHORIZED, "The email or password you entered is incorrect. Please try again", details);
     }
 
     @ExceptionHandler(AuthorizationDeniedException.class)
