@@ -1,5 +1,9 @@
 import { api } from "../api/index";
 import { useAuthStore } from "../features/auth/authStore";
+import {
+  clearPersistedAuthSession,
+  getAuthSession,
+} from "../features/auth/authSession";
 
 vi.mock("../api/index", () => ({
   api: {
@@ -24,6 +28,7 @@ function createJwt(payload: Record<string, unknown>) {
 describe("useAuthStore", () => {
   beforeEach(() => {
     localStorage.clear();
+    clearPersistedAuthSession();
     useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
     vi.clearAllMocks();
   });
@@ -45,6 +50,12 @@ describe("useAuthStore", () => {
     await useAuthStore.getState().login("a@b.com", "pass");
 
     expect(useAuthStore.getState()).toMatchObject({
+      isAuthenticated: true,
+      token: "tok123",
+      user: { email: "a@b.com" },
+    });
+
+    expect(getAuthSession()).toMatchObject({
       isAuthenticated: true,
       token: "tok123",
       user: { email: "a@b.com" },
@@ -73,6 +84,11 @@ describe("useAuthStore", () => {
     useAuthStore.getState().logout();
 
     expect(useAuthStore.getState()).toMatchObject({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+    });
+    expect(getAuthSession()).toMatchObject({
       user: null,
       token: null,
       isAuthenticated: false,

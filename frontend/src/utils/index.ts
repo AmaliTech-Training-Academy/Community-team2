@@ -40,7 +40,7 @@ export const USERNAME_MAX_LENGTH = 20;
 export const USERNAME_TAKEN_MESSAGE =
   "This username is already on our team. Try another?";
 export const USERNAME_HELP_TEXT =
-  "3-20 characters, letters and numbers only. Dots or underscores can be used in the middle.";
+  " 3-20 characters. You can use letters, numbers, _ and ..";
 
 const RESERVED_USERNAMES = new Set(["admin", "support", "root", "null"]);
 

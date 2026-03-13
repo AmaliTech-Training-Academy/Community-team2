@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, type KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
 import { useToast } from "../components/atoms/Toast";
@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
   }, [toast]);
 
   const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLInputElement>) => {
+    (event: KeyboardEvent<HTMLInputElement>) => {
       if (event.key === "Enter") {
         handleSubmit();
       }

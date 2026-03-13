@@ -1,3 +1,4 @@
+import { memo } from "react";
 import SearchIcon from "../../assets/images/search.svg?react";
 import ClearIcon from "../../assets/images/clear.svg?react";
 
@@ -6,10 +7,14 @@ interface SearchBarProps {
   onChange: (v: string) => void;
 }
 
-export function SearchBar({ value, onChange }: SearchBarProps) {
+export const SearchBar = memo(function SearchBar({
+  value,
+  onChange,
+}: SearchBarProps) {
   return (
     <div
       data-testid="search-bar"
+      role="search"
       className="flex w-full items-center gap-2 md:h-10.5 md:w-158.75"
     >
       {/* Input with SVG icon + clear */}
@@ -19,6 +24,8 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
         </span>
         <input
           data-testid="search-input"
+          type="search"
+          aria-label="Search posts"
           className="h-10 w-full rounded-lg border border-badge-darkblue bg-url-field-bg pl-9 pr-10 text-body-lg text-blue-gray placeholder:text-muted-icon transition-colors focus:border-navy focus:outline-none md:h-10.5"
           placeholder="Search by title of post..."
           value={value}
@@ -47,4 +54,4 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
       </button>
     </div>
   );
-}
+});

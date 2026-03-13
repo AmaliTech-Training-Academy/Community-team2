@@ -1,11 +1,14 @@
+import { memo } from "react";
+
 const BADGE_MAP: Record<string, string> = {
   News: "bg-badge-green text-greentext border border-badge-greenborder",
   Events: "bg-badge-purple text-purpletext border border-badge-purpleborder",
-  Discussion: "bg-badge-yellow text-yellowtext border border-badge-yellowborder",
+  Discussion:
+    "bg-badge-yellow text-yellowtext border border-badge-yellowborder",
   Alert: "bg-badge-red text-redtext border border-badge-redborder",
 };
 
-export function Badge({ category }: { category: string }) {
+export const Badge = memo(function Badge({ category }: { category: string }) {
   const cls = BADGE_MAP[category] || "bg-gray-100 text-gray-600";
   return (
     <span
@@ -19,4 +22,4 @@ export function Badge({ category }: { category: string }) {
       </span>
     </span>
   );
-}
+});

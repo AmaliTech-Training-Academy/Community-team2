@@ -1,4 +1,8 @@
 import axios, { AxiosError } from "axios";
+import {
+  clearPersistedAuthSession,
+  getAuthToken,
+} from "../features/auth/authSession";
 
 function normalizeApiBaseUrl(rawBaseUrl?: string): string {
   const base = (rawBaseUrl || "/api").replace(/\/+$/, "");
@@ -24,18 +28,11 @@ axiosInstance.interceptors.request.use((config) => {
 
   config.headers = config.headers ?? {};
 
-  try {
-    const raw = localStorage.getItem("ping_auth");
-    if (raw) {
-      const parsed = JSON.parse(raw) as { state?: { token?: string } };
-      const token = parsed?.state?.token;
-      if (token) {
-        if (!config.headers.Authorization) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-      }
-    }
-  } catch {}
+  const token = getAuthToken();
+  if (token && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
   return config;
 });
 
@@ -58,6 +55,18 @@ function humanizeFieldName(field: string): string {
 
 function normalizeMessage(message: string): string {
   return message.trim().replace(/\s+/g, " ");
+}
+
+function isHtmlErrorDocument(message: string): boolean {
+  const normalized = message.trim().toLowerCase();
+
+  return (
+    normalized.startsWith("<!doctype html") ||
+    normalized.startsWith("<html") ||
+    normalized.includes("<body") ||
+    normalized.includes("err_ngrok_") ||
+    normalized.includes("ngrok")
+  );
 }
 
 function isGenericMessage(message: string | null | undefined): boolean {
@@ -132,7 +141,8 @@ function extractPrimaryServerMessage(data: unknown): string | null {
   }
 
   if (typeof data === "string") {
-    return normalizeMessage(data);
+    const message = normalizeMessage(data);
+    return isHtmlErrorDocument(message) ? null : message;
   }
 
   if (typeof data !== "object") {
@@ -192,8 +202,12 @@ function classifyAuthRequestError(
 
   if (isLoginRequest && [400, 401, 422].includes(status)) {
     return isGenericMessage(serverMessage)
-      ? "Invalid email or password. Please try again."
+      ? "We couldn't sign you in. Check your email and password, then try again."
       : (serverMessage as string);
+  }
+
+  if (isLoginRequest && [404, 502, 503, 504].includes(status)) {
+    return "Login is temporarily unavailable. Please try again in a moment.";
   }
 
   if (isRegisterRequest) {
@@ -208,12 +222,20 @@ function classifyAuthRequestError(
         ? "We couldn't create your account. Check your details and try again."
         : (serverMessage as string);
     }
+
+    if ([404, 502, 503, 504].includes(status)) {
+      return "Registration is temporarily unavailable. Please try again in a moment.";
+    }
   }
 
   if (isForgotPasswordRequest && [400, 404, 422].includes(status)) {
     return isGenericMessage(serverMessage)
       ? "We couldn't send the reset link. Check the email address and try again."
       : (serverMessage as string);
+  }
+
+  if (isForgotPasswordRequest && [502, 503, 504].includes(status)) {
+    return "Password reset is temporarily unavailable. Please try again in a moment.";
   }
 
   if (isPasswordResetRequest) {
@@ -241,9 +263,25 @@ function classifyAuthNetworkError(
   const normalizedMethod = method.toLowerCase();
   const isLoginRequest =
     normalizedMethod === "post" && /\/users\/login(?:\?|$)/.test(normalizedUrl);
+  const isForgotPasswordRequest =
+    normalizedMethod === "post" &&
+    /\/users\/forgot-password(?:\?|$)/.test(normalizedUrl);
+  const isRegisterRequest =
+    normalizedMethod === "post" &&
+    /\/users(?:\?|$)/.test(normalizedUrl) &&
+    !isLoginRequest &&
+    !isForgotPasswordRequest;
 
   if (isLoginRequest) {
     return "Unable to connect to the login service. Please ensure you're online or try again shortly.";
+  }
+
+  if (isRegisterRequest) {
+    return "Unable to connect to the registration service. Please ensure you're online or try again shortly.";
+  }
+
+  if (isForgotPasswordRequest) {
+    return "Unable to connect to the password reset service. Please ensure you're online or try again shortly.";
   }
 
   return null;
@@ -301,7 +339,7 @@ export function classifyAxiosError(error: unknown): string {
     case status === 401:
       return (
         serverMessage ||
-        "Invalid credentials. Please check your email and password."
+        "We couldn't sign you in. Check your email and password, then try again."
       );
     case status === 403:
       return (
@@ -329,7 +367,7 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("ping_auth");
+      clearPersistedAuthSession();
 
       if (
         !window.location.pathname.startsWith("/login") &&

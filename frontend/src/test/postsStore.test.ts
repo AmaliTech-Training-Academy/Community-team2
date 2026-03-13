@@ -78,10 +78,40 @@ describe("usePostsStore", () => {
     expect(usePostsStore.getState().listLoading).toBe(false);
   });
 
+  it("fetchPosts reuses the in-flight request for identical filters", async () => {
+    const pending = deferred<{ posts: Post[]; total: number }>();
+    vi.mocked(api.posts.getAll).mockReturnValue(pending.promise);
+
+    const firstFetch = usePostsStore.getState().fetchPosts();
+    const secondFetch = usePostsStore.getState().fetchPosts();
+
+    expect(api.posts.getAll).toHaveBeenCalledTimes(1);
+
+    pending.resolve({ posts: [mockPost], total: 1 });
+    await Promise.all([firstFetch, secondFetch]);
+
+    expect(usePostsStore.getState().posts).toHaveLength(1);
+  });
+
   it("fetchPost stores the returned currentPost", async () => {
     vi.mocked(api.posts.getById).mockResolvedValue(mockPost);
 
     await usePostsStore.getState().fetchPost(42);
+
+    expect(usePostsStore.getState().currentPost?.id).toBe(42);
+  });
+
+  it("fetchPost reuses the in-flight request for the same post id", async () => {
+    const pending = deferred<Post>();
+    vi.mocked(api.posts.getById).mockReturnValue(pending.promise);
+
+    const firstFetch = usePostsStore.getState().fetchPost(42);
+    const secondFetch = usePostsStore.getState().fetchPost(42);
+
+    expect(api.posts.getById).toHaveBeenCalledTimes(1);
+
+    pending.resolve(mockPost);
+    await Promise.all([firstFetch, secondFetch]);
 
     expect(usePostsStore.getState().currentPost?.id).toBe(42);
   });

@@ -6,6 +6,7 @@ import { useToast } from "../components/atoms/Toast";
 import { api } from "../api/index";
 import { Badge } from "../components/atoms/Badge";
 import { PostModal } from "../components/organisms/PostModal";
+import { ImageViewer } from "../components/atoms/ImageViewer";
 import { Spinner } from "../components/atoms/Spinner";
 import { timeAgo } from "../utils";
 import type { Comment } from "../types";
@@ -184,14 +185,14 @@ export default function PostDetailPage() {
           </div>
         </div>
 
-        {/* Optional hero image */}
+        {/* Optional preview image */}
         {currentPost.imageUrl && (
-          <div className="w-full max-h-72 overflow-hidden rounded-xl mb-4">
-            <img
+          <div className="mb-6">
+            <ImageViewer
               data-testid="post-detail-image"
               src={currentPost.imageUrl}
               alt={currentPost.title}
-              className="w-full h-full object-cover"
+              className="max-w-md h-44 md:h-54.5 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity"
             />
           </div>
         )}
@@ -210,7 +211,7 @@ export default function PostDetailPage() {
             {currentPost.author}
           </span>
           <span className="text-gray-400 flex items-center gap-1">
-            <ClockIcon /> {timeAgo(currentPost.createdAt)}
+            <ClockIcon aria-hidden="true" /> {timeAgo(currentPost.createdAt)}
           </span>
         </div>
 
@@ -219,8 +220,13 @@ export default function PostDetailPage() {
 
       {/* Comment form */}
       <div data-testid="comment-form" className="mt-6">
+        <label htmlFor="comment-input" className="sr-only">
+          Write a comment
+        </label>
         <textarea
+          id="comment-input"
           data-testid="comment-input"
+          aria-label="Write a comment"
           className="w-full px-4 py-3 bg-primary border border-borderstroke rounded-xl text-body-lg text-blue-gray-dark placeholder:text-gray-400 focus:outline-none focus:border-blue-gray transition-colors resize-none min-h-44 md:min-h-54.5"
           placeholder="Share your thoughts..."
           value={commentText}

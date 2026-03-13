@@ -44,8 +44,8 @@ export default function ProfilePage() {
   const toast = useToast();
 
   const subscription = useSubscriptionStore(
-    useMemo(
-      () => (state) => (user?.email ? state.getFor(user.email) : null),
+    useCallback(
+      (state) => (user?.email ? state.getFor(user.email) : null),
       [user?.email],
     ),
   );
@@ -108,6 +108,13 @@ export default function ProfilePage() {
       }
 
       toast("Profile preferences saved");
+    } catch (error) {
+      toast(
+        error instanceof Error
+          ? error.message
+          : "Unable to save profile preferences right now.",
+        "error",
+      );
     } finally {
       setSaving(false);
     }

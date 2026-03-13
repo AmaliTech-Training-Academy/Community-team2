@@ -1,18 +1,19 @@
-import React from "react";
+import type { RefObject, DragEvent } from "react";
 import type { UploadedImage } from "../../hooks/useImageUpload";
+import ImageIndicatorIcon from "../../assets/images/image-indicator.svg?react";
 
 interface ImageUploadProps {
   image: UploadedImage | null;
   error: string | null;
   isDragging: boolean;
-  inputRef: React.RefObject<HTMLInputElement>;
+  inputRef: RefObject<HTMLInputElement>;
   onOpenPicker: () => void;
-  onDrop: (e: React.DragEvent) => void;
-  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: DragEvent) => void;
+  onDragOver: (e: DragEvent) => void;
   onDragLeave: () => void;
   onFileChange: (file: File) => void;
   onClear: () => void;
-  
+
   existingUrl?: string;
 
   hideLabel?: boolean;
@@ -45,7 +46,6 @@ export function ImageUpload({
         </label>
       )}
 
-    
       <input
         data-testid="image-file-input"
         ref={inputRef}
@@ -61,7 +61,6 @@ export function ImageUpload({
       />
 
       {previewSrc ? (
-       
         <div
           data-testid="image-preview-container"
           className="relative rounded-lg overflow-hidden border border-borderstroke bg-primary"
@@ -72,7 +71,7 @@ export function ImageUpload({
             alt="Post image preview"
             className="w-full max-h-56 object-cover"
           />
-          
+
           <div className="absolute top-2 right-2 flex gap-1.5">
             <button
               data-testid="image-change-btn"
@@ -101,7 +100,6 @@ export function ImageUpload({
           )}
         </div>
       ) : (
-       
         <div
           data-testid="image-dropzone"
           onDrop={onDrop}
@@ -111,7 +109,7 @@ export function ImageUpload({
           aria-label="Upload image"
           className={`
             rounded-lg border cursor-pointer transition-all duration-150
-            ${hideLabel ? "h-40" : "py-7"}
+            ${hideLabel ? "h-40 flex items-center justify-center" : "py-7"}
             ${
               isDragging
                 ? "border-blue-gray bg-primary scale-[1.01]"
@@ -119,18 +117,26 @@ export function ImageUpload({
             }
           `}
         >
-          {!hideLabel && (
-            <div className="text-center">
-              <p className="text-sm font-medium text-gray-600">
-                {isDragging
-                  ? "Drop to attach image"
-                  : "Click to upload or drag & drop"}
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                JPEG, PNG, WebP, GIF · up to 5 MB
-              </p>
-            </div>
-          )}
+          <div className="text-center flex flex-col items-center px-4">
+            <span
+              data-testid="image-indicator"
+              className="mb-2 flex h-15 w-15 items-center justify-center rounded-full border border-borderstroke bg-white text-gray-500"
+            >
+              <ImageIndicatorIcon aria-hidden="true" className="h-6 w-6" />
+            </span>
+            {!hideLabel && (
+              <>
+                <p className="text-sm font-medium text-gray-600">
+                  {isDragging
+                    ? "Drop to attach image"
+                    : "Click to upload or drag & drop"}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  JPEG, PNG, WebP, GIF · up to 5 MB
+                </p>
+              </>
+            )}
+          </div>
         </div>
       )}
 
