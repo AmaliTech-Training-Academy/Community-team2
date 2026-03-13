@@ -77,7 +77,7 @@ public class PostController {
                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = PostResponse.class))))
     })
     public ResponseDto<Page<PostResponse>> getAllPosts(@ModelAttribute PostFilter filter,
-                                                       @PageableDefault(size = 10) Pageable pageable) {
+                                                       @PageableDefault(size = 100) Pageable pageable) {
         Page<PostResponse> posts = postService.getAllPosts(filter, pageable);
         return new ResponseDto<>(HttpStatus.OK, "posts retrieved", posts);
     }
