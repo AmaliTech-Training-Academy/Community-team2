@@ -1,0 +1,1 @@
+import{k as n,o as s}from"./index-CV2wYBL5.js";let e=null;const l=n((a,r)=>({categories:[],loading:!1,fetch:async()=>{if(!(r().categories.length>0))return e||(a({loading:!0}),e=(async()=>{try{const o=await s();a(t=>t.categories.length>0?t:{categories:o})}finally{e=null,a({loading:!1})}})(),e)}}));export{l as u};

@@ -1,0 +1,1 @@
+import{j as m}from"./index-CV2wYBL5.js";const n={"h-xl":"h1","h-lg":"h2","h-md":"h3","h-sm":"h4","body-lg":"p","body-md":"p","body-sm":"p",label:"label"};function a({variant:o,as:s,className:t="",children:e,...l}){const h=s??n[o];return m.jsx(h,{className:["text-"+o,t].filter(Boolean).join(" "),...l,children:e})}export{a as T};
