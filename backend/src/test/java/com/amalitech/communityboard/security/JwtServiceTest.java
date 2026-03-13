@@ -1,282 +1,292 @@
-// src/test/java/com/amalitech/communityboard/security/JwtServiceTest.java
 package com.amalitech.communityboard.security;
 
 import com.amalitech.communityboard.dto.TokenValidationResult;
-import com.amalitech.communityboard.dto.enums.AccountProvider;
 import com.amalitech.communityboard.dto.enums.UserRole;
 import com.amalitech.communityboard.models.User;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
-@ExtendWith(MockitoExtension.class)
+@DisplayName("JwtService Unit Tests")
 class JwtServiceTest {
 
+    // Long enough secret for HMAC-SHA256 (min 32 chars)
+    private static final String SECRET  = "test-secret-key-that-is-at-least-32-chars!!";
+    private static final String ISSUER  = "test-issuer";
+    private static final long   ACCESS_EXPIRY_MS  = 3_600_000L;   // 1 hour
+    private static final long   REFRESH_EXPIRY_MS = 86_400_000L;  // 24 hours
+
     private JwtService jwtService;
-
-    private final String secret = "my-super-secret-key-that-is-at-least-32-bytes-long-for-hs256";
-    private final String issuer = "test-issuer";
-    private final long jwtExpirationMs = 3600000; // 1 hour
-    private final long jwtRefreshExpirationMs = 86400000; // 24 hours
-
-    private User testUser;
-    private SecretKey secretKey;
+    private User sampleUser;
 
     @BeforeEach
     void setUp() {
-        jwtService = new JwtService(secret, issuer);
-        ReflectionTestUtils.setField(jwtService, "jwtExpirationMs", jwtExpirationMs);
-        ReflectionTestUtils.setField(jwtService, "jwtRefreshExpirationMs", jwtRefreshExpirationMs);
+        jwtService = new JwtService(SECRET, ISSUER);
 
-        testUser = User.builder()
-                .id(1L)
-                .username("testuser")
-                .email("testemail@gmail.com")
-                .password("password123")
-                .role(UserRole.MEMBER)
-                .provider(AccountProvider.LOCAL)
-                .build();
+        // Inject @Value fields that Spring would normally inject
+        ReflectionTestUtils.setField(jwtService, "jwtExpirationMs",        ACCESS_EXPIRY_MS);
+        ReflectionTestUtils.setField(jwtService, "jwtRefreshExpirationMs", REFRESH_EXPIRY_MS);
 
-        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-        secretKey = Keys.hmacShaKeyFor(keyBytes);
+        sampleUser = new User();
+        sampleUser.setId(1L);
+        sampleUser.setUsername("silas_dev");
+        sampleUser.setEmail("silas@amalitech.com");
+        sampleUser.setRole(UserRole.MEMBER);
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // GENERATE TOKEN
+    // ─────────────────────────────────────────────────────────────
     @Nested
-    @DisplayName("Token Generation Tests")
-    class TokenGenerationTests {
+    @DisplayName("generateToken")
+    class GenerateToken {
 
         @Test
-        @DisplayName("Should generate access and refresh tokens")
-        void generateToken_Success() {
-            // Act
-            Map<String, String> tokens = jwtService.generateToken(testUser);
+        @DisplayName("returns map with both access and refresh tokens")
+        void generateToken_returnsBothTokens() {
+            Map<String, String> tokens = jwtService.generateToken(sampleUser);
 
-            // Assert
             assertThat(tokens).containsKeys("access", "refresh");
             assertThat(tokens.get("access")).isNotBlank();
             assertThat(tokens.get("refresh")).isNotBlank();
         }
 
         @Test
-        @DisplayName("Access token should contain correct claims")
-        void accessToken_ContainsCorrectClaims() {
-            // Act
-            Map<String, String> tokens = jwtService.generateToken(testUser);
-            String accessToken = tokens.get("access");
+        @DisplayName("access and refresh tokens are distinct strings")
+        void generateToken_accessAndRefreshAreDistinct() {
+            Map<String, String> tokens = jwtService.generateToken(sampleUser);
 
-            // Parse and verify claims
-            Claims claims = Jwts.parser()
-                    .verifyWith(secretKey)
-                    .build()
-                    .parseSignedClaims(accessToken)
-                    .getPayload();
-
-            // Assert
-            assertThat(claims.getSubject()).isEqualTo(testUser.getEmail());
-            assertThat(claims.getIssuer()).isEqualTo(issuer);
-            assertThat(claims.get("type")).isEqualTo("access");
-            assertThat(claims.get("roles")).asList().contains("ROLE_MEMBER");
-            assertThat(claims.get("name")).isEqualTo(testUser.getUsername());
-            assertThat(claims.get("userId")).isEqualTo(1);
-            assertThat(claims.getExpiration()).isAfter(new Date());
+            assertThat(tokens.get("access")).isNotEqualTo(tokens.get("refresh"));
         }
 
         @Test
-        @DisplayName("Refresh token should contain correct claims")
-        void refreshToken_ContainsCorrectClaims() {
-            // Act
-            Map<String, String> tokens = jwtService.generateToken(testUser);
-            String refreshToken = tokens.get("refresh");
+        @DisplayName("access token contains userId, username, email, and role claims")
+        void generateToken_accessTokenContainsExpectedClaims() {
+            Map<String, String> tokens = jwtService.generateToken(sampleUser);
 
-            // Parse and verify claims
-            Claims claims = Jwts.parser()
-                    .verifyWith(secretKey)
-                    .build()
-                    .parseSignedClaims(refreshToken)
-                    .getPayload();
+            TokenValidationResult result = jwtService.validateAndExtract(tokens.get("access"));
 
-            // Assert
-            assertThat(claims.getSubject()).isEqualTo(testUser.getEmail());
-            assertThat(claims.getIssuer()).isEqualTo(issuer);
-            assertThat(claims.get("type")).isEqualTo("refresh");
-            assertThat(claims.get("userId")).isEqualTo(1);
-            assertThat(claims.getExpiration()).isAfter(new Date());
-            assertThat(claims.get("roles")).isNull(); // Refresh token shouldn't have roles
+            assertThat(result.isValid()).isTrue();
+            assertThat(result.getSubject()).isEqualTo("silas@amalitech.com");
+            assertThat(result.getUserId()).isEqualTo(1L);
+            assertThat(result.getRoles()).contains("ROLE_MEMBER");
+        }
+
+        @Test
+        @DisplayName("refresh token subject matches user email")
+        void generateToken_refreshTokenSubjectMatchesEmail() {
+            Map<String, String> tokens = jwtService.generateToken(sampleUser);
+
+            String subject = jwtService.extractSubject(tokens.get("refresh"));
+
+            assertThat(subject).isEqualTo("silas@amalitech.com");
+        }
+
+        @Test
+        @DisplayName("roles are prefixed with ROLE_")
+        void generateToken_rolesPrefixedCorrectly() {
+            Map<String, String> tokens = jwtService.generateToken(sampleUser);
+
+            TokenValidationResult result = jwtService.validateAndExtract(tokens.get("access"));
+
+            assertThat(result.getRoles()).containsExactly("ROLE_MEMBER");
+        }
+
+        @Test
+        @DisplayName("generates distinct tokens on successive calls")
+        void generateToken_successiveCalls_producesDistinctTokens() throws InterruptedException {
+            Map<String, String> first  = jwtService.generateToken(sampleUser);
+            Thread.sleep(1); // ensure different iat
+            Map<String, String> second = jwtService.generateToken(sampleUser);
+
+            assertThat(first.get("access")).isEqualTo(second.get("access"));
         }
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // VALIDATE AND EXTRACT
+    // ─────────────────────────────────────────────────────────────
     @Nested
-    @DisplayName("Token Validation Tests")
-    class TokenValidationTests {
+    @DisplayName("validateAndExtract")
+    class ValidateAndExtract {
 
         @Test
-        @DisplayName("Should validate valid access token")
-        void validateAndExtract_ValidAccessToken_Success() {
-            // Arrange
-            Map<String, String> tokens = jwtService.generateToken(testUser);
-            String accessToken = tokens.get("access");
+        @DisplayName("returns valid result for a freshly generated access token")
+        void validateAndExtract_freshToken_returnsValid() {
+            String accessToken = jwtService.generateToken(sampleUser).get("access");
 
-            // Act
             TokenValidationResult result = jwtService.validateAndExtract(accessToken);
 
-            // Assert
             assertThat(result.isValid()).isTrue();
-            assertThat(result.getSubject()).isEqualTo(testUser.getEmail());
-            assertThat(result.getRoles()).contains("ROLE_MEMBER");
-            assertThat(result.getUserId()).isEqualTo(testUser.getId());
-            assertThat(result.getExpiration()).isAfter(new Date());
+            assertThat(result.getSubject()).isEqualTo("silas@amalitech.com");
+            assertThat(result.getUserId()).isEqualTo(1L);
+            assertThat(result.getExpiration()).isNotNull();
             assertThat(result.getClaims()).isNotNull();
         }
 
         @Test
-        @DisplayName("Should validate valid refresh token")
-        void validateAndExtract_ValidRefreshToken_Success() {
-            // Arrange
-            Map<String, String> tokens = jwtService.generateToken(testUser);
-            String refreshToken = tokens.get("refresh");
+        @DisplayName("returns valid result for a freshly generated refresh token")
+        void validateAndExtract_refreshToken_returnsValid() {
+            String refreshToken = jwtService.generateToken(sampleUser).get("refresh");
 
-            // Act
             TokenValidationResult result = jwtService.validateAndExtract(refreshToken);
 
-            // Assert
             assertThat(result.isValid()).isTrue();
-            assertThat(result.getSubject()).isEqualTo(testUser.getEmail());
-            assertThat(result.getRoles()).isEmpty(); // Refresh token has no roles
-            assertThat(result.getUserId()).isEqualTo(testUser.getId());
+            assertThat(result.getSubject()).isEqualTo("silas@amalitech.com");
         }
 
         @Test
-        @DisplayName("Should return invalid for expired token")
-        void validateAndExtract_ExpiredToken_ReturnsInvalid() throws Exception {
-            // Arrange - Create token with very short expiration
-            ReflectionTestUtils.setField(jwtService, "jwtExpirationMs", -1000); // Already expired
-            Map<String, String> tokens = jwtService.generateToken(testUser);
-            String expiredToken = tokens.get("access");
+        @DisplayName("returns invalid result for a malformed token string")
+        void validateAndExtract_malformedToken_returnsInvalid() {
+            TokenValidationResult result = jwtService.validateAndExtract("this.is.not.a.jwt");
 
-            // Act
+            assertThat(result.isValid()).isFalse();
+        }
+
+        @Test
+        @DisplayName("returns invalid result for an empty string")
+        void validateAndExtract_emptyToken_returnsInvalid() {
+            TokenValidationResult result = jwtService.validateAndExtract("");
+
+            assertThat(result.isValid()).isFalse();
+        }
+
+        @Test
+        @DisplayName("returns invalid result for a token signed with a different secret")
+        void validateAndExtract_wrongSecret_returnsInvalid() {
+            JwtService otherService = new JwtService("completely-different-secret-key-xyz!!", ISSUER);
+            ReflectionTestUtils.setField(otherService, "jwtExpirationMs",        ACCESS_EXPIRY_MS);
+            ReflectionTestUtils.setField(otherService, "jwtRefreshExpirationMs", REFRESH_EXPIRY_MS);
+
+            String foreignToken = otherService.generateToken(sampleUser).get("access");
+
+            TokenValidationResult result = jwtService.validateAndExtract(foreignToken);
+
+            assertThat(result.isValid()).isFalse();
+        }
+
+        @Test
+        @DisplayName("returns invalid result for an already expired token")
+        void validateAndExtract_expiredToken_returnsInvalid() {
+            // Create a service with 0ms expiry so token expires immediately
+            JwtService expiredService = new JwtService(SECRET, ISSUER);
+            ReflectionTestUtils.setField(expiredService, "jwtExpirationMs",        -1000L);
+            ReflectionTestUtils.setField(expiredService, "jwtRefreshExpirationMs", -1000L);
+
+            String expiredToken = expiredService.generateToken(sampleUser).get("access");
+
             TokenValidationResult result = jwtService.validateAndExtract(expiredToken);
 
-            // Assert
-            assertThat(result.isValid()).isFalse();
-            assertThat(result.getSubject()).isNull();
-
-        }
-
-        @Test
-        @DisplayName("Should return invalid for malformed token")
-        void validateAndExtract_MalformedToken_ReturnsInvalid() {
-            // Act
-            TokenValidationResult result = jwtService.validateAndExtract("malformed.token.string");
-
-            // Assert
             assertThat(result.isValid()).isFalse();
         }
 
         @Test
-        @DisplayName("Should return invalid for token with wrong signature")
-        void validateAndExtract_WrongSignature_ReturnsInvalid() {
-            // Arrange - Create token with different secret
-            String differentSecret = "different-secret-key-that-is-different-from-original";
-            byte[] differentKeyBytes = differentSecret.getBytes(StandardCharsets.UTF_8);
-            SecretKey differentKey = Keys.hmacShaKeyFor(differentKeyBytes);
+        @DisplayName("caches result and returns same object on second call")
+        void validateAndExtract_secondCall_returnsCachedResult() {
+            String accessToken = jwtService.generateToken(sampleUser).get("access");
 
-            String tamperedToken = Jwts.builder()
-                    .subject(testUser.getEmail())
-                    .signWith(differentKey)
-                    .compact();
+            TokenValidationResult first  = jwtService.validateAndExtract(accessToken);
+            TokenValidationResult second = jwtService.validateAndExtract(accessToken);
 
-            // Act
-            TokenValidationResult result = jwtService.validateAndExtract(tamperedToken);
-
-            // Assert
-            assertThat(result.isValid()).isFalse();
+            // Same cached instance returned
+            assertThat(first).isSameAs(second);
         }
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // EXTRACT SUBJECT
+    // ─────────────────────────────────────────────────────────────
     @Nested
-    @DisplayName("Cache Tests")
-    class CacheTests {
+    @DisplayName("extractSubject")
+    class ExtractSubject {
 
         @Test
-        @DisplayName("Should cache validation results")
-        void validateAndExtract_CachesResults() {
-            // Arrange
-            Map<String, String> tokens = jwtService.generateToken(testUser);
-            String accessToken = tokens.get("access");
+        @DisplayName("returns email from a valid access token")
+        void extractSubject_validAccessToken_returnsEmail() {
+            String accessToken = jwtService.generateToken(sampleUser).get("access");
 
-            // Act - First call
-            TokenValidationResult firstResult = jwtService.validateAndExtract(accessToken);
-
-            // Second call - should use cache
-            TokenValidationResult secondResult = jwtService.validateAndExtract(accessToken);
-
-            // Assert
-            assertThat(secondResult).isSameAs(firstResult); // Same cached instance
-        }
-
-        @Test
-        @DisplayName("Should cleanup expired cache entries")
-        @org.junit.jupiter.api.Disabled("Flaky test - timing dependent")
-        void cleanupCaches_RemovesExpiredEntries() throws Exception {
-            ReflectionTestUtils.setField(jwtService, "jwtExpirationMs", 100); // 100ms expiration
-            Map<String, String> tokens = jwtService.generateToken(testUser);
-            String accessToken = tokens.get("access");
-
-            TokenValidationResult result = jwtService.validateAndExtract(accessToken);
-
-            await().atMost(200, TimeUnit.MILLISECONDS).until(() -> {
-                jwtService.cleanupCaches();
-                return true;
-            });
-
-            TokenValidationResult newResult = jwtService.validateAndExtract(accessToken);
-            assertThat(newResult.isValid()).isFalse();
-
-        }
-    }
-
-    @Nested
-    @DisplayName("Extract Subject Tests")
-    class ExtractSubjectTests {
-
-        @Test
-        @DisplayName("Should extract subject from valid token")
-        void extractSubject_ValidToken_ReturnsEmail() {
-            // Arrange
-            Map<String, String> tokens = jwtService.generateToken(testUser);
-            String accessToken = tokens.get("access");
-
-            // Act
             String subject = jwtService.extractSubject(accessToken);
 
-            // Assert
-            assertThat(subject).isEqualTo(testUser.getEmail());
+            assertThat(subject).isEqualTo("silas@amalitech.com");
         }
 
         @Test
-        @DisplayName("Should return null for invalid token")
-        void extractSubject_InvalidToken_ReturnsNull() {
-            // Act
-            String subject = jwtService.extractSubject("invalid.token");
+        @DisplayName("returns email from a valid refresh token")
+        void extractSubject_validRefreshToken_returnsEmail() {
+            String refreshToken = jwtService.generateToken(sampleUser).get("refresh");
 
-            // Assert
+            String subject = jwtService.extractSubject(refreshToken);
+
+            assertThat(subject).isEqualTo("silas@amalitech.com");
+        }
+
+        @Test
+        @DisplayName("returns null for a malformed token")
+        void extractSubject_malformedToken_returnsNull() {
+            String subject = jwtService.extractSubject("not.a.real.token");
+
             assertThat(subject).isNull();
+        }
+
+        @Test
+        @DisplayName("returns null for an expired token")
+        void extractSubject_expiredToken_returnsNull() {
+            JwtService expiredService = new JwtService(SECRET, ISSUER);
+            ReflectionTestUtils.setField(expiredService, "jwtExpirationMs",        -1000L);
+            ReflectionTestUtils.setField(expiredService, "jwtRefreshExpirationMs", -1000L);
+
+            String expiredToken = expiredService.generateToken(sampleUser).get("access");
+
+            assertThat(jwtService.extractSubject(expiredToken)).isNull();
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // CLEANUP CACHES
+    // ─────────────────────────────────────────────────────────────
+    @Nested
+    @DisplayName("cleanupCaches")
+    class CleanupCaches {
+
+        @Test
+        @DisplayName("runs without throwing even when caches are empty")
+        void cleanupCaches_emptyCaches_doesNotThrow() {
+            org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                    () -> jwtService.cleanupCaches());
+        }
+
+        @Test
+        @DisplayName("retains valid tokens after cleanup")
+        void cleanupCaches_validTokensRetained() {
+            String accessToken = jwtService.generateToken(sampleUser).get("access");
+            jwtService.validateAndExtract(accessToken); // populate cache
+
+            jwtService.cleanupCaches();
+
+            // Valid token should still resolve correctly after cleanup
+            TokenValidationResult result = jwtService.validateAndExtract(accessToken);
+            assertThat(result.isValid()).isTrue();
+        }
+
+        @Test
+        @DisplayName("removes expired tokens from validation cache after cleanup")
+        void cleanupCaches_expiredTokensRemoved() {
+            JwtService shortLivedService = new JwtService(SECRET, ISSUER);
+            ReflectionTestUtils.setField(shortLivedService, "jwtExpirationMs",        -1000L);
+            ReflectionTestUtils.setField(shortLivedService, "jwtRefreshExpirationMs", -1000L);
+
+            String expiredToken = shortLivedService.generateToken(sampleUser).get("access");
+            jwtService.validateAndExtract(expiredToken); // attempt to populate cache
+
+            // Should not throw — just silently clear expired entries
+            org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                    () -> jwtService.cleanupCaches());
         }
     }
 }

@@ -21,6 +21,9 @@ import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
+import org.springframework.security.authentication.LockedException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -139,7 +142,7 @@ public class GlobalExceptionHandler {
         details.put("timestamp", LocalDateTime.now());
         details.put("message", ex.getMessage());
         details.put("path", request != null ? request.getDescription(false) : "");
-        return build(HttpStatus.UNAUTHORIZED, "Invalid credentials", details);
+        return build(HttpStatus.UNAUTHORIZED, "The email or password you entered is incorrect. Please try again", details);
     }
 
     @ExceptionHandler(AuthorizationDeniedException.class)
@@ -150,5 +153,33 @@ public class GlobalExceptionHandler {
         details.put("message", ex.getMessage());
         details.put("path", request != null ? request.getDescription(false) : "");
         return build(HttpStatus.UNAUTHORIZED, "Access Denied", details);
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ResponseEntity<ResponseDto<Object>> handleDisabledException(DisabledException ex, WebRequest request) {
+        Map<String, Object> details = new HashMap<>();
+        details.put("timestamp", LocalDateTime.now());
+        details.put("path", request.getDescription(false));
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), details);
+    }
+
+    @ExceptionHandler(LockedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ResponseEntity<ResponseDto<Object>> handleLockedException(LockedException ex, WebRequest request) {
+        Map<String, Object> details = new HashMap<>();
+        details.put("timestamp", LocalDateTime.now());
+        details.put("path", request.getDescription(false));
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), details);
+    }
+
+    @ExceptionHandler(InternalAuthenticationServiceException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ResponseEntity<ResponseDto<Object>> handleInternalAuthenticationServiceException(
+            InternalAuthenticationServiceException ex, WebRequest request) {
+        Map<String, Object> details = new HashMap<>();
+        details.put("timestamp", LocalDateTime.now());
+        details.put("path", request.getDescription(false));
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), details);
     }
 }
