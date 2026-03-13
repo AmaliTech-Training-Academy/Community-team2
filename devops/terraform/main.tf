@@ -100,6 +100,13 @@ module "security" {
   jwt_secret                    = var.jwt_secret
   ecs_task_execution_role_name  = module.compute.ecs_task_execution_role_name
   db_credentials_secret_arn     = module.database.credentials_secret_arn
+  cloudinary_cloud_name         = var.cloudinary_cloud_name
+  cloudinary_api_key            = var.cloudinary_api_key
+  cloudinary_api_secret         = var.cloudinary_api_secret
+  email_address                 = var.email_address
+  email_password                = var.email_password
+  frontend_url                  = var.frontend_url
+  frontend_url_reset            = var.frontend_url_reset
 }
 
 # ============================================================================
@@ -120,6 +127,9 @@ module "compute" {
   db_endpoint               = module.database.endpoint              # Single RDS for all databases
   db_credentials_secret_arn = module.database.credentials_secret_arn
   jwt_secret_arn            = module.security.jwt_secret_arn
+  cloudinary_secret_arn     = module.security.cloudinary_secret_arn
+  email_secret_arn          = module.security.email_secret_arn
+  frontend_urls_secret_arn  = module.security.frontend_urls_secret_arn
   backend_image_url         = "${aws_ecr_repository.backend.repository_url}:latest"
   frontend_image_url        = "${aws_ecr_repository.frontend.repository_url}:latest"
   airflow_image_url         = "${aws_ecr_repository.airflow.repository_url}:latest"
