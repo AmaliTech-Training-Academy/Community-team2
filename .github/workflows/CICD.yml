@@ -347,14 +347,7 @@ jobs:
         run: |
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.PROJECT_NAME }}-backend --query 'taskDefinition' --region ${{ env.AWS_REGION }})
           NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}" \
-            '.containerDefinitions[0].image = $IMAGE |
-             .containerDefinitions[0].healthCheck = {
-               "command": ["CMD-SHELL", "curl -f http://localhost:8080/v3/api-docs || exit 1"],
-               "interval": 30,
-               "timeout": 5,
-               "retries": 3,
-               "startPeriod": 90
-             } | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+            '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
           echo "$NEW_TASK_DEF" > backend-task-def.json
           aws ecs register-task-definition --cli-input-json file://backend-task-def.json --region ${{ env.AWS_REGION }}
       
