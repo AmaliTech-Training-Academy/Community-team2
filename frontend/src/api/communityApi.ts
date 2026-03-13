@@ -1,4 +1,5 @@
 import axiosInstance from "./axiosInstance";
+import { getAuthUser } from "../features/auth/authSession";
 import type {
   Analytics,
   Category,
@@ -82,6 +83,67 @@ export interface BackendCategoryResponse {
 }
 
 const DEFAULT_PAGE_PARAMS = { page: 0, size: 100 };
+const RESOURCE_CACHE_TTL_MS = 60_000;
+const resourceCache = new Map<string, { value: unknown; expiresAt: number }>();
+const inFlightRequests = new Map<string, Promise<unknown>>();
+
+type BackendPagedResponse<T> =
+  | T[]
+  | BackendPage<T>
+  | ResponseDto<BackendPage<T>>;
+
+function readCachedResource<T>(key: string): T | undefined {
+  const cached = resourceCache.get(key);
+
+  if (!cached) {
+    return undefined;
+  }
+
+  if (cached.expiresAt <= Date.now()) {
+    resourceCache.delete(key);
+    return undefined;
+  }
+
+  return cached.value as T;
+}
+
+function writeCachedResource<T>(
+  key: string,
+  value: T,
+  ttlMs = RESOURCE_CACHE_TTL_MS,
+): T {
+  resourceCache.set(key, {
+    value,
+    expiresAt: Date.now() + ttlMs,
+  });
+  return value;
+}
+
+async function getCachedResource<T>(
+  key: string,
+  loader: () => Promise<T>,
+  ttlMs = RESOURCE_CACHE_TTL_MS,
+): Promise<T> {
+  const cached = readCachedResource<T>(key);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const inFlight = inFlightRequests.get(key);
+  if (inFlight) {
+    return inFlight as Promise<T>;
+  }
+
+  const request = loader()
+    .then((value) => writeCachedResource(key, value, ttlMs))
+    .finally(() => {
+      inFlightRequests.delete(key);
+    });
+
+  inFlightRequests.set(key, request);
+
+  return request;
+}
 
 function unwrapDto<T>(payload: T | ResponseDto<T>): T {
   if (
@@ -114,6 +176,73 @@ function unwrapPage<T>(
     items: data.content ?? [],
     total: data.totalElements ?? data.content?.length ?? 0,
   };
+}
+
+async function fetchAllPaged<T>(
+  path: string,
+  params?: Record<string, unknown>,
+  options?: {
+    pageSize?: number;
+    concurrency?: number;
+  },
+): Promise<T[]> {
+  const pageSize = options?.pageSize ?? DEFAULT_PAGE_PARAMS.size;
+  const concurrency = Math.max(1, options?.concurrency ?? 4);
+
+  const firstResponse = await axiosInstance.get<BackendPagedResponse<T>>(path, {
+    params: {
+      ...(params ?? {}),
+      page: 0,
+      size: pageSize,
+    },
+  });
+
+  const firstData = unwrapDto(firstResponse.data as BackendPagedResponse<T>);
+
+  if (Array.isArray(firstData)) {
+    return firstData;
+  }
+
+  const firstPage = unwrapPage(firstResponse.data as BackendPagedResponse<T>);
+  const totalElements = firstData.totalElements ?? firstPage.total;
+  const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
+
+  const allItems: T[] = [...firstPage.items];
+
+  if (totalPages <= 1) {
+    return allItems;
+  }
+
+  const pages = Array.from({ length: totalPages - 1 }, (_, i) => i + 1);
+
+  for (let start = 0; start < pages.length; start += concurrency) {
+    const batch = pages.slice(start, start + concurrency);
+
+    const results = await Promise.allSettled(
+      batch.map(async (page) => {
+        const response = await axiosInstance.get<BackendPagedResponse<T>>(
+          path,
+          {
+            params: {
+              ...(params ?? {}),
+              page,
+              size: pageSize,
+            },
+          },
+        );
+
+        return unwrapPage(response.data as BackendPagedResponse<T>).items;
+      }),
+    );
+
+    results.forEach((result) => {
+      if (result.status === "fulfilled") {
+        allItems.push(...result.value);
+      }
+    });
+  }
+
+  return allItems;
 }
 
 function normalizeRole(role?: string): UserRole {
@@ -182,57 +311,51 @@ function buildLookup<T extends { id: number }>(items: T[]): Map<number, T> {
   return new Map(items.map((item) => [item.id, item]));
 }
 
-function getStoredAuthUser(): User | null {
-  try {
-    const raw = localStorage.getItem("ping_auth");
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw) as { state?: { user?: User | null } };
-    return parsed.state?.user ?? null;
-  } catch {
-    return null;
-  }
-}
-
 function buildStoredUserLookup(): Map<number, User> {
-  const currentUser = getStoredAuthUser();
+  const currentUser = getAuthUser();
   return currentUser
     ? new Map([[currentUser.id, currentUser]])
     : new Map<number, User>();
 }
 
 export async function fetchUserById(userId: number): Promise<User> {
-  const response = await axiosInstance.get<
-    BackendUserResponse | ResponseDto<BackendUserResponse>
-  >(`/users/${userId}`);
-  return mapUser(unwrapDto(response.data));
+  return getCachedResource(`user:${userId}`, async () => {
+    const response = await axiosInstance.get<
+      BackendUserResponse | ResponseDto<BackendUserResponse>
+    >(`/users/${userId}`);
+    return mapUser(unwrapDto(response.data));
+  });
 }
 
 export async function fetchUsers(): Promise<User[]> {
-  const response = await axiosInstance.get<
-    BackendUserResponse[] | ResponseDto<BackendPage<BackendUserResponse>>
-  >("/users", { params: DEFAULT_PAGE_PARAMS });
-  const { items } = unwrapPage(
-    response.data as
-      | BackendUserResponse[]
-      | BackendPage<BackendUserResponse>
-      | ResponseDto<BackendPage<BackendUserResponse>>,
-  );
-  return items.map(mapUser);
+  return getCachedResource("users:all", async () => {
+    const response = await axiosInstance.get<
+      BackendUserResponse[] | ResponseDto<BackendPage<BackendUserResponse>>
+    >("/users", { params: DEFAULT_PAGE_PARAMS });
+    const { items } = unwrapPage(
+      response.data as
+        | BackendUserResponse[]
+        | BackendPage<BackendUserResponse>
+        | ResponseDto<BackendPage<BackendUserResponse>>,
+    );
+    return items.map(mapUser);
+  });
 }
 
 export async function fetchCategories(): Promise<BackendCategoryResponse[]> {
-  const response = await axiosInstance.get<
-    | BackendCategoryResponse[]
-    | ResponseDto<BackendPage<BackendCategoryResponse>>
-  >("/categories", { params: DEFAULT_PAGE_PARAMS });
-  const { items } = unwrapPage(
-    response.data as
+  return getCachedResource("categories:all", async () => {
+    const response = await axiosInstance.get<
       | BackendCategoryResponse[]
-      | BackendPage<BackendCategoryResponse>
-      | ResponseDto<BackendPage<BackendCategoryResponse>>,
-  );
-  return items;
+      | ResponseDto<BackendPage<BackendCategoryResponse>>
+    >("/categories", { params: DEFAULT_PAGE_PARAMS });
+    const { items } = unwrapPage(
+      response.data as
+        | BackendCategoryResponse[]
+        | BackendPage<BackendCategoryResponse>
+        | ResponseDto<BackendPage<BackendCategoryResponse>>,
+    );
+    return items;
+  });
 }
 
 export async function fetchPostsRaw(): Promise<BackendPostResponse[]> {
@@ -391,14 +514,14 @@ export async function mapCreatedOrUpdatedComment(
 
 export async function buildAnalytics(): Promise<Analytics> {
   const [posts, comments, categories] = await Promise.all([
-    fetchPostsRaw(),
-    fetchCommentsRaw().catch(() => []),
-    fetchCategories().catch(() => []),
+    fetchAllPaged<BackendPostResponse>("/posts"),
+    fetchAllPaged<BackendCommentResponse>("/comments").catch(() => []),
+    fetchAllPaged<BackendCategoryResponse>("/categories").catch(() => []),
   ]);
 
   const categoriesById = buildLookup(categories);
   const categoryBreakdown = Object.fromEntries(
-    categories.map((category) => [category.name, 0]),
+    categories.map((category) => [normalizeCategory(category.name), 0]),
   ) as Record<string, number>;
 
   posts.forEach((post) => {

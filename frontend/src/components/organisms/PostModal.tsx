@@ -100,7 +100,13 @@ export function PostModal({ post, onClose, onSaved }: PostModalProps) {
 
       let saved: Post;
       if (post) {
-        await updatePost(post.id, { title, category, body, imageUrl });
+        await updatePost(post.id, {
+          title,
+          category,
+          body,
+          imageUrl,
+          imageFile: imgUpload.image?.file,
+        });
         saved = { ...post, title, category, body, imageUrl } as Post;
         toast("Post updated successfully");
       } else {
@@ -198,10 +204,14 @@ export function PostModal({ post, onClose, onSaved }: PostModalProps) {
         <div className="px-6 pb-6 flex flex-col gap-5 overflow-y-auto">
           {/* Title */}
           <div>
-            <label className="block text-body-sm font-semibold text-blue-gray-dark mb-2">
+            <label
+              htmlFor="post-modal-title-input"
+              className="block text-body-sm font-semibold text-blue-gray-dark mb-2"
+            >
               Post Title
             </label>
             <input
+              id="post-modal-title-input"
               data-testid="post-title-input"
               className={`w-full px-4 py-3 border rounded-lg text-body-lg bg-primary text-blue-gray-dark placeholder:text-gray-400 focus:outline-none transition-colors ${
                 errors.title
@@ -224,48 +234,104 @@ export function PostModal({ post, onClose, onSaved }: PostModalProps) {
 
           {/* Category */}
           <div>
-            <label className="block text-body-sm font-semibold text-blue-gray-light mb-2">
+            <label
+              id="post-modal-category-label"
+              className="block text-body-sm font-semibold text-blue-gray-light mb-2"
+            >
               Category
             </label>
             <div className="relative" ref={catRef}>
-              <div
-                data-testid="post-category-select"
-                className={`w-full px-4 py-3 border rounded-lg text-body-lg cursor-pointer flex justify-between items-center bg-primary ${
-                  errors.category
-                    ? "border-red-400 bg-red-50"
-                    : "border-borderstroke"
-                }`}
-                onClick={toggleCat}
-              >
-                <span
-                  className={
-                    form.category ? "text-blue-gray-light" : "text-gray-400"
-                  }
+              {catOpen ? (
+                <button
+                  type="button"
+                  data-testid="post-category-select"
+                  aria-haspopup="listbox"
+                  aria-expanded="true"
+                  aria-labelledby="post-modal-category-label"
+                  className={`w-full px-4 py-3 border rounded-lg text-body-lg cursor-pointer flex justify-between items-center bg-primary text-left ${
+                    errors.category
+                      ? "border-red-400 bg-red-50"
+                      : "border-borderstroke"
+                  }`}
+                  onClick={toggleCat}
                 >
-                  {form.category || "Select"}
-                </span>
-                <span className="flex h-4 w-4 items-center justify-center text-blue-gray">
-                  <ChevronUpIcon
-                    aria-hidden="true"
-                    className={`h-4 w-4 transition-transform ${catOpen ? "rotate-0" : "rotate-180"}`}
-                  />
-                </span>
-              </div>
+                  <span
+                    className={
+                      form.category ? "text-blue-gray-light" : "text-gray-400"
+                    }
+                  >
+                    {form.category || "Select"}
+                  </span>
+                  <span className="flex h-4 w-4 items-center justify-center text-blue-gray">
+                    <ChevronUpIcon
+                      aria-hidden="true"
+                      className="h-4 w-4 transition-transform rotate-0"
+                    />
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  data-testid="post-category-select"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-labelledby="post-modal-category-label"
+                  className={`w-full px-4 py-3 border rounded-lg text-body-lg cursor-pointer flex justify-between items-center bg-primary text-left ${
+                    errors.category
+                      ? "border-red-400 bg-red-50"
+                      : "border-borderstroke"
+                  }`}
+                  onClick={toggleCat}
+                >
+                  <span
+                    className={
+                      form.category ? "text-blue-gray-light" : "text-gray-400"
+                    }
+                  >
+                    {form.category || "Select"}
+                  </span>
+                  <span className="flex h-4 w-4 items-center justify-center text-blue-gray">
+                    <ChevronUpIcon
+                      aria-hidden="true"
+                      className="h-4 w-4 transition-transform rotate-180"
+                    />
+                  </span>
+                </button>
+              )}
               {catOpen && (
                 <div
                   data-testid="post-category-dropdown"
+                  role="listbox"
+                  aria-label="Select a category"
                   className="slide-down absolute top-full left-0 right-0 z-50 bg-white border border-borderstroke rounded-lg shadow-lg overflow-hidden mt-2"
                 >
-                  {categories.map((c) => (
-                    <div
-                      key={c}
-                      data-testid={`post-category-option-${c.toLowerCase().replace(/[^a-z]/g, "-")}`}
-                      className="px-4 py-3 text-body-lg text-blue-gray-light cursor-pointer hover:bg-gray-100 transition-colors"
-                      onClick={() => selectCat(c)}
-                    >
-                      {c}
-                    </div>
-                  ))}
+                  {categories.map((c) =>
+                    form.category === c ? (
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected="true"
+                        key={c}
+                        data-testid={`post-category-option-${c.toLowerCase().replace(/[^a-z]/g, "-")}`}
+                        className="w-full text-left px-4 py-3 text-body-lg text-blue-gray-light cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => selectCat(c)}
+                      >
+                        {c}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected="false"
+                        key={c}
+                        data-testid={`post-category-option-${c.toLowerCase().replace(/[^a-z]/g, "-")}`}
+                        className="w-full text-left px-4 py-3 text-body-lg text-blue-gray-light cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => selectCat(c)}
+                      >
+                        {c}
+                      </button>
+                    ),
+                  )}
                 </div>
               )}
             </div>
@@ -281,7 +347,14 @@ export function PostModal({ post, onClose, onSaved }: PostModalProps) {
 
           {/* Content */}
           <div>
+            <label
+              htmlFor="post-modal-body-input"
+              className="block text-body-sm font-semibold text-blue-gray-dark mb-2"
+            >
+              Content
+            </label>
             <textarea
+              id="post-modal-body-input"
               data-testid="post-body-input"
               className={`w-full px-4 py-3 border rounded-lg text-body-lg bg-primary text-blue-gray-dark placeholder:text-gray-400 focus:outline-none transition-colors resize-none min-h-52 md:min-h-40 ${
                 errors.body

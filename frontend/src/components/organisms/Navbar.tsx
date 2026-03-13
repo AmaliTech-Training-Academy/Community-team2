@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, memo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../features/auth/authStore";
 import { initials } from "../../utils";
@@ -8,7 +8,7 @@ import LogoutIcon from "../../assets/images/logout.svg?react";
 import HamburgerIcon from "../../assets/images/hamburger.svg?react";
 import CloseIcon from "../../assets/images/close.svg?react";
 
-function UserAvatar({
+const UserAvatar = memo(function UserAvatar({
   name,
   size = "sm",
   testId,
@@ -26,7 +26,7 @@ function UserAvatar({
       {initials(name)}
     </div>
   );
-}
+});
 
 export function Navbar() {
   const user = useAuthStore((s) => s.user);
@@ -78,6 +78,7 @@ export function Navbar() {
                 <button
                   data-testid="navbar-analytics-link"
                   onClick={() => navigate("/dashboard")}
+                  aria-current={analyticsIsActive ? "page" : undefined}
                   className={`flex h-10.25 items-center justify-center gap-2 rounded-lg px-5 text-sm font-medium transition-opacity hover:opacity-70 ${
                     analyticsIsActive
                       ? "bg-blue-gray-light text-background"
@@ -94,6 +95,7 @@ export function Navbar() {
                 data-testid="navbar-profile-trigger"
                 type="button"
                 onClick={handleProfileNavigate}
+                aria-current={profileIsActive ? "page" : undefined}
                 className={`flex items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors ${
                   profileIsActive
                     ? "bg-blue-gray-light text-white"
@@ -179,6 +181,7 @@ export function Navbar() {
             <button
               data-testid="navbar-mobile-profile-btn"
               onClick={handleProfileNavigate}
+              aria-current={profileIsActive ? "page" : undefined}
               className={`flex items-center gap-3 rounded-xl px-3 py-4 text-body-lg text-left transition-colors hover:opacity-70 ${
                 profileIsActive
                   ? "bg-blue-gray-light text-white font-semibold"

@@ -226,10 +226,26 @@ pre.prettyprint {
 /* coverage-width-classes:start */
 .w-0 { width: 0%; }
 .w-100 { width: 100%; }
+.w-2 { width: 2%; }
+.w-98 { width: 98%; }
 .w-8 { width: 8%; }
 .w-92 { width: 92%; }
-.w-17 { width: 17%; }
-.w-83 { width: 83%; }
+.w-9 { width: 9%; }
+.w-91 { width: 91%; }
+.w-13 { width: 13%; }
+.w-87 { width: 87%; }
+.w-23 { width: 23%; }
+.w-77 { width: 77%; }
+.w-24 { width: 24%; }
+.w-76 { width: 76%; }
+.w-25 { width: 25%; }
+.w-75 { width: 75%; }
+.w-26 { width: 26%; }
+.w-74 { width: 74%; }
+.w-31 { width: 31%; }
+.w-69 { width: 69%; }
+.w-37 { width: 37%; }
+.w-63 { width: 63%; }
 .w-40 { width: 40%; }
 .w-60 { width: 60%; }
 /* coverage-width-classes:end */

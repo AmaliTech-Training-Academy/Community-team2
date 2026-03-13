@@ -59,7 +59,7 @@ describe("classifyAxiosError", () => {
     });
 
     expect(classifyAxiosError(error)).toBe(
-      "Invalid email or password. Please try again.",
+      "We couldn't sign you in. Check your email and password, then try again.",
     );
   });
 
@@ -75,6 +75,18 @@ describe("classifyAxiosError", () => {
     );
   });
 
+  it("maps registration service outages to a friendly message", () => {
+    const error = createAxiosError({
+      status: 404,
+      data: "<!DOCTYPE html><html><body>The endpoint is offline. (ERR_NGROK_3200)</body></html>",
+      url: "/users",
+    });
+
+    expect(classifyAxiosError(error)).toBe(
+      "Registration is temporarily unavailable. Please try again in a moment.",
+    );
+  });
+
   it("surfaces field-level auth validation messages when the backend provides them", () => {
     const error = createAxiosError({
       status: 422,
@@ -86,6 +98,18 @@ describe("classifyAxiosError", () => {
 
     expect(classifyAxiosError(error)).toBe(
       "Email: must be a valid email address",
+    );
+  });
+
+  it("maps forgot-password service outages to a friendly message", () => {
+    const error = createAxiosError({
+      status: 503,
+      data: "<!DOCTYPE html><html><body>ngrok error</body></html>",
+      url: "/users/forgot-password",
+    });
+
+    expect(classifyAxiosError(error)).toBe(
+      "Password reset is temporarily unavailable. Please try again in a moment.",
     );
   });
 

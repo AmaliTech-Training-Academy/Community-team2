@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, type KeyboardEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../features/auth/authStore";
 import { useToast } from "../components/atoms/Toast";
@@ -61,7 +61,7 @@ export default function LoginPage() {
   }, [validate, login, toast, navigate]);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    (e: KeyboardEvent) => {
       if (e.key === "Enter") handleSubmit();
     },
     [handleSubmit],
@@ -103,7 +103,7 @@ export default function LoginPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  emailHasError ? "text-red-600" : "text-[#5A6F7C]"
+                  emailHasError ? "text-red-600" : "text-muted-icon"
                 }`}
               >
                 <EmailIcon stroke="currentColor" />
@@ -111,7 +111,7 @@ export default function LoginPage() {
               <input
                 id="login-email"
                 data-testid="login-email-input"
-                className={`w-full pl-9 pr-3 py-2.5 rounded-lg bg-primary text-body-lg text-blue-gray-light placeholder:text-[#5A6F7C] focus:outline-none transition-colors border ${
+                className={`w-full pl-9 pr-3 py-2.5 rounded-lg bg-primary text-body-lg text-blue-gray-light placeholder:text-muted-icon focus:outline-none transition-colors border ${
                   errors.email
                     ? "border-red-400 bg-red-50 text-red-600"
                     : "border-gray-200 bg-gray-100 focus:border-navy focus:bg-white"
@@ -152,7 +152,7 @@ export default function LoginPage() {
             <div className="relative">
               <span
                 className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  passwordHasError ? "text-red-600" : "text-[#5A6F7C]"
+                  passwordHasError ? "text-red-600" : "text-muted-icon"
                 }`}
               >
                 <Lock stroke="currentColor" />
@@ -160,7 +160,7 @@ export default function LoginPage() {
               <input
                 id="login-password"
                 data-testid="login-password-input"
-                className={`w-full pl-9 pr-9 py-2.5 rounded-lg text-body-lg bg-primary text-blue-gray-light placeholder:text-[#5A6F7C] focus:outline-none transition-colors border ${
+                className={`w-full pl-9 pr-9 py-2.5 rounded-lg text-body-lg bg-primary text-blue-gray-light placeholder:text-muted-icon focus:outline-none transition-colors border ${
                   errors.password
                     ? "border-red-400 bg-red-50 text-red-600"
                     : "border-gray-200 bg-gray-100 focus:border-navy focus:bg-white"
@@ -181,7 +181,7 @@ export default function LoginPage() {
                 data-testid="login-toggle-password-btn"
                 type="button"
                 className={`absolute right-2.5 top-1/2 -translate-y-1/2 transition-colors ${
-                  passwordHasError ? "text-red-600" : "text-[#5A6F7C]"
+                  passwordHasError ? "text-red-600" : "text-muted-icon` "
                 }`}
                 onClick={toggleShowPass}
               >

@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import type { User } from "../../types";
 import { api } from "../../api/index";
 import { isTokenValid } from "../../utils";
+import { clearPersistedAuthSession, setAuthSession } from "./authSession";
 
 interface AuthState {
   user: User | null;
@@ -31,7 +32,9 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (email, password) => {
         const { token, user } = await api.auth.login(email, password);
-        set({ user, token, isAuthenticated: true });
+        const nextState = { user, token, isAuthenticated: true };
+        set(nextState);
+        setAuthSession(nextState);
       },
 
       register: async (username, email, password) => {
@@ -40,14 +43,26 @@ export const useAuthStore = create<AuthState>()(
           email,
           password,
         );
-        set({ user, token, isAuthenticated: true });
+        const nextState = { user, token, isAuthenticated: true };
+        set(nextState);
+        setAuthSession(nextState);
       },
 
-      logout: () => set(CLEARED),
+      logout: () => {
+        clearPersistedAuthSession();
+        set(CLEARED);
+      },
 
       rehydrateAndValidate: () => {
-        const { token } = get();
-        if (!isTokenValid(token)) set(CLEARED);
+        const currentState = get();
+
+        if (!isTokenValid(currentState.token)) {
+          clearPersistedAuthSession();
+          set(CLEARED);
+          return;
+        }
+
+        setAuthSession(currentState);
       },
     }),
     {

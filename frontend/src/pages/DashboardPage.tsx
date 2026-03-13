@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAnalyticsStore } from "../features/analytics/analyticsStore";
 import { Spinner } from "../components/atoms/Spinner";
@@ -62,45 +62,71 @@ export default function DashboardPage() {
     fetch();
   }, [fetch]);
 
-  const categoryValues = data
-    ? CATEGORY_ORDER.map((category) => data.categoryBreakdown[category] ?? 0)
-    : [];
-  const dayValues = data
-    ? [
-        data.dayActivity.find((d) => d.day === "Mon")?.count ?? 0,
-        data.dayActivity.find((d) => d.day === "Tue")?.count ?? 0,
-        data.dayActivity.find((d) => d.day === "Wed")?.count ?? 0,
-        data.dayActivity.find((d) => d.day === "Thu")?.count ?? 0,
-        data.dayActivity.find((d) => d.day === "Fri")?.count ?? 0,
-        data.dayActivity.find((d) => d.day === "Sat")?.count ?? 0,
-        data.dayActivity.find((d) => d.day === "Sun")?.count ?? 0,
-      ]
-    : [];
-  const categoryAxisMax = getRoundedYAxisMax(categoryValues);
-  const categoryTicks = getAxisTicks(categoryAxisMax);
-  const categoryAverageValue =
-    categoryValues.length > 0
-      ? categoryValues.reduce((sum, value) => sum + value, 0) / categoryValues.length
-      : 0;
-  const categoryAverageY =
-    categoryAxisMax > 0
-      ? CATEGORY_PLOT_HEIGHT - (categoryAverageValue / categoryAxisMax) * CATEGORY_PLOT_HEIGHT
-      : CATEGORY_PLOT_HEIGHT;
-  const dayAxisMax = getRoundedYAxisMax(dayValues);
-  const dayTicks = getAxisTicks(dayAxisMax);
-  const dayAverageValue =
-    dayValues.length > 0
-      ? dayValues.reduce((sum, value) => sum + value, 0) / dayValues.length
-      : 0;
-  const dayAverageY =
-    dayAxisMax > 0
-      ? DAY_PLOT_HEIGHT - (dayAverageValue / dayAxisMax) * DAY_PLOT_HEIGHT
-      : DAY_PLOT_HEIGHT;
+  const chartData = useMemo(() => {
+    if (!data) return null;
+
+    const categoryValues = CATEGORY_ORDER.map(
+      (category) => data.categoryBreakdown[category] ?? 0,
+    );
+    const dayValues = [
+      data.dayActivity.find((d) => d.day === "Mon")?.count ?? 0,
+      data.dayActivity.find((d) => d.day === "Tue")?.count ?? 0,
+      data.dayActivity.find((d) => d.day === "Wed")?.count ?? 0,
+      data.dayActivity.find((d) => d.day === "Thu")?.count ?? 0,
+      data.dayActivity.find((d) => d.day === "Fri")?.count ?? 0,
+      data.dayActivity.find((d) => d.day === "Sat")?.count ?? 0,
+      data.dayActivity.find((d) => d.day === "Sun")?.count ?? 0,
+    ];
+    const categoryAxisMax = getRoundedYAxisMax(categoryValues);
+    const categoryTicks = getAxisTicks(categoryAxisMax);
+    const categoryAverageValue =
+      categoryValues.length > 0
+        ? categoryValues.reduce((sum, v) => sum + v, 0) / categoryValues.length
+        : 0;
+    const categoryAverageY =
+      categoryAxisMax > 0
+        ? CATEGORY_PLOT_HEIGHT -
+          (categoryAverageValue / categoryAxisMax) * CATEGORY_PLOT_HEIGHT
+        : CATEGORY_PLOT_HEIGHT;
+    const dayAxisMax = getRoundedYAxisMax(dayValues);
+    const dayTicks = getAxisTicks(dayAxisMax);
+    const dayAverageValue =
+      dayValues.length > 0
+        ? dayValues.reduce((sum, v) => sum + v, 0) / dayValues.length
+        : 0;
+    const dayAverageY =
+      dayAxisMax > 0
+        ? DAY_PLOT_HEIGHT - (dayAverageValue / dayAxisMax) * DAY_PLOT_HEIGHT
+        : DAY_PLOT_HEIGHT;
+    const totalComments = data.totalComments ?? 0;
+
+    return {
+      categoryValues,
+      dayValues,
+      categoryAxisMax,
+      categoryTicks,
+      categoryAverageY,
+      dayAxisMax,
+      dayTicks,
+      dayAverageY,
+      totalComments,
+    };
+  }, [data]);
 
   if (loading) return <Spinner />;
-  if (!data) return null;
+  if (!data || !chartData) return null;
 
-  const totalComments = data.totalComments ?? 0;
+  const {
+    categoryValues,
+    dayValues,
+    categoryAxisMax,
+    categoryTicks,
+    categoryAverageY,
+    dayAxisMax,
+    dayTicks,
+    dayAverageY,
+    totalComments,
+  } = chartData;
 
   return (
     <div
@@ -182,7 +208,10 @@ export default function DashboardPage() {
           >
             Posts by Category
           </h3>
-          <div data-testid="chart-posts-by-category" className="h-[262.74px] w-full max-w-136 pl-0 pr-0">
+          <div
+            data-testid="chart-posts-by-category"
+            className="h-[262.74px] w-full max-w-136 pl-0 pr-0"
+          >
             <svg
               viewBox={`0 0 ${SVG_CHART_WIDTH} ${CATEGORY_GRAPH_HEIGHT}`}
               className="h-full w-full"
@@ -191,8 +220,13 @@ export default function DashboardPage() {
             >
               {categoryTicks.map((tick, index) => {
                 const y =
-                  CATEGORY_BAR_AREA_HEIGHT - CATEGORY_PLOT_HEIGHT +
-                  getPlotLineY(index, categoryTicks.length, CATEGORY_PLOT_HEIGHT);
+                  CATEGORY_BAR_AREA_HEIGHT -
+                  CATEGORY_PLOT_HEIGHT +
+                  getPlotLineY(
+                    index,
+                    categoryTicks.length,
+                    CATEGORY_PLOT_HEIGHT,
+                  );
 
                 return (
                   <text
@@ -211,11 +245,18 @@ export default function DashboardPage() {
                 );
               })}
 
-              <g transform={`translate(${AXIS_LABEL_WIDTH + CHART_AXIS_GAP} 0)`}>
+              <g
+                transform={`translate(${AXIS_LABEL_WIDTH + CHART_AXIS_GAP} 0)`}
+              >
                 {categoryTicks.map((tick, index) => {
                   const y =
-                    CATEGORY_BAR_AREA_HEIGHT - CATEGORY_PLOT_HEIGHT +
-                    getPlotLineY(index, categoryTicks.length, CATEGORY_PLOT_HEIGHT);
+                    CATEGORY_BAR_AREA_HEIGHT -
+                    CATEGORY_PLOT_HEIGHT +
+                    getPlotLineY(
+                      index,
+                      categoryTicks.length,
+                      CATEGORY_PLOT_HEIGHT,
+                    );
                   const isBaseline = index === categoryTicks.length - 1;
 
                   return (
@@ -235,15 +276,27 @@ export default function DashboardPage() {
                 <line
                   x1="0"
                   x2={CHART_SECTION_WIDTH}
-                  y1={CATEGORY_BAR_AREA_HEIGHT - CATEGORY_PLOT_HEIGHT + categoryAverageY}
-                  y2={CATEGORY_BAR_AREA_HEIGHT - CATEGORY_PLOT_HEIGHT + categoryAverageY}
+                  y1={
+                    CATEGORY_BAR_AREA_HEIGHT -
+                    CATEGORY_PLOT_HEIGHT +
+                    categoryAverageY
+                  }
+                  y2={
+                    CATEGORY_BAR_AREA_HEIGHT -
+                    CATEGORY_PLOT_HEIGHT +
+                    categoryAverageY
+                  }
                   stroke="#393CC9"
                   strokeWidth="1.5"
                   strokeDasharray="4 7"
                 />
 
                 {categoryValues.map((value, index) => {
-                  const height = getBarHeight(value, categoryAxisMax, CATEGORY_PLOT_HEIGHT);
+                  const height = getBarHeight(
+                    value,
+                    categoryAxisMax,
+                    CATEGORY_PLOT_HEIGHT,
+                  );
                   const x = index * (CATEGORY_BAR_WIDTH + CATEGORY_BAR_GAP);
                   const y = CATEGORY_BAR_AREA_HEIGHT - height;
 
@@ -261,7 +314,8 @@ export default function DashboardPage() {
 
                 {CATEGORY_ORDER.map((category, index) => {
                   const x =
-                    index * (CATEGORY_BAR_WIDTH + CATEGORY_BAR_GAP) + CATEGORY_BAR_WIDTH / 2;
+                    index * (CATEGORY_BAR_WIDTH + CATEGORY_BAR_GAP) +
+                    CATEGORY_BAR_WIDTH / 2;
 
                   return (
                     <text
@@ -294,7 +348,10 @@ export default function DashboardPage() {
           >
             Posts Day of Week
           </h3>
-          <div data-testid="chart-posts-day-of-week" className="h-[248.74px] w-full max-w-136 pl-0 pr-0">
+          <div
+            data-testid="chart-posts-day-of-week"
+            className="h-[248.74px] w-full max-w-136 pl-0 pr-0"
+          >
             <svg
               viewBox={`0 0 ${SVG_CHART_WIDTH} ${DAY_GRAPH_HEIGHT}`}
               className="h-full w-full"
@@ -303,7 +360,8 @@ export default function DashboardPage() {
             >
               {dayTicks.map((tick, index) => {
                 const y =
-                  DAY_BAR_AREA_HEIGHT - DAY_PLOT_HEIGHT +
+                  DAY_BAR_AREA_HEIGHT -
+                  DAY_PLOT_HEIGHT +
                   getPlotLineY(index, dayTicks.length, DAY_PLOT_HEIGHT);
 
                 return (
@@ -323,10 +381,13 @@ export default function DashboardPage() {
                 );
               })}
 
-              <g transform={`translate(${AXIS_LABEL_WIDTH + CHART_AXIS_GAP} 0)`}>
+              <g
+                transform={`translate(${AXIS_LABEL_WIDTH + CHART_AXIS_GAP} 0)`}
+              >
                 {dayTicks.map((tick, index) => {
                   const y =
-                    DAY_BAR_AREA_HEIGHT - DAY_PLOT_HEIGHT +
+                    DAY_BAR_AREA_HEIGHT -
+                    DAY_PLOT_HEIGHT +
                     getPlotLineY(index, dayTicks.length, DAY_PLOT_HEIGHT);
                   const isBaseline = index === dayTicks.length - 1;
 
@@ -355,7 +416,11 @@ export default function DashboardPage() {
                 />
 
                 {dayValues.map((value, index) => {
-                  const height = getBarHeight(value, dayAxisMax, DAY_PLOT_HEIGHT);
+                  const height = getBarHeight(
+                    value,
+                    dayAxisMax,
+                    DAY_PLOT_HEIGHT,
+                  );
                   const x = index * (DAY_BAR_WIDTH + DAY_BAR_GAP);
                   const y = DAY_BAR_AREA_HEIGHT - height;
 
@@ -372,7 +437,8 @@ export default function DashboardPage() {
                 })}
 
                 {DAY_ORDER.map((day, index) => {
-                  const x = index * DAY_LABEL_SLOT_WIDTH + DAY_LABEL_SLOT_WIDTH / 2;
+                  const x =
+                    index * DAY_LABEL_SLOT_WIDTH + DAY_LABEL_SLOT_WIDTH / 2;
 
                   return (
                     <text

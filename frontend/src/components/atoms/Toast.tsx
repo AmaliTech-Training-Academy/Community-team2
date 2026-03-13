@@ -1,4 +1,10 @@
-import React, { createContext, useCallback, useContext, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Toast as ToastType } from "../../types";
 import SuccessIcon from "../../assets/images/success.svg?react";
 import CloseIcon from "../../assets/images/close.svg?react";
@@ -32,7 +38,7 @@ const TOAST_STYLES: Record<
   },
 };
 
-export function ToastProvider({ children }: { children: React.ReactNode }) {
+export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastType[]>([]);
   const add = useCallback(
     (message: string, type: ToastType["type"] = "success") => {
@@ -58,7 +64,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               key={t.id}
               data-testid={`toast-${t.type}`}
               data-toast-id={t.id}
-              className={`toast-in flex items-center gap-4 rounded-xl px-5 py-4 shadow-lg border ${s.wrap} min-w-80 max-w-96 pointer-events-auto`}
+              className={`toast-in flex items-center gap-4 rounded-xl px-5 py-4 shadow-lg  ${s.wrap} min-w-80 max-w-96 pointer-events-auto`}
             >
               <div
                 className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${s.iconBox}`}
@@ -81,7 +87,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 className={`ml-auto w-8 h-8 rounded-lg flex items-center justify-center ${s.close}`}
                 aria-label="Close"
               >
-                <CloseIcon aria-hidden="true" className="h-4 w-4" />
+                <CloseIcon
+                  aria-hidden="true"
+                  className="h-4 w-4 text-[#046C4E]"
+                />
               </button>
             </div>
           );
