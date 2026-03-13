@@ -127,7 +127,10 @@ resource "aws_iam_role_policy" "secrets_access" {
       ]
       Resource = [
         var.db_credentials_secret_arn,
-        var.jwt_secret_arn
+        var.jwt_secret_arn,
+        var.cloudinary_secret_arn,
+        var.email_secret_arn,
+        var.frontend_urls_secret_arn
       ]
     }]
   })
@@ -308,7 +311,7 @@ resource "aws_lb_target_group" "airflow" {
   target_type = "ip"
 
   health_check {
-    path                = "/health"
+    path                = "/airflow/health"
     healthy_threshold   = 2
     unhealthy_threshold = 3
     timeout             = 5
@@ -366,6 +369,34 @@ resource "aws_ecs_task_definition" "backend" {
       {
         name      = "JWT_SECRET"
         valueFrom = var.jwt_secret_arn
+      },
+      {
+        name      = "CLOUD_NAME"
+        valueFrom = "${var.cloudinary_secret_arn}:CLOUD_NAME::"
+      },
+      {
+        name      = "CLOUD_API"
+        valueFrom = "${var.cloudinary_secret_arn}:CLOUD_API::"
+      },
+      {
+        name      = "CLOUD_SECRET"
+        valueFrom = "${var.cloudinary_secret_arn}:CLOUD_SECRET::"
+      },
+      {
+        name      = "EMAIL"
+        valueFrom = "${var.email_secret_arn}:EMAIL::"
+      },
+      {
+        name      = "EMPASS"
+        valueFrom = "${var.email_secret_arn}:EMPASS::"
+      },
+      {
+        name      = "FRONTEND_URL"
+        valueFrom = "${var.frontend_urls_secret_arn}:FRONTEND_URL::"
+      },
+      {
+        name      = "FRONTEND_URL_RESET"
+        valueFrom = "${var.frontend_urls_secret_arn}:FRONTEND_URL_RESET::"
       }
     ]
     logConfiguration = {
@@ -545,6 +576,10 @@ resource "aws_ecs_task_definition" "airflow" {
       {
         name  = "AIRFLOW__WEBSERVER__BASE_URL"
         value = "http://localhost:8080/airflow"
+      },
+      {
+        name  = "AIRFLOW__DATABASE__SQL_ALCHEMY_CONN"
+        value = "postgresql+psycopg2://postgres:postgres@${split(":", var.db_endpoint)[0]}:5432/communityboard"
       },
       {
         name  = "SOURCE_DB_HOST"
