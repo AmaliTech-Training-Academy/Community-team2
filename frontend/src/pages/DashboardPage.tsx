@@ -9,7 +9,7 @@ import CommentsStatIcon from "../assets/images/comments-stat.svg?react";
 
 const NAVY = "#395362";
 const CATEGORY_ORDER = ["Events", "Discussion", "News", "Alert"] as const;
-const DAY_ORDER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+const DAY_ORDER = ["Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"] as const;
 const AXIS_LABEL_WIDTH = 16;
 const CHART_AXIS_GAP = 16;
 const CHART_SECTION_WIDTH = 512;
