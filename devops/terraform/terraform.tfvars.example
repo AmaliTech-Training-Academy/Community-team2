@@ -1,7 +1,29 @@
-aws_region   = "us-east-1"
-project_name = "communityboard"
-db_username  = "postgres"
-db_password  = "your-secure-password-here"
-jwt_secret   = "communityboard-secret-key-amalitech-2024"
-alert_email  = "your-email@example.com"
-environment  = "development"
+# ============================================================================
+# Terraform Variables Example
+# ============================================================================
+# Copy this file to terraform.tfvars and fill in your actual values
+# NEVER commit terraform.tfvars to version control!
+# ============================================================================
+
+# Database credentials
+db_username = "postgres"
+db_password = "your-secure-database-password"
+
+# JWT secret for authentication
+jwt_secret = "your-jwt-secret-key"
+
+# Cloudinary configuration
+cloudinary_cloud_name  = "your-cloudinary-cloud-name"
+cloudinary_api_key     = "your-cloudinary-api-key"
+cloudinary_api_secret  = "your-cloudinary-api-secret"
+
+# Email configuration
+email_address  = "your-email@example.com"
+email_password = "your-email-app-password"
+
+# Frontend URLs (update after ALB is created)
+frontend_url       = "http://your-alb-dns.elb.amazonaws.com/"
+frontend_url_reset = "http://your-alb-dns.elb.amazonaws.com/reset-password"
+
+# CloudWatch alerts
+alert_email = "alerts@example.com"
