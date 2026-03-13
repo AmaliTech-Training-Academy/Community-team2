@@ -48,6 +48,18 @@ variable "jwt_secret_arn" {
   type = string
 }
 
+variable "cloudinary_secret_arn" {
+  type = string
+}
+
+variable "email_secret_arn" {
+  type = string
+}
+
+variable "frontend_urls_secret_arn" {
+  type = string
+}
+
 variable "backend_image_url" {
   type = string
 }

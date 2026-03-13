@@ -170,6 +170,55 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
   # Stage 3: Build & Scan Images, then Push to ECR
+  push-airflow:
+    name: Build, Scan & Push Airflow
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [scan-vulnerabilities]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build airflow image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./data-engineering
+          load: true
+          tags: ${{ env.PROJECT_NAME }}-airflow:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Scan airflow image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.PROJECT_NAME }}-airflow:${{ github.sha }}'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+      
+      - name: Setup AWS and ECR
+        id: aws-setup
+        uses: ./.github/actions/aws-setup
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Tag and push to ECR
+        run: |
+          docker tag ${{ env.PROJECT_NAME }}-airflow:${{ github.sha }} ${{ steps.aws-setup.outputs.ecr-registry }}/${{ env.PROJECT_NAME }}-airflow:${{ github.sha }}
+          docker push ${{ steps.aws-setup.outputs.ecr-registry }}/${{ env.PROJECT_NAME }}-airflow:${{ github.sha }}
+          if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.ref }}" = "refs/heads/Develop" ]; then
+            docker tag ${{ env.PROJECT_NAME }}-airflow:${{ github.sha }} ${{ steps.aws-setup.outputs.ecr-registry }}/${{ env.PROJECT_NAME }}-airflow:latest
+            docker push ${{ steps.aws-setup.outputs.ecr-registry }}/${{ env.PROJECT_NAME }}-airflow:latest
+          fi
+      
+      - name: Cleanup
+        if: always()
+        run: docker system prune -af --volumes
+
   push-backend:
     name: Build, Scan & Push Backend
     runs-on: ubuntu-latest
@@ -272,7 +321,7 @@ jobs:
     name: Deploy to AWS
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [push-backend, push-frontend]
+    needs: [push-backend, push-frontend, push-airflow]
     environment:
       name: ${{ github.event.inputs.environment || 'development' }}
       url: http://${{ steps.get-url.outputs.alb_dns }}
@@ -298,14 +347,7 @@ jobs:
         run: |
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.PROJECT_NAME }}-backend --query 'taskDefinition' --region ${{ env.AWS_REGION }})
           NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-backend:${{ github.sha }}" \
-            '.containerDefinitions[0].image = $IMAGE |
-             .containerDefinitions[0].healthCheck = {
-               "command": ["CMD-SHELL", "curl -f http://localhost:8080/v3/api-docs || exit 1"],
-               "interval": 30,
-               "timeout": 5,
-               "retries": 3,
-               "startPeriod": 90
-             } | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+            '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
           echo "$NEW_TASK_DEF" > backend-task-def.json
           aws ecs register-task-definition --cli-input-json file://backend-task-def.json --region ${{ env.AWS_REGION }}
       
@@ -317,6 +359,16 @@ jobs:
              del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
           echo "$NEW_TASK_DEF" > frontend-task-def.json
           aws ecs register-task-definition --cli-input-json file://frontend-task-def.json --region ${{ env.AWS_REGION }}
+      
+      - name: Update airflow task definition
+        run: |
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.PROJECT_NAME }}-airflow --query 'taskDefinition' --region ${{ env.AWS_REGION }})
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMAGE "${{ steps.ecr-registry.outputs.registry }}/${{ env.PROJECT_NAME }}-airflow:${{ github.sha }}" \
+            '.containerDefinitions[0].image = $IMAGE |
+             .containerDefinitions[0].command = ["airflow", "standalone"] |
+             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+          echo "$NEW_TASK_DEF" > airflow-task-def.json
+          aws ecs register-task-definition --cli-input-json file://airflow-task-def.json --region ${{ env.AWS_REGION }}
       
       - name: Update ECS services
         run: |
@@ -336,6 +388,14 @@ jobs:
             --force-new-deployment \
             --region ${{ env.AWS_REGION }} \
             --no-cli-pager > /dev/null
+          
+          aws ecs update-service \
+            --cluster ${{ env.PROJECT_NAME }}-cluster \
+            --service ${{ env.PROJECT_NAME }}-airflow \
+            --task-definition ${{ env.PROJECT_NAME }}-airflow \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }} \
+            --no-cli-pager > /dev/null
       
       - name: Wait for deployment
         run: |
@@ -344,7 +404,7 @@ jobs:
           MAX_ATTEMPTS=30
           POLL_INTERVAL=10
           
-          for SERVICE_NAME in "${{ env.PROJECT_NAME }}-backend" "${{ env.PROJECT_NAME }}-frontend"; do
+          for SERVICE_NAME in "${{ env.PROJECT_NAME }}-backend" "${{ env.PROJECT_NAME }}-frontend" "${{ env.PROJECT_NAME }}-airflow"; do
             echo "Waiting for $SERVICE_NAME to stabilize..."
             ATTEMPT=0
             while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
@@ -444,3 +504,4 @@ jobs:
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- Frontend: http://${{ steps.get-url.outputs.alb_dns }}" >> $GITHUB_STEP_SUMMARY
           echo "- Backend: http://${{ steps.get-url.outputs.alb_dns }}/api" >> $GITHUB_STEP_SUMMARY
+          echo "- Airflow: http://${{ steps.get-url.outputs.alb_dns }}/airflow" >> $GITHUB_STEP_SUMMARY

@@ -43,7 +43,15 @@ def _resolve_env_variables(value):
                     )
                 env_value = default
 
-            return _coerce_placeholder_value(env_value, default)
+            # Coerce string values to appropriate types
+            if env_value.lower() in ('true', 'false'):
+                return env_value.lower() == 'true'
+            if env_value.isdigit():
+                return int(env_value)
+            try:
+                return float(env_value)
+            except ValueError:
+                return env_value
 
     return value
 

@@ -1,7 +1,7 @@
 aws_region   = "eu-west-1"
 project_name = "communityboard"
 db_username  = "postgres"
-db_password  = "CommunityBoard2024!SecurePass"
+db_password  = "postgres"
 jwt_secret   = "communityboard-jwt-secret-2024"
 alert_email  = "ops-team@amalitech.com"
 environment  = "development"

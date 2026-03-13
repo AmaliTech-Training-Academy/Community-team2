@@ -39,9 +39,9 @@ public class User {
     @Column(nullable = false)
     private Long id;
 
-    @Column(unique = true)
+    @Column(unique = true, length = 50)
     @NotBlank(message = "username cannot be empty")
-    @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")
+    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
     @Pattern(regexp = "^[A-Za-z0-9 ]+$", message = "Name must contain only letters and numbers")
     private String username;
 

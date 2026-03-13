@@ -54,3 +54,46 @@ variable "environment" {
   type        = string
   default     = "development"
 }
+
+# Cloudinary configuration
+variable "cloudinary_cloud_name" {
+  description = "Cloudinary cloud name"
+  type        = string
+  sensitive   = true
+}
+
+variable "cloudinary_api_key" {
+  description = "Cloudinary API key"
+  type        = string
+  sensitive   = true
+}
+
+variable "cloudinary_api_secret" {
+  description = "Cloudinary API secret"
+  type        = string
+  sensitive   = true
+}
+
+# Email configuration
+variable "email_address" {
+  description = "Email address for application notifications"
+  type        = string
+  sensitive   = true
+}
+
+variable "email_password" {
+  description = "Email password/app password"
+  type        = string
+  sensitive   = true
+}
+
+# Frontend URLs
+variable "frontend_url" {
+  description = "Frontend application URL"
+  type        = string
+}
+
+variable "frontend_url_reset" {
+  description = "Frontend password reset URL"
+  type        = string
+}
