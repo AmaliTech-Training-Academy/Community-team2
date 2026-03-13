@@ -87,6 +87,11 @@ const RESOURCE_CACHE_TTL_MS = 60_000;
 const resourceCache = new Map<string, { value: unknown; expiresAt: number }>();
 const inFlightRequests = new Map<string, Promise<unknown>>();
 
+type BackendPagedResponse<T> =
+  | T[]
+  | BackendPage<T>
+  | ResponseDto<BackendPage<T>>;
+
 function readCachedResource<T>(key: string): T | undefined {
   const cached = resourceCache.get(key);
 
@@ -171,6 +176,73 @@ function unwrapPage<T>(
     items: data.content ?? [],
     total: data.totalElements ?? data.content?.length ?? 0,
   };
+}
+
+async function fetchAllPaged<T>(
+  path: string,
+  params?: Record<string, unknown>,
+  options?: {
+    pageSize?: number;
+    concurrency?: number;
+  },
+): Promise<T[]> {
+  const pageSize = options?.pageSize ?? DEFAULT_PAGE_PARAMS.size;
+  const concurrency = Math.max(1, options?.concurrency ?? 4);
+
+  const firstResponse = await axiosInstance.get<BackendPagedResponse<T>>(path, {
+    params: {
+      ...(params ?? {}),
+      page: 0,
+      size: pageSize,
+    },
+  });
+
+  const firstData = unwrapDto(firstResponse.data as BackendPagedResponse<T>);
+
+  if (Array.isArray(firstData)) {
+    return firstData;
+  }
+
+  const firstPage = unwrapPage(firstResponse.data as BackendPagedResponse<T>);
+  const totalElements = firstData.totalElements ?? firstPage.total;
+  const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
+
+  const allItems: T[] = [...firstPage.items];
+
+  if (totalPages <= 1) {
+    return allItems;
+  }
+
+  const pages = Array.from({ length: totalPages - 1 }, (_, i) => i + 1);
+
+  for (let start = 0; start < pages.length; start += concurrency) {
+    const batch = pages.slice(start, start + concurrency);
+
+    const results = await Promise.allSettled(
+      batch.map(async (page) => {
+        const response = await axiosInstance.get<BackendPagedResponse<T>>(
+          path,
+          {
+            params: {
+              ...(params ?? {}),
+              page,
+              size: pageSize,
+            },
+          },
+        );
+
+        return unwrapPage(response.data as BackendPagedResponse<T>).items;
+      }),
+    );
+
+    results.forEach((result) => {
+      if (result.status === "fulfilled") {
+        allItems.push(...result.value);
+      }
+    });
+  }
+
+  return allItems;
 }
 
 function normalizeRole(role?: string): UserRole {
@@ -442,14 +514,14 @@ export async function mapCreatedOrUpdatedComment(
 
 export async function buildAnalytics(): Promise<Analytics> {
   const [posts, comments, categories] = await Promise.all([
-    fetchPostsRaw(),
-    fetchCommentsRaw().catch(() => []),
-    fetchCategories().catch(() => []),
+    fetchAllPaged<BackendPostResponse>("/posts"),
+    fetchAllPaged<BackendCommentResponse>("/comments").catch(() => []),
+    fetchAllPaged<BackendCategoryResponse>("/categories").catch(() => []),
   ]);
 
   const categoriesById = buildLookup(categories);
   const categoryBreakdown = Object.fromEntries(
-    categories.map((category) => [category.name, 0]),
+    categories.map((category) => [normalizeCategory(category.name), 0]),
   ) as Record<string, number>;
 
   posts.forEach((post) => {
