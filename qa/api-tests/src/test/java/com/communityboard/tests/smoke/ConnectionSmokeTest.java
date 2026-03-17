@@ -17,121 +17,102 @@ import static org.hamcrest.Matchers.*;
  * reachable.
  *
  * <p>
- * This test class serves one purpose only (SRP): verify that the backend is up
- * and the {@code /api/v1/categories} endpoint is responding correctly.
- *
- * <p>
- * It intentionally avoids authentication so failures here point directly to
- * infrastructure / connectivity problems, not auth issues.
- *
- * <p>
- * Allure metadata:
- * <ul>
- * <li>{@code @Epic} → high-level product area grouping in the report</li>
- * <li>{@code @Feature} → feature within that epic</li>
- * <li>{@code @Story} → the user story being validated</li>
- * <li>{@code @Severity}→ how critical this test is if it fails</li>
- * </ul>
+ * Single responsibility: verify infrastructure is alive before the full suite
+ * runs.
+ * Avoids authentication deliberately — a failure here means a connectivity
+ * problem,
+ * not an auth problem.
  */
 @Epic("CommunityBoard API")
 @Feature("Connectivity")
-@Tag("smoke") // run only smoke tests with: mvn test -Dgroups=smoke
+@Tag("smoke") // run with: mvn test -Dgroups=smoke
 public class ConnectionSmokeTest extends BaseApiTest {
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Tests
-    // ─────────────────────────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────────────────────────────
+        // Test 1 — Happy path: categories endpoint returns 200
+        // ─────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Verifies that GET /api/v1/categories returns HTTP 200 and a non-null body,
-     * confirming the backend is reachable at {@link TestConfig#BASE_URL}.
-     */
-    @Test
-    @DisplayName("GET /api/v1/categories → 200 OK (connectivity smoke check)")
-    @Story("As QA I can verify the API is reachable before running the full suite")
-    @Severity(SeverityLevel.BLOCKER) // If this fails, nothing else will work
-    @Description("Smoke test: sends an unauthenticated GET to /api/v1/categories. "
-            + "A 200 response confirms: (1) the ngrok tunnel is alive, "
-            + "(2) Spring Boot has started, and "
-            + "(3) the categories endpoint is publicly accessible (no auth required). "
-            + "Allure automatically attaches request and response details.")
-    void categoriesEndpoint_shouldReturn200() {
-        // ── ARRANGE ──────────────────────────────────────────────────────────
-        // requestSpec already has baseUri, content-type, ngrok header, and the
-        // AllureRestAssured filter — nothing additional needed for a public endpoint.
+        @Test
+        @DisplayName("GET /api/v1/categories → 200 OK (connectivity smoke check)")
+        @Story("API is reachable and categories endpoint is publicly accessible")
+        @Severity(SeverityLevel.BLOCKER)
+        @Description("Unauthenticated GET to /api/v1/categories. "
+                        + "Confirms ngrok tunnel alive, Spring Boot started, and endpoint public.")
+        void categoriesEndpoint_shouldReturn200() {
 
-        // ── ACT ──────────────────────────────────────────────────────────────
-        Response response = given()
-                .spec(requestSpec)
-                // Enable verbose request/response logging to stdout (helpful during CI
-                // debugging)
-                .log().ifValidationFails()
-                .when()
-                .get(TestConfig.CATEGORIES_ENDPOINT) // GET /api/v1/categories
-                .then()
-                .log().ifValidationFails() // log the response only when assertions fail
-                .extract()
-                .response();
+                // ── ACT ────────────────────────────────────────────────────────────────
+                // Always log both request and response to stdout so CI pipelines have full
+                // visibility even before Allure picks up the results directory.
+                Response response = given()
+                                .spec(requestSpec)
+                                .log().all()
+                                .when()
+                                .get(TestConfig.CATEGORIES_ENDPOINT)
+                                .then()
+                                .log().all()
+                                .extract()
+                                .response();
 
-        // ── ASSERT ───────────────────────────────────────────────────────────
+                // ── REPORT (attach BEFORE asserting — Allure captures data even on failure) ──
+                attachToReport("Response Metadata",
+                                "Status : " + response.statusCode() + "\n"
+                                                + "Time   : " + response.time() + " ms\n"
+                                                + "URL    : " + TestConfig.BASE_URL + TestConfig.CATEGORIES_ENDPOINT);
+                attachJsonToReport("Categories Response Body", response.body().prettyPrint());
 
-        // 1. Verify HTTP status is exactly 200 OK
-        assertThat(
-                "Expected HTTP 200 from categories endpoint",
-                response.statusCode(),
-                equalTo(200));
+                // ── ASSERT ─────────────────────────────────────────────────────────────
 
-        // 2. Verify the response body is not empty / null
-        assertThat(
-                "Response body must not be null or empty",
-                response.body().asString(),
-                not(emptyOrNullString()));
+                // 1. HTTP 200 — include a helpful hint in the message pointing to ngrok
+                assertThat(
+                                "Expected HTTP 200 from " + TestConfig.CATEGORIES_ENDPOINT
+                                                + " — check that ngrok tunnel is alive (BASE_URL=" + TestConfig.BASE_URL
+                                                + ")",
+                                response.statusCode(),
+                                equalTo(200));
 
-        // 3. Verify response time is within acceptable bounds (10 s = slowest
-        // acceptable for ngrok)
-        assertThat(
-                "Response time exceeded " + TestConfig.CONNECTION_TIMEOUT_MS + " ms",
-                response.time(),
-                lessThan((long) TestConfig.CONNECTION_TIMEOUT_MS));
+                // 2. Body must be non-empty and NOT the ngrok browser-warning HTML page
+                String body = response.body().asString();
+                assertThat("Response body must not be null or empty", body, not(emptyOrNullString()));
+                assertThat("Response must not be the ngrok browser-warning HTML page — add ngrok header",
+                                body.trim(), not(startsWith("<!DOCTYPE")));
 
-        // ── REPORT ───────────────────────────────────────────────────────────
-        // Attach the raw response body to the Allure report for easy inspection
-        attachJsonToReport("Categories Response Body", response.body().prettyPrint());
+                // 3. Response time within the configured ceiling
+                assertThat(
+                                "Response time exceeded " + TestConfig.CONNECTION_TIMEOUT_MS + " ms",
+                                response.time(),
+                                lessThan((long) TestConfig.CONNECTION_TIMEOUT_MS));
 
-        // Attach key metadata as a plain-text note
-        attachToReport("Response Metadata",
-                "Status : " + response.statusCode() + "\n" +
-                        "Time   : " + response.time() + " ms\n" +
-                        "URL    : " + TestConfig.BASE_URL + TestConfig.CATEGORIES_ENDPOINT);
+                log.info("Smoke test PASSED — {} → {} in {} ms",
+                                TestConfig.CATEGORIES_ENDPOINT, response.statusCode(), response.time());
+        }
 
-        log.info("Smoke test PASSED — {} responded in {} ms",
-                TestConfig.CATEGORIES_ENDPOINT, response.time());
-    }
+        // ─────────────────────────────────────────────────────────────────────────
+        // Test 2 — Guard: unknown route returns a 4xx (not 200)
+        // ─────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Verifies that the API returns a proper error (4xx) for a non-existent
-     * endpoint,
-     * confirming that the server is handling routing correctly (not returning 200
-     * for everything).
-     */
-    @Test
-    @DisplayName("GET /api/v1/nonexistent → 404 Not Found")
-    @Story("API returns 404 for unknown routes")
-    @Severity(SeverityLevel.NORMAL)
-    void nonExistentEndpoint_shouldReturn4xx() {
-        // ── ACT + ASSERT (fluent chaining) ───────────────────────────────────
-        given()
-                .spec(requestSpec)
-                .when()
-                .get(TestConfig.API_PREFIX + "/this-endpoint-does-not-exist")
-                .then()
-                // Accept any 4xx status — different frameworks return 404 vs 405 for unknown
-                // paths
-                .statusCode(anyOf(
-                        equalTo(404),
-                        equalTo(405),
-                        equalTo(400)));
+        @Test
+        @DisplayName("GET /api/v1/nonexistent → 4xx (routing guard)")
+        @Story("API returns a 4xx error for unknown routes")
+        @Severity(SeverityLevel.NORMAL)
+        void nonExistentEndpoint_shouldReturn4xx() {
 
-        log.info("404/4xx guard smoke test PASSED");
-    }
+                Response response = given()
+                                .spec(requestSpec)
+                                .when()
+                                .get(TestConfig.API_PREFIX + "/this-endpoint-does-not-exist-abc123")
+                                .then()
+                                .extract()
+                                .response();
+
+                // Attach status for Allure visibility
+                attachToReport("4xx Guard Status", "HTTP " + response.statusCode());
+
+                // Accept 404 or 405 — Spring Boot and ngrok may differ on unknown paths
+                assertThat(
+                                "Expected 404 or 405 for an unknown route, got: " + response.statusCode(),
+                                response.statusCode(),
+                                anyOf(equalTo(404), equalTo(405), equalTo(400)));
+
+                log.info("4xx guard smoke test PASSED — got HTTP {}", response.statusCode());
+        }
 }
